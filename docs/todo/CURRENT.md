@@ -1,6 +1,7 @@
 # Current TODO - ocserv-agent
 
-**Last Updated:** 2025-01-23 (auto-generated)
+**Last Updated:** 2025-01-23
+**Last Commit:** cc69c82 - chore(setup): initial project structure
 
 ## 🔴 Critical (Must do now)
 
@@ -22,19 +23,28 @@
 
 - [x] **[SETUP]** Create project directory structure
   - ✅ Completed: 2025-01-23
+  - Commit: cc69c82
   - All directories created
 
 - [x] **[SETUP]** Create go.mod with dependencies
   - ✅ Completed: 2025-01-23
+  - Commit: cc69c82
   - gRPC v1.69.4, protobuf v1.36.3, zerolog v1.33.0
 
 - [x] **[SETUP]** Create proto definitions
   - ✅ Completed: 2025-01-23
+  - Commit: cc69c82
   - File: pkg/proto/agent/v1/agent.proto
 
 - [x] **[SETUP]** Create Podman Compose configuration
   - ✅ Completed: 2025-01-23
+  - Commit: cc69c82
   - Dev, test, build compose files created
+
+- [x] **[SETUP]** Create Dockerfile, systemd service, README
+  - ✅ Completed: 2025-01-23
+  - Commit: cc69c82
+  - Multi-stage Dockerfile, hardened systemd service, comprehensive README
 
 - [ ] **[FEATURE]** Implement HealthCheck endpoint (Tier 1)
   - Priority: P1
@@ -49,11 +59,9 @@
 
 ## 🟢 Medium Priority (Phase 1)
 
-- [ ] **[DOCS]** Complete README.md with usage examples
-- [ ] **[INFRA]** Create systemd service file
-- [ ] **[INFRA]** Complete Dockerfile multi-stage build
 - [ ] **[TEST]** Add unit tests for config package
 - [ ] **[TEST]** Add unit tests for gRPC handlers
+- [ ] **[FEATURE]** Generate protobuf code (make compose-build with proto-gen)
 
 ## 🔵 Low Priority (Phase 2+)
 
@@ -73,6 +81,16 @@ None yet
 
 ## 📊 Progress
 
-- Phase 1 Core Setup: 6/10 (60%)
+- Phase 1 Core Setup: 5/9 (55%)
+  - ✅ Project structure
+  - ✅ Dependencies
+  - ✅ Proto definitions
+  - ✅ Compose infrastructure
+  - ✅ Documentation
+  - ⏳ Config package
+  - ⏳ gRPC server
+  - ⏳ HealthCheck
+  - ⏳ Main entrypoint
 - Tests: 0% coverage
-- Documentation: 30% complete
+- Documentation: 60% complete
+- First commit: ✅ cc69c82
