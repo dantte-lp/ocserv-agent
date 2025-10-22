@@ -1,0 +1,25 @@
+# Per-group configuration for remote-workers group
+
+# Corporate network access only
+route = 172.16.0.0/255.255.0.0
+
+# Corporate DNS
+dns = 172.16.0.10
+dns = 172.16.0.11
+
+# Standard session settings
+max-same-clients = 2
+idle-timeout = 3600
+session-timeout = 28800
+
+# Restrict to routes only
+restrict-user-to-routes = true
+
+# Banner
+banner = "Remote Workers VPN - Corporate network access"
+
+# No compression to save bandwidth
+compression = false
+
+# Deny roaming
+deny-roaming = true

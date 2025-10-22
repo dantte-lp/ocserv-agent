@@ -1,0 +1,20 @@
+# Per-user configuration for admin
+
+# Full tunnel - route everything through VPN
+route = default
+
+# DNS
+dns = 8.8.8.8
+
+# Allow unlimited concurrent sessions
+max-same-clients = 10
+
+# Longer session timeout
+idle-timeout = 7200
+session-timeout = 172800
+
+# Explicit IPv4
+explicit-ipv4 = 192.168.1.10
+
+# Banner
+banner = "Admin access - full tunnel enabled"

@@ -12,10 +12,11 @@ import (
 
 // Manager provides high-level ocserv management with security
 type Manager struct {
-	systemctl      *SystemctlManager
-	occtl          *OcctlManager
+	systemctl       *SystemctlManager
+	occtl           *OcctlManager
+	configReader    *ConfigReader
 	allowedCommands map[string]bool
-	logger         zerolog.Logger
+	logger          zerolog.Logger
 }
 
 // NewManager creates a new ocserv manager
@@ -36,6 +37,9 @@ func NewManager(cfg *config.Config, logger zerolog.Logger) *Manager {
 		logger,
 	)
 
+	// Create config reader
+	configReader := NewConfigReader(logger)
+
 	// Build allowed commands map
 	allowedMap := make(map[string]bool)
 	for _, cmd := range cfg.Security.AllowedCommands {
@@ -45,6 +49,7 @@ func NewManager(cfg *config.Config, logger zerolog.Logger) *Manager {
 	return &Manager{
 		systemctl:       systemctl,
 		occtl:           occtl,
+		configReader:    configReader,
 		allowedCommands: allowedMap,
 		logger:          logger,
 	}
@@ -359,4 +364,34 @@ func (m *Manager) GetSystemctlManager() *SystemctlManager {
 // GetOcctlManager returns the occtl manager (for direct access if needed)
 func (m *Manager) GetOcctlManager() *OcctlManager {
 	return m.occtl
+}
+
+// GetConfigReader returns the config reader (for direct access if needed)
+func (m *Manager) GetConfigReader() *ConfigReader {
+	return m.configReader
+}
+
+// ReadOcservConf reads the main ocserv configuration file
+func (m *Manager) ReadOcservConf(ctx context.Context, path string) (*ConfigFile, error) {
+	return m.configReader.ReadOcservConf(ctx, path)
+}
+
+// ReadUserConfig reads a per-user configuration file
+func (m *Manager) ReadUserConfig(ctx context.Context, baseDir, username string) (*ConfigFile, error) {
+	return m.configReader.ReadUserConfig(ctx, baseDir, username)
+}
+
+// ReadGroupConfig reads a per-group configuration file
+func (m *Manager) ReadGroupConfig(ctx context.Context, baseDir, groupname string) (*ConfigFile, error) {
+	return m.configReader.ReadGroupConfig(ctx, baseDir, groupname)
+}
+
+// ListUserConfigs lists all available per-user configuration files
+func (m *Manager) ListUserConfigs(ctx context.Context, baseDir string) ([]string, error) {
+	return m.configReader.ListUserConfigs(ctx, baseDir)
+}
+
+// ListGroupConfigs lists all available per-group configuration files
+func (m *Manager) ListGroupConfigs(ctx context.Context, baseDir string) ([]string, error) {
+	return m.configReader.ListGroupConfigs(ctx, baseDir)
 }

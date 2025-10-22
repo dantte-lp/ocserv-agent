@@ -132,3 +132,20 @@
   - All 3 critical tasks done
   - ExecuteCommand RPC fully functional
   - Production-ready security implementation
+
+### Config File Reading (Medium Priority)
+
+- [x] **[FEATURE]** Implemented config file reading (Commit: pending)
+  - internal/ocserv/config.go
+  - ConfigReader for parsing ocserv configuration files
+  - Support for ocserv.conf (main config)
+  - Support for config-per-user/* files
+  - Support for config-per-group/* files
+  - Multi-value key support (routes, dns, etc.)
+  - Comment handling and inline comment stripping
+  - Error handling and validation
+  - Context cancellation support
+  - Helper methods: GetSetting, GetSettings, HasSetting, AllKeys
+  - Integrated into Manager struct
+  - List functions for user/group configs
+  - Test fixtures created for all config types

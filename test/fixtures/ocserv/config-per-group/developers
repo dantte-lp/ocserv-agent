@@ -1,0 +1,23 @@
+# Per-group configuration for developers group
+
+# Internal development networks
+route = 10.20.0.0/255.255.0.0
+route = 10.30.0.0/255.255.0.0
+
+# Development DNS servers
+dns = 10.20.0.1
+
+# Allow multiple sessions for developers
+max-same-clients = 5
+
+# Longer idle timeout for active development
+idle-timeout = 7200
+
+# Banner
+banner = "Developer VPN - Internal network access"
+
+# Tunnel all DNS through VPN
+tunnel-all-dns = true
+
+# Compression
+compression = true

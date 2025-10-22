@@ -1,0 +1,27 @@
+# Per-user configuration for testuser
+
+# User-specific routes
+route = 10.10.0.0/255.255.0.0
+route = 172.20.0.0/255.255.0.0
+
+# DNS override for this user
+dns = 10.0.0.1
+dns = 10.0.0.2
+
+# Idle timeout override
+idle-timeout = 3600
+
+# Max same clients
+max-same-clients = 3
+
+# No specific routes to exclude
+no-route = 192.168.100.0/255.255.255.0
+
+# Explicit IPv4
+explicit-ipv4 = 192.168.1.100
+
+# Deny roaming for this user
+deny-roaming = true
+
+# Custom banner
+banner = "Welcome testuser!"
