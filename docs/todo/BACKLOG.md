@@ -28,10 +28,29 @@
 
 ## Future Enhancements
 
-- [ ] Support for multiple control servers
+### ocserv 1.3.0 Utilities Support
+- [ ] **ocpasswd wrapper** - User password management
+  - Add password entries (username:groups:hash)
+  - Update passwords
+  - Delete users
+  - Lock/unlock accounts
+  - Integration with UpdateConfig RPC
+- [ ] **ocserv-genkey wrapper** - Certificate/key generation
+  - Generate server keys
+  - Generate client certificates
+  - CA management
+
+### Additional Features
+- [ ] Support for multiple control servers (failover)
 - [ ] Configuration hot-reload on SIGHUP
-- [ ] Prometheus metrics endpoint
+- [ ] Prometheus metrics endpoint (/metrics)
 - [ ] Rate limiting for gRPC calls
-- [ ] User management (ocpasswd wrapper)
-- [ ] Certificate rotation
+- [ ] Certificate rotation with zero downtime
 - [ ] Automated backup scheduling
+- [ ] Config validation before apply
+- [ ] Rollback on failed config updates
+- [ ] Support for ocserv 1.3.0 new features:
+  - Camouflage mode configuration
+  - HTTP security headers
+  - Ban system management
+  - Network namespace configuration
