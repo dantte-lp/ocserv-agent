@@ -1,38 +1,21 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-01-23
-**Last Commit:** 110d823 - feat(grpc): implement gRPC server with mTLS and HealthCheck
+**Last Commit:** 56da3c5 - feat(ocserv): implement Phase 2 ocserv integration
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
-All critical Phase 1 tasks are done. Agent has:
-- ✅ Configuration loading and validation
-- ✅ gRPC server with mTLS
-- ✅ HealthCheck endpoint (Tier 1)
-- ✅ Graceful shutdown
+All critical Phase 1 tasks done ✅
 
-## 🔴 Critical (Phase 2 - ocserv Integration)
+## 🎉 Phase 2: ocserv Integration - COMPLETED!
 
-- [ ] **[FEATURE]** Implement systemctl wrapper (internal/ocserv/systemctl.go)
-  - Priority: P0
-  - Assigned: -
-  - Deadline: Phase 2
-  - Blockers: None
-  - Notes: Start, stop, restart, reload, status for ocserv service
+All critical Phase 2 tasks done ✅
+- ✅ Systemctl wrapper (start, stop, restart, reload, status)
+- ✅ Occtl wrapper (show users/status/stats, disconnect)
+- ✅ Command validation and security (whitelist, sanitization, injection protection)
+- ✅ ExecuteCommand RPC fully functional
 
-- [ ] **[FEATURE]** Implement occtl command execution (internal/ocserv/occtl.go)
-  - Priority: P0
-  - Assigned: -
-  - Deadline: Phase 2
-  - Blockers: None
-  - Notes: show users, show status, show stats, disconnect user/id
-
-- [ ] **[FEATURE]** Implement command validation and security (internal/ocserv/manager.go)
-  - Priority: P0
-  - Assigned: -
-  - Deadline: Phase 2
-  - Blockers: None
-  - Notes: Whitelist checking, argument sanitization, command injection protection
+## 🔴 Critical (Next Steps)
 
 ## 🟡 High Priority (This week - Phase 1: Core)
 
@@ -85,24 +68,38 @@ All critical Phase 1 tasks are done. Agent has:
   - Commit: 110d823
   - Graceful shutdown with SIGTERM/SIGINT handling
 
-## 🟡 High Priority (Phase 2 continuation)
+## 🟡 High Priority (Phase 2 - Completed Tasks)
 
-- [ ] **[FEATURE]** Implement ExecuteCommand RPC handler
-  - Connect to internal/ocserv manager
-  - Return stdout, stderr, exit code
+- [x] **[FEATURE]** Implement systemctl wrapper
+  - ✅ Completed: 2025-01-23
+  - Commit: 56da3c5
+  - internal/ocserv/systemctl.go
+
+- [x] **[FEATURE]** Implement occtl wrapper
+  - ✅ Completed: 2025-01-23
+  - Commit: 56da3c5
+  - internal/ocserv/occtl.go
+
+- [x] **[FEATURE]** Implement command validation and security
+  - ✅ Completed: 2025-01-23
+  - Commit: 56da3c5
+  - internal/ocserv/manager.go
+
+- [x] **[FEATURE]** Update ExecuteCommand RPC handler
+  - ✅ Completed: 2025-01-23
+  - Commit: 56da3c5
+  - Full integration with ocserv manager
+
+- [x] **[DOCS]** Update release notes for v0.1.0
+  - ✅ Completed: 2025-01-23
+  - All features, commits, and statistics updated
+
+## 🟢 Medium Priority (Next: Config File Reading)
 
 - [ ] **[FEATURE]** Implement config file reading (internal/ocserv/config.go)
   - Read ocserv.conf
   - Read config-per-user/*
   - Read config-per-group/*
-
-- [ ] **[FEATURE]** Update ExecuteCommand handler to use ocserv manager
-  - Wire up systemctl and occtl commands
-  - Add proper error handling
-
-- [x] **[DOCS]** Update release notes for v0.1.0
-  - ✅ Completed: 2025-01-23
-  - All features, commits, and statistics updated
 
 ## 🟢 Medium Priority (Testing & Polish)
 
@@ -149,8 +146,14 @@ None yet
   - 1a97fe9: TODO update
   - a899a75: Config package
   - 110d823: gRPC server + HealthCheck + main
+  - f6b7436: Phase 1 completion docs
+  - 678b766: Exclude .claude
+  - 55bac55: Release notes update
+  - 56da3c5: Phase 2 ocserv integration ✅
 
 - **Tests:** 0% coverage (tests pending)
-- **Documentation:** 80% complete
+- **Documentation:** 85% complete
 - **Release notes:** v0.1.0 updated ✅
-- **Current Phase:** Phase 2 - ocserv Integration (0/9 tasks)
+- **Phase 1:** COMPLETED (100%) ✅
+- **Phase 2:** COMPLETED (100%) ✅
+- **Next Phase:** Phase 3 - Streaming & Advanced Features

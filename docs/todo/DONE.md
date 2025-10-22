@@ -97,3 +97,38 @@
 - [x] **[MILESTONE]** Phase 1 Core COMPLETED
   - All critical features implemented
   - Ready for testing
+
+### Phase 2: ocserv Integration
+
+- [x] **[FEATURE]** Implemented systemctl wrapper (Commit: 56da3c5)
+  - internal/ocserv/systemctl.go
+  - Service lifecycle: start, stop, restart, reload
+  - Status checks: is-active, is-enabled, detailed status
+  - Sudo support, timeout handling
+
+- [x] **[FEATURE]** Implemented occtl wrapper (Commit: 56da3c5)
+  - internal/ocserv/occtl.go
+  - Show users, status, statistics
+  - Disconnect user by username or session ID
+  - Output parsing for structured data
+
+- [x] **[FEATURE]** Implemented command validation and security (Commit: 56da3c5)
+  - internal/ocserv/manager.go
+  - Whitelist-based command filtering
+  - Argument validation and sanitization
+  - Command injection prevention
+  - Protection against shell metacharacters, directory traversal, null bytes
+
+- [x] **[FEATURE]** Integrated ocserv manager into gRPC server (Commit: 56da3c5)
+  - Updated ExecuteCommand handler
+  - Proper error handling and response formatting
+  - Returns stdout, stderr, exit code
+
+- [x] **[COMMIT]** docs: update release notes and TODO for Phase 2 (55bac55)
+
+- [x] **[COMMIT]** chore: exclude .claude directory (678b766)
+
+- [x] **[MILESTONE]** Phase 2 ocserv Integration COMPLETED
+  - All 3 critical tasks done
+  - ExecuteCommand RPC fully functional
+  - Production-ready security implementation
