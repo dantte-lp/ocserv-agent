@@ -15,7 +15,38 @@ All critical Phase 2 tasks done ✅
 - ✅ Command validation and security (whitelist, sanitization, injection protection)
 - ✅ ExecuteCommand RPC fully functional
 
-## 🔴 Critical (Next Steps)
+## 🔴 Critical (Next Steps - Phase 3)
+
+### Based on ocserv 1.3.0 Compatibility Analysis
+
+See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
+
+**High Priority:**
+- [ ] **[FEATURE]** Complete missing occtl commands
+  - show user [NAME], show id [ID]
+  - show sessions (all/valid), show session [SID]
+  - show ip bans, show ip ban points, unban ip
+  - show iroutes
+  - show events (real-time streaming)
+
+- [ ] **[FEATURE]** Implement ocpasswd wrapper
+  - User management (add, delete, lock, unlock)
+  - Password hashing (SHA-512/MD5)
+  - Group assignment
+  - Integration with UpdateConfig RPC
+
+- [ ] **[FEATURE]** Implement UpdateConfig RPC
+  - Main config updates (ocserv.conf)
+  - Per-user config updates
+  - Per-group config updates
+  - Backup/restore mechanism
+  - Validation and rollback
+
+- [ ] **[FEATURE]** Implement AgentStream RPC (bidirectional streaming)
+  - Heartbeat with exponential backoff
+  - Real-time event notifications
+  - Command execution via stream
+  - Metrics reporting
 
 ## 🟡 High Priority (This week - Phase 1: Core)
 

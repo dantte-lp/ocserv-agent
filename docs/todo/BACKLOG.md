@@ -1,20 +1,33 @@
 # Backlog - ocserv-agent
 
-## Phase 2: ocserv Integration (Week 2)
+**NOTE:** For detailed ocserv 1.3.0 compatibility roadmap, see `OCSERV_COMPATIBILITY.md`
 
-- [ ] systemctl wrapper implementation
-- [ ] occtl command execution with validation
-- [ ] Config file reading (main, per-user, per-group)
-- [ ] Command validation and security (whitelist, sanitization)
-- [ ] Backup/rollback for config changes
+## Phase 2: ocserv Integration (Week 2) - ✅ COMPLETED
 
-## Phase 3: Streaming (Week 3)
+- [x] systemctl wrapper implementation
+- [x] occtl command execution with validation (partial - 5/16 commands)
+- [x] Config file reading (main, per-user, per-group)
+- [x] Command validation and security (whitelist, sanitization)
+- [ ] Backup/rollback for config changes (moved to Phase 3)
 
-- [ ] Bidirectional streaming implementation
+## Phase 3: Streaming & Full ocserv Integration (Week 3-4)
+
+See `OCSERV_COMPATIBILITY.md` for complete breakdown.
+
+**High Priority:**
+- [ ] Complete all 16 occtl commands (currently 5/16)
+- [ ] ocpasswd wrapper for user management
+- [ ] UpdateConfig RPC with backup/rollback
+- [ ] Bidirectional streaming (AgentStream)
+- [ ] Unit tests (>80% coverage)
+
+**Medium Priority:**
+- [ ] Log streaming (StreamLogs RPC)
 - [ ] Heartbeat with exponential backoff
-- [ ] Log streaming (tail -f mode)
+- [ ] HealthCheck Tier 2 & 3
+- [ ] Enhanced metrics (Prometheus)
 - [ ] Reconnection logic with circuit breaker
-- [ ] Metrics collection and reporting
+- [ ] ocserv-fw firewall integration
 
 ## Phase 4: Production Ready (Week 4)
 
@@ -26,31 +39,17 @@
 - [ ] Performance testing
 - [ ] Security audit
 
-## Future Enhancements
+## Future Enhancements (Low Priority)
 
-### ocserv 1.3.0 Utilities Support
-- [ ] **ocpasswd wrapper** - User password management
-  - Add password entries (username:groups:hash)
-  - Update passwords
-  - Delete users
-  - Lock/unlock accounts
-  - Integration with UpdateConfig RPC
-- [ ] **ocserv-genkey wrapper** - Certificate/key generation
-  - Generate server keys
-  - Generate client certificates
-  - CA management
+**See `OCSERV_COMPATIBILITY.md` for detailed planning**
 
-### Additional Features
+- [ ] Virtual hosts support
+- [ ] RADIUS/Kerberos monitoring
+- [ ] Certificate management helpers
+- [ ] ocserv-script documentation (custom hooks)
 - [ ] Support for multiple control servers (failover)
-- [ ] Configuration hot-reload on SIGHUP
-- [ ] Prometheus metrics endpoint (/metrics)
-- [ ] Rate limiting for gRPC calls
-- [ ] Certificate rotation with zero downtime
 - [ ] Automated backup scheduling
-- [ ] Config validation before apply
-- [ ] Rollback on failed config updates
-- [ ] Support for ocserv 1.3.0 new features:
+- [ ] Advanced ocserv 1.3.0 features:
   - Camouflage mode configuration
-  - HTTP security headers
-  - Ban system management
+  - HTTP security headers management
   - Network namespace configuration
