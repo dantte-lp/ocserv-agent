@@ -1,7 +1,7 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** pending - feat(ocserv): implement config file reading
+**Last Commit:** cf0a6b2 - feat(ocserv): implement config file reading
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -97,8 +97,8 @@ All critical Phase 2 tasks done ✅
 ## 🟢 Medium Priority (Recently Completed)
 
 - [x] **[FEATURE]** Implement config file reading (internal/ocserv/config.go)
-  - ✅ Completed: 2025-01-23
-  - Commit: pending
+  - ✅ Completed: 2025-10-23
+  - Commit: cf0a6b2
   - Read ocserv.conf
   - Read config-per-user/*
   - Read config-per-group/*

@@ -135,7 +135,7 @@
 
 ### Config File Reading (Medium Priority)
 
-- [x] **[FEATURE]** Implemented config file reading (Commit: pending)
+- [x] **[FEATURE]** Implemented config file reading (Commit: cf0a6b2)
   - internal/ocserv/config.go
   - ConfigReader for parsing ocserv configuration files
   - Support for ocserv.conf (main config)
