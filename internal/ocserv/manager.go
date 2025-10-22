@@ -259,6 +259,181 @@ func (m *Manager) executeOcctl(ctx context.Context, args []string) (*CommandResu
 					stats.ActiveUsers, stats.TotalSessions, stats.TotalBytesIn, stats.TotalBytesOut),
 			}, nil
 
+		case "user":
+			if len(args) < 3 {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show user requires username",
+				}, fmt.Errorf("show user requires username")
+			}
+
+			user, err := m.occtl.ShowUser(ctx, args[2])
+			if err != nil {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: err.Error(),
+				}, err
+			}
+
+			return &CommandResult{
+				Success: true,
+				Stdout: fmt.Sprintf("User: %s (ID: %d)\nState: %s\nDevice: %s\nRemote IP: %s\nVPN IPv4: %s",
+					user.Username, user.ID, user.State, user.Device, user.RemoteIP, user.IPv4),
+			}, nil
+
+		case "id":
+			if len(args) < 3 {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show id requires connection ID",
+				}, fmt.Errorf("show id requires connection ID")
+			}
+
+			conn, err := m.occtl.ShowID(ctx, args[2])
+			if err != nil {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: err.Error(),
+				}, err
+			}
+
+			return &CommandResult{
+				Success: true,
+				Stdout: fmt.Sprintf("Connection ID: %d\nUser: %s\nState: %s\nDevice: %s\nRemote IP: %s",
+					conn.ID, conn.Username, conn.State, conn.Device, conn.RemoteIP),
+			}, nil
+
+		case "sessions":
+			if len(args) < 3 {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show sessions requires 'all' or 'valid'",
+				}, fmt.Errorf("show sessions requires 'all' or 'valid'")
+			}
+
+			switch args[2] {
+			case "all":
+				sessions, err := m.occtl.ShowSessionsAll(ctx)
+				if err != nil {
+					return &CommandResult{
+						Success:  false,
+						ErrorMsg: err.Error(),
+					}, err
+				}
+
+				return &CommandResult{
+					Success: true,
+					Stdout:  fmt.Sprintf("Total sessions: %d", len(sessions)),
+				}, nil
+
+			case "valid":
+				sessions, err := m.occtl.ShowSessionsValid(ctx)
+				if err != nil {
+					return &CommandResult{
+						Success:  false,
+						ErrorMsg: err.Error(),
+					}, err
+				}
+
+				return &CommandResult{
+					Success: true,
+					Stdout:  fmt.Sprintf("Valid sessions: %d", len(sessions)),
+				}, nil
+
+			default:
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: fmt.Sprintf("unknown sessions filter: %s", args[2]),
+				}, fmt.Errorf("unknown sessions filter: %s", args[2])
+			}
+
+		case "session":
+			if len(args) < 3 {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show session requires session ID",
+				}, fmt.Errorf("show session requires session ID")
+			}
+
+			session, err := m.occtl.ShowSession(ctx, args[2])
+			if err != nil {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: err.Error(),
+				}, err
+			}
+
+			return &CommandResult{
+				Success: true,
+				Stdout: fmt.Sprintf("Session: %s\nUser: %s\nState: %s\nRemote IP: %s",
+					session.Session, session.Username, session.State, session.RemoteIP),
+			}, nil
+
+		case "iroutes":
+			iroutes, err := m.occtl.ShowIRoutes(ctx)
+			if err != nil {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: err.Error(),
+				}, err
+			}
+
+			return &CommandResult{
+				Success: true,
+				Stdout:  fmt.Sprintf("User routes: %d entries", len(iroutes)),
+			}, nil
+
+		case "ip":
+			if len(args) < 3 {
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show ip requires 'bans' or 'ban points'",
+				}, fmt.Errorf("show ip requires 'bans' or 'ban points'")
+			}
+
+			switch args[2] {
+			case "bans":
+				bans, err := m.occtl.ShowIPBans(ctx)
+				if err != nil {
+					return &CommandResult{
+						Success:  false,
+						ErrorMsg: err.Error(),
+					}, err
+				}
+
+				return &CommandResult{
+					Success: true,
+					Stdout:  fmt.Sprintf("Banned IPs: %d", len(bans)),
+				}, nil
+
+			case "ban":
+				if len(args) >= 4 && args[3] == "points" {
+					points, err := m.occtl.ShowIPBanPoints(ctx)
+					if err != nil {
+						return &CommandResult{
+							Success:  false,
+							ErrorMsg: err.Error(),
+						}, err
+					}
+
+					return &CommandResult{
+						Success: true,
+						Stdout:  fmt.Sprintf("IPs with ban points: %d", len(points)),
+					}, nil
+				}
+
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: "show ip ban requires 'points'",
+				}, fmt.Errorf("show ip ban requires 'points'")
+
+			default:
+				return &CommandResult{
+					Success:  false,
+					ErrorMsg: fmt.Sprintf("unknown ip subcommand: %s", args[2]),
+				}, fmt.Errorf("unknown ip subcommand: %s", args[2])
+			}
+
 		default:
 			return &CommandResult{
 				Success:  false,
@@ -311,6 +486,48 @@ func (m *Manager) executeOcctl(ctx context.Context, args []string) (*CommandResu
 				ErrorMsg: fmt.Sprintf("unknown disconnect target: %s", subcommand),
 			}, fmt.Errorf("unknown disconnect target: %s", subcommand)
 		}
+
+	case "unban":
+		if subcommand != "ip" {
+			return &CommandResult{
+				Success:  false,
+				ErrorMsg: "unban requires 'ip' subcommand",
+			}, fmt.Errorf("unban requires 'ip' subcommand")
+		}
+
+		if len(args) < 3 {
+			return &CommandResult{
+				Success:  false,
+				ErrorMsg: "unban ip requires IP address",
+			}, fmt.Errorf("unban ip requires IP address")
+		}
+
+		err := m.occtl.UnbanIP(ctx, args[2])
+		if err != nil {
+			return &CommandResult{
+				Success:  false,
+				ErrorMsg: err.Error(),
+			}, err
+		}
+
+		return &CommandResult{
+			Success: true,
+			Stdout:  fmt.Sprintf("Unbanned IP: %s", args[2]),
+		}, nil
+
+	case "reload":
+		err := m.occtl.Reload(ctx)
+		if err != nil {
+			return &CommandResult{
+				Success:  false,
+				ErrorMsg: err.Error(),
+			}, err
+		}
+
+		return &CommandResult{
+			Success: true,
+			Stdout:  "Configuration reloaded successfully",
+		}, nil
 
 	default:
 		return &CommandResult{

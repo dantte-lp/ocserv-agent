@@ -150,6 +150,240 @@ func (m *OcctlManager) DisconnectID(ctx context.Context, id string) error {
 	return nil
 }
 
+// ShowUser retrieves detailed information about a specific user
+func (m *OcctlManager) ShowUser(ctx context.Context, username string) (*UserDetailed, error) {
+	m.logger.Debug().Str("username", username).Msg("Getting user details")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "user", username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user %s: %w (stderr: %s)", username, err, stderr)
+	}
+
+	var user UserDetailed
+	if err := json.Unmarshal([]byte(stdout), &user); err != nil {
+		return nil, fmt.Errorf("failed to parse user details: %w", err)
+	}
+
+	m.logger.Debug().
+		Str("username", user.Username).
+		Int("id", user.ID).
+		Str("state", user.State).
+		Msg("Retrieved user details")
+
+	return &user, nil
+}
+
+// ShowID retrieves detailed information about a specific connection ID
+func (m *OcctlManager) ShowID(ctx context.Context, id string) (*UserDetailed, error) {
+	m.logger.Debug().Str("id", id).Msg("Getting connection details")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "id", id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get connection %s: %w (stderr: %s)", id, err, stderr)
+	}
+
+	var user UserDetailed
+	if err := json.Unmarshal([]byte(stdout), &user); err != nil {
+		return nil, fmt.Errorf("failed to parse connection details: %w", err)
+	}
+
+	m.logger.Debug().
+		Int("id", user.ID).
+		Str("username", user.Username).
+		Str("state", user.State).
+		Msg("Retrieved connection details")
+
+	return &user, nil
+}
+
+// ShowSessionsAll retrieves all sessions
+func (m *OcctlManager) ShowSessionsAll(ctx context.Context) ([]SessionInfo, error) {
+	m.logger.Debug().Msg("Getting all sessions")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "sessions", "all")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sessions: %w (stderr: %s)", err, stderr)
+	}
+
+	var sessions []SessionInfo
+	if err := json.Unmarshal([]byte(stdout), &sessions); err != nil {
+		return nil, fmt.Errorf("failed to parse sessions: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(sessions)).Msg("Retrieved all sessions")
+
+	return sessions, nil
+}
+
+// ShowSessionsValid retrieves valid (reconnectable) sessions
+func (m *OcctlManager) ShowSessionsValid(ctx context.Context) ([]SessionInfo, error) {
+	m.logger.Debug().Msg("Getting valid sessions")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "sessions", "valid")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get valid sessions: %w (stderr: %s)", err, stderr)
+	}
+
+	var sessions []SessionInfo
+	if err := json.Unmarshal([]byte(stdout), &sessions); err != nil {
+		return nil, fmt.Errorf("failed to parse valid sessions: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(sessions)).Msg("Retrieved valid sessions")
+
+	return sessions, nil
+}
+
+// ShowSession retrieves information about a specific session ID
+func (m *OcctlManager) ShowSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
+	m.logger.Debug().Str("session_id", sessionID).Msg("Getting session details")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "session", sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session %s: %w (stderr: %s)", sessionID, err, stderr)
+	}
+
+	var session SessionInfo
+	if err := json.Unmarshal([]byte(stdout), &session); err != nil {
+		return nil, fmt.Errorf("failed to parse session details: %w", err)
+	}
+
+	m.logger.Debug().
+		Str("session", session.Session).
+		Str("username", session.Username).
+		Str("state", session.State).
+		Msg("Retrieved session details")
+
+	return &session, nil
+}
+
+// ShowStatusDetailed retrieves detailed server status with all metrics
+func (m *OcctlManager) ShowStatusDetailed(ctx context.Context) (*ServerStatusDetailed, error) {
+	m.logger.Debug().Msg("Getting detailed server status")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "status")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get detailed status: %w (stderr: %s)", err, stderr)
+	}
+
+	var status ServerStatusDetailed
+	if err := json.Unmarshal([]byte(stdout), &status); err != nil {
+		return nil, fmt.Errorf("failed to parse detailed status: %w", err)
+	}
+
+	m.logger.Debug().
+		Str("status", status.Status).
+		Int("active_sessions", status.ActiveSessions).
+		Int64("uptime", status.Uptime).
+		Msg("Retrieved detailed server status")
+
+	return &status, nil
+}
+
+// ShowUsersDetailed retrieves detailed list of connected users with all information
+func (m *OcctlManager) ShowUsersDetailed(ctx context.Context) ([]UserDetailed, error) {
+	m.logger.Debug().Msg("Getting detailed connected users")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "users")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get detailed users: %w (stderr: %s)", err, stderr)
+	}
+
+	var users []UserDetailed
+	if err := json.Unmarshal([]byte(stdout), &users); err != nil {
+		return nil, fmt.Errorf("failed to parse detailed users: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(users)).Msg("Retrieved detailed connected users")
+
+	return users, nil
+}
+
+// ShowIRoutes retrieves user-provided routes for all connected users
+func (m *OcctlManager) ShowIRoutes(ctx context.Context) ([]IRoute, error) {
+	m.logger.Debug().Msg("Getting user routes")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "iroutes")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get iroutes: %w (stderr: %s)", err, stderr)
+	}
+
+	var iroutes []IRoute
+	if err := json.Unmarshal([]byte(stdout), &iroutes); err != nil {
+		return nil, fmt.Errorf("failed to parse iroutes: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(iroutes)).Msg("Retrieved user routes")
+
+	return iroutes, nil
+}
+
+// ShowIPBans retrieves list of banned IP addresses
+func (m *OcctlManager) ShowIPBans(ctx context.Context) ([]IPBan, error) {
+	m.logger.Debug().Msg("Getting banned IPs")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "ip", "bans")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get IP bans: %w (stderr: %s)", err, stderr)
+	}
+
+	var bans []IPBan
+	if err := json.Unmarshal([]byte(stdout), &bans); err != nil {
+		return nil, fmt.Errorf("failed to parse IP bans: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(bans)).Msg("Retrieved banned IPs")
+
+	return bans, nil
+}
+
+// ShowIPBanPoints retrieves IPs with accumulated violation points
+func (m *OcctlManager) ShowIPBanPoints(ctx context.Context) ([]IPBanPoints, error) {
+	m.logger.Debug().Msg("Getting IP ban points")
+
+	stdout, stderr, err := m.executeJSON(ctx, "show", "ip", "ban", "points")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get IP ban points: %w (stderr: %s)", err, stderr)
+	}
+
+	var points []IPBanPoints
+	if err := json.Unmarshal([]byte(stdout), &points); err != nil {
+		return nil, fmt.Errorf("failed to parse IP ban points: %w", err)
+	}
+
+	m.logger.Debug().Int("count", len(points)).Msg("Retrieved IP ban points")
+
+	return points, nil
+}
+
+// UnbanIP removes an IP address from the ban list
+func (m *OcctlManager) UnbanIP(ctx context.Context, ip string) error {
+	m.logger.Info().Str("ip", ip).Msg("Unbanning IP address")
+
+	_, stderr, err := m.execute(ctx, "unban", "ip", ip)
+	if err != nil {
+		return fmt.Errorf("failed to unban IP %s: %w (stderr: %s)", ip, err, stderr)
+	}
+
+	m.logger.Info().Str("ip", ip).Msg("IP address unbanned")
+
+	return nil
+}
+
+// Reload sends reload signal to ocserv (handled via systemctl in Manager)
+func (m *OcctlManager) Reload(ctx context.Context) error {
+	m.logger.Info().Msg("Reloading ocserv configuration")
+
+	_, stderr, err := m.execute(ctx, "reload")
+	if err != nil {
+		return fmt.Errorf("failed to reload: %w (stderr: %s)", err, stderr)
+	}
+
+	m.logger.Info().Msg("ocserv configuration reloaded")
+
+	return nil
+}
+
 // execute runs an occtl command and captures output
 func (m *OcctlManager) execute(ctx context.Context, args ...string) (string, string, error) {
 	// Create context with timeout
@@ -201,6 +435,13 @@ func (m *OcctlManager) execute(ctx context.Context, args ...string) (string, str
 	}
 
 	return stdoutStr, stderrStr, err
+}
+
+// executeJSON runs an occtl command with JSON output flag (-j) and captures output
+func (m *OcctlManager) executeJSON(ctx context.Context, args ...string) (string, string, error) {
+	// Add -j flag for JSON output
+	jsonArgs := append([]string{"-j"}, args...)
+	return m.execute(ctx, jsonArgs...)
 }
 
 // parseUsers parses 'occtl show users' output
