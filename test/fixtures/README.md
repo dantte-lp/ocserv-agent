@@ -4,15 +4,16 @@ This directory contains sample ocserv configuration files for testing the Config
 
 ## Files
 
-### ocserv_13.conf
+### ocserv/ocserv.conf
 **Source:** OpenConnect VPN Server 1.3.0 on Oracle Linux 10
 **Date:** 2025-10-23
-**Description:** Production configuration file from a fresh ocserv 1.3.0 installation.
+**Description:** Official production configuration from fresh ocserv 1.3.0 installation.
 
-This is the official default configuration from ocserv 1.3.0 with all available options documented. Use this as a reference for:
+This is the complete default configuration from ocserv 1.3.0 with all 764 lines and comprehensive documentation. Use this as the authoritative reference for:
 - All supported configuration directives
 - Default values and recommendations
 - Detailed comments explaining each option
+- Real-world production settings
 
 **Key features in 1.3.0:**
 - HTTP security headers support
@@ -23,11 +24,6 @@ This is the official default configuration from ocserv 1.3.0 with all available 
 - Virtual host support
 
 **GnuTLS version:** 3.8.9 (compiled with 3.8.8)
-
-### ocserv.conf
-**Description:** Simplified test configuration for basic testing.
-
-Contains a subset of common options with realistic values for development/testing.
 
 ### config-per-user/
 Per-user configuration examples:
