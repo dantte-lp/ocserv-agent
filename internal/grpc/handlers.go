@@ -63,12 +63,31 @@ func (s *Server) ExecuteCommand(ctx context.Context, req *pb.CommandRequest) (*p
 		Strs("args", req.Args).
 		Msg("ExecuteCommand called")
 
-	// TODO: Implement command execution
-	return &pb.CommandResponse{
-		RequestId:    req.RequestId,
-		Success:      false,
-		ErrorMessage: "not implemented yet",
-	}, nil
+	// Execute command through ocserv manager
+	result, err := s.ocservManager.ExecuteCommand(ctx, req.CommandType, req.Args)
+
+	response := &pb.CommandResponse{
+		RequestId: req.RequestId,
+	}
+
+	if err != nil {
+		response.Success = false
+		response.ErrorMessage = err.Error()
+		if result != nil {
+			response.Stdout = result.Stdout
+			response.Stderr = result.Stderr
+			response.ExitCode = int32(result.ExitCode)
+		}
+		return response, nil
+	}
+
+	response.Success = result.Success
+	response.Stdout = result.Stdout
+	response.Stderr = result.Stderr
+	response.ExitCode = int32(result.ExitCode)
+	response.ErrorMessage = result.ErrorMsg
+
+	return response, nil
 }
 
 // UpdateConfig implements the UpdateConfig RPC method

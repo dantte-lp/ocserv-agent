@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
+	"github.com/dantte-lp/ocserv-agent/internal/ocserv"
 	pb "github.com/dantte-lp/ocserv-agent/pkg/proto/agent/v1"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
@@ -19,9 +20,10 @@ import (
 type Server struct {
 	pb.UnimplementedAgentServiceServer
 
-	config *config.Config
-	logger zerolog.Logger
-	server *grpc.Server
+	config        *config.Config
+	logger        zerolog.Logger
+	server        *grpc.Server
+	ocservManager *ocserv.Manager
 }
 
 // New creates a new gRPC server instance
@@ -30,6 +32,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 		config: cfg,
 		logger: logger,
 	}
+
+	// Create ocserv manager
+	s.ocservManager = ocserv.NewManager(cfg, logger)
 
 	// Create gRPC server with TLS
 	grpcServer, err := s.createGRPCServer()
