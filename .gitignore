@@ -28,6 +28,9 @@ build-errors.log
 *.swo
 *~
 
+# Claude Code (local only)
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
