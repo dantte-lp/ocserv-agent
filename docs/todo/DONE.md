@@ -60,3 +60,40 @@
 - [x] **[COMMIT]** Made first commit (cc69c82)
   - chore(setup): initial project structure
   - 23 files changed, 4341 insertions(+)
+
+### Phase 1: Core Implementation
+
+- [x] **[FEATURE]** Implemented internal/config package (Commit: a899a75)
+  - Config loading from YAML
+  - Environment variable overrides
+  - Comprehensive validation
+  - Smart defaults
+  - Auto-detect hostname
+
+- [x] **[FEATURE]** Generated protobuf code
+  - agent.pb.go and agent_grpc.pb.go
+  - Using Podman Compose proto-gen service
+
+- [x] **[FEATURE]** Implemented gRPC server with mTLS (Commit: 110d823)
+  - mTLS authentication with client certificate verification
+  - TLS 1.3/1.2 support
+  - Secure cipher suites (TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256)
+  - Logging and recovery interceptors
+  - Graceful shutdown support
+
+- [x] **[FEATURE]** Implemented HealthCheck endpoint (Commit: 110d823)
+  - Tier 1 (basic heartbeat) fully implemented
+  - Tier 2 and 3 stubs created
+
+- [x] **[FEATURE]** Created main entrypoint (Commit: 110d823)
+  - cmd/agent/main.go with graceful shutdown
+  - Signal handling (SIGTERM, SIGINT, SIGHUP)
+  - 30s shutdown timeout
+  - Zerolog setup (JSON and console formats)
+  - Version flag support
+
+- [x] **[COMMIT]** docs(todo): update TODO after initial commit (1a97fe9)
+
+- [x] **[MILESTONE]** Phase 1 Core COMPLETED
+  - All critical features implemented
+  - Ready for testing
