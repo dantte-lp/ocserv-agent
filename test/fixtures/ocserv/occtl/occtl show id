@@ -1,0 +1,24 @@
+        ID: 835540
+        Username: lpa   Groupname: (none)
+        State: connected
+        vhost: default
+        Device: vpns0   MTU: 1402
+        Remote IP: 90.156.164.225   Location: unknown
+        Local Device IP: 195.238.126.25
+        IPv4: 10.0.16.23   P-t-P IPv4: 10.0.16.1
+        IPv6: fc00::1:8651   P-t-P IPv6: fc00::1:8601
+        User-Agent: AnyConnect AppleSSLVPN_Darwin_ARM (iPhone) 5.1.11.347
+        RX: 13838 (13.8 kB)   TX: 33980 (34.0 kB)
+        Average bandwidth RX: 864 bytes/s  TX: 2.1 kB/s
+        DPD: 90   KeepAlive: 32400
+        Hostname: localhost
+        Connected at: 2025-10-23 02:38 (   16s)
+        Session: 0/zuQ1
+        TLS ciphersuite: (TLS1.3)-(ECDHE-SECP256R1)-(RSA-PSS-RSAE-SHA256)-(AES-256-GCM)
+        DTLS cipher: (DTLS1.2)-(ECDHE-RSA)-(AES-256-GCM)
+        CSTP compression: lzs   DTLS compression: lzs
+
+        DNS: 10.0.16.1
+                fc00::1:8601
+        Routes: defaultroute
+        Restricted to routes: False

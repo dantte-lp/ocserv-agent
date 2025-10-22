@@ -134,6 +134,15 @@ See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
   - Read config-per-user/*
   - Read config-per-group/*
 
+- [x] **[RESEARCH]** Production occtl output examples
+  - ✅ Completed: 2025-10-23
+  - Commit: pending
+  - Real output from production ocserv 1.3.0 server
+  - All major commands: show users, status, sessions, iroutes, events
+  - JSON and plain text formats
+  - Complete documentation in test/fixtures/ocserv/occtl/README.md
+  - Ready for OcctlManager enhancement implementation
+
 ## 🟢 Medium Priority (Testing & Polish)
 
 - [ ] **[TEST]** Add unit tests for config package

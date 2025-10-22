@@ -46,20 +46,57 @@ After installation, the following utilities are available:
 - `ocserv-script` - Connect/disconnect script hook
 - `ocserv-worker` - Worker process
 
-## Testing ConfigReader
+### occtl/
+**NEW:** Production occtl command output examples
 
-All files in this directory can be used to test the ConfigReader implementation in `internal/ocserv/config.go`.
+Contains real output from production ocserv 1.3.0 server for all major commands:
+- **help** - Complete command reference
+- **show users** - Connected users (JSON)
+- **show status** - Server statistics (JSON)
+- **show user/id** - User/connection details
+- **show sessions** - Session management (all/valid)
+- **show iroutes** - User routes
+- **show events** - Real-time events (streaming)
+- **Plain text formats** - Non-JSON output examples
 
-Example usage:
+See `ocserv/occtl/README.md` for complete documentation.
+
+**Usage:** Reference for implementing missing OcctlManager commands and parsing logic.
+
+---
+
+## Testing Guide
+
+### ConfigReader Testing
+
+All configuration files can be used to test `internal/ocserv/config.go`:
+
 ```go
 reader := ocserv.NewConfigReader(logger)
 
 // Read main config
-cfg, err := reader.ReadOcservConf(ctx, "test/fixtures/ocserv_13.conf")
+cfg, err := reader.ReadOcservConf(ctx, "test/fixtures/ocserv/ocserv.conf")
 
 // Read per-user config
 userCfg, err := reader.ReadUserConfig(ctx, "test/fixtures/ocserv/config-per-user", "testuser")
 
 // List available user configs
 users, err := reader.ListUserConfigs(ctx, "test/fixtures/ocserv/config-per-user")
+```
+
+### OcctlManager Testing
+
+Use production examples for testing occtl output parsing:
+
+```go
+// Test JSON parsing
+testFile := "test/fixtures/ocserv/occtl/occtl -j show users"
+data, _ := os.ReadFile(testFile)
+
+var users []User
+err := json.Unmarshal(data, &users)
+
+// Verify parsed data
+assert.Equal(t, 835235, users[0].ID)
+assert.Equal(t, "lpa", users[0].Username)
 ```

@@ -1,0 +1,25 @@
+occtl: [OPTIONS...] {COMMAND}
+
+  -s --socket-file       Specify the server's occtl socket file
+  -h --help              Show this help
+     --debug             Enable more verbose information in some commands
+  -v --version           Show the program's version
+  -j --json              Use JSON formatting for output
+
+Available Commands
+ disconnect user [NAME] Disconnect the specified user
+ disconnect id [ID]     Disconnect the specified ID
+     unban ip [IP]      Unban the specified IP
+           reload       Reloads the server configuration
+      show status       Prints the status and statistics of the server
+       show users       Prints the connected users
+     show ip bans       Prints the banned IP addresses
+ show ip ban points     Prints all the known IP addresses which have points
+     show iroutes       Prints the routes provided by users of the server
+ show sessions all      Prints all the session IDs
+ show sessions valid    Prints all the valid for reconnection sessions
+ show session [SID]     Prints information on the specified session
+    show user [NAME]    Prints information on the specified user
+      show id [ID]      Prints information on the specified ID
+      show events       Provides information about connecting users
+         stop now       Terminates the server
