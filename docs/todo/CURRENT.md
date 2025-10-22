@@ -11,21 +11,28 @@ All critical Phase 1 tasks are done. Agent has:
 - ✅ HealthCheck endpoint (Tier 1)
 - ✅ Graceful shutdown
 
-## 🔴 Critical (Must do now)
+## 🔴 Critical (Phase 2 - ocserv Integration)
 
-- [ ] **[TEST]** Test the agent with compose-build
+- [ ] **[FEATURE]** Implement systemctl wrapper (internal/ocserv/systemctl.go)
   - Priority: P0
   - Assigned: -
-  - Deadline: Now
+  - Deadline: Phase 2
   - Blockers: None
-  - Notes: Verify that everything compiles and runs
+  - Notes: Start, stop, restart, reload, status for ocserv service
 
-- [ ] **[TEST]** Create test certificates for mTLS
+- [ ] **[FEATURE]** Implement occtl command execution (internal/ocserv/occtl.go)
   - Priority: P0
   - Assigned: -
-  - Deadline: Now
+  - Deadline: Phase 2
   - Blockers: None
-  - Notes: Need CA, server cert, and client cert for testing
+  - Notes: show users, show status, show stats, disconnect user/id
+
+- [ ] **[FEATURE]** Implement command validation and security (internal/ocserv/manager.go)
+  - Priority: P0
+  - Assigned: -
+  - Deadline: Phase 2
+  - Blockers: None
+  - Notes: Whitelist checking, argument sanitization, command injection protection
 
 ## 🟡 High Priority (This week - Phase 1: Core)
 
@@ -78,20 +85,43 @@ All critical Phase 1 tasks are done. Agent has:
   - Commit: 110d823
   - Graceful shutdown with SIGTERM/SIGINT handling
 
-## 🟡 High Priority (Next steps)
+## 🟡 High Priority (Phase 2 continuation)
+
+- [ ] **[FEATURE]** Implement ExecuteCommand RPC handler
+  - Connect to internal/ocserv manager
+  - Return stdout, stderr, exit code
+
+- [ ] **[FEATURE]** Implement config file reading (internal/ocserv/config.go)
+  - Read ocserv.conf
+  - Read config-per-user/*
+  - Read config-per-group/*
+
+- [ ] **[FEATURE]** Update ExecuteCommand handler to use ocserv manager
+  - Wire up systemctl and occtl commands
+  - Add proper error handling
+
+- [x] **[DOCS]** Update release notes for v0.1.0
+  - ✅ Completed: 2025-01-23
+  - All features, commits, and statistics updated
+
+## 🟢 Medium Priority (Testing & Polish)
 
 - [ ] **[TEST]** Add unit tests for config package
 - [ ] **[TEST]** Add unit tests for gRPC handlers
-- [ ] **[DOCS]** Update release notes for v0.1.0
+- [ ] **[TEST]** Add unit tests for ocserv manager
 - [ ] **[FEATURE]** Create certificate generation script (scripts/generate-certs.sh)
+- [ ] **[TEST]** Test the agent with compose-build
+- [ ] **[TEST]** Create test certificates for mTLS
 
-## 🔵 Low Priority (Phase 2+)
+## 🔵 Low Priority (Phase 3+)
 
-- [ ] **[FEATURE]** Implement ocserv manager (systemctl wrapper)
-- [ ] **[FEATURE]** Implement occtl command execution
-- [ ] **[FEATURE]** Config file reading and management
-- [ ] **[FEATURE]** Bidirectional streaming
-- [ ] **[FEATURE]** Heartbeat implementation
+- [ ] **[FEATURE]** Bidirectional streaming (AgentStream)
+- [ ] **[FEATURE]** Heartbeat implementation with metrics
+- [ ] **[FEATURE]** Log streaming (StreamLogs)
+- [ ] **[FEATURE]** Config updates with backup (UpdateConfig)
+- [ ] **[FEATURE]** HealthCheck Tier 2 (deep check)
+- [ ] **[FEATURE]** HealthCheck Tier 3 (end-to-end test)
+- [ ] **[FEATURE]** User management (ocpasswd wrapper)
 
 ## 📋 Code Review Needed
 
@@ -121,5 +151,6 @@ None yet
   - 110d823: gRPC server + HealthCheck + main
 
 - **Tests:** 0% coverage (tests pending)
-- **Documentation:** 70% complete
-- **Next Phase:** Phase 2 - ocserv Integration
+- **Documentation:** 80% complete
+- **Release notes:** v0.1.0 updated ✅
+- **Current Phase:** Phase 2 - ocserv Integration (0/9 tasks)
