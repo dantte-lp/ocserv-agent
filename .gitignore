@@ -1,0 +1,68 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.out
+
+# Go workspace file
+go.work
+
+# Air hot reload temp dir
+tmp/
+build-errors.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.pb.go
+*_grpc.pb.go
+
+# Certificates and keys
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+certs/
+
+# Config (don't commit actual configs, only examples)
+config.yaml
+config.yml
+*.local.yaml
+
+# Logs
+*.log
+logs/
+
+# Backups
+*.bak
+*.backup
+
+# Security reports
+security-report.json
+
+# Local development
+.env.local
+.envrc
+
+# Build cache
+.cache/

@@ -1,0 +1,65 @@
+# Agent identification
+agent_id: "server-01"
+hostname: ""  # auto-detect if empty
+
+# Control server connection
+control_server:
+  address: "control.example.com:9090"
+  reconnect:
+    initial_delay: 1s
+    max_delay: 60s
+    multiplier: 2
+    max_attempts: 5
+  circuit_breaker:
+    failure_threshold: 5
+    timeout: 5m
+
+# TLS configuration
+tls:
+  enabled: true
+  cert_file: "/etc/ocserv-agent/certs/agent.crt"
+  key_file: "/etc/ocserv-agent/certs/agent.key"
+  ca_file: "/etc/ocserv-agent/certs/ca.crt"
+  server_name: "control-server"  # Expected CN in server cert
+  min_version: "TLS1.3"
+
+# ocserv configuration
+ocserv:
+  config_path: "/etc/ocserv/ocserv.conf"
+  config_per_user_dir: "/etc/ocserv/config-per-user"
+  config_per_group_dir: "/etc/ocserv/config-per-group"
+  ctl_socket: "/var/run/occtl.socket"
+  systemd_service: "ocserv"
+  backup_dir: "/var/backups/ocserv-agent"
+
+# Health checks
+health:
+  heartbeat_interval: 15s
+  deep_check_interval: 2m
+  metrics_interval: 30s
+
+# Telemetry (OpenTelemetry)
+telemetry:
+  enabled: true
+  endpoint: "http://uptrace:14318"
+  service_name: "ocserv-agent"
+  service_version: "0.1.0"
+  sample_rate: 1.0
+
+# Logging
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"
+  output: "stdout"  # stdout, file
+  file_path: "/var/log/ocserv-agent/agent.log"
+  max_size_mb: 100
+  max_backups: 3
+  max_age_days: 30
+
+# Security
+security:
+  allowed_commands:
+    - "occtl"
+    - "systemctl"
+  sudo_user: "ocserv-agent"
+  max_command_timeout: 300s

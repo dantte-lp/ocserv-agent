@@ -1,0 +1,183 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "github.com/dantte-lp/ocserv-agent/pkg/proto/agent/v1;agentv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AgentService - основной сервис агента
+service AgentService {
+  // Bidirectional streaming для heartbeat и команд
+  rpc AgentStream(stream AgentMessage) returns (stream ServerMessage);
+
+  // Выполнение команды
+  rpc ExecuteCommand(CommandRequest) returns (CommandResponse);
+
+  // Обновление конфигурации
+  rpc UpdateConfig(ConfigUpdateRequest) returns (ConfigUpdateResponse);
+
+  // Streaming логов
+  rpc StreamLogs(LogStreamRequest) returns (stream LogEntry);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Сообщения от агента к серверу
+message AgentMessage {
+  string agent_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+
+  oneof payload {
+    Heartbeat heartbeat = 10;
+    MetricsReport metrics = 11;
+    EventNotification event = 12;
+  }
+}
+
+// Heartbeat от агента
+message Heartbeat {
+  AgentStatus status = 1;
+  SystemMetrics system = 2;
+  OcservStatus ocserv = 3;
+}
+
+enum AgentStatus {
+  AGENT_STATUS_UNSPECIFIED = 0;
+  AGENT_STATUS_HEALTHY = 1;
+  AGENT_STATUS_DEGRADED = 2;
+  AGENT_STATUS_UNHEALTHY = 3;
+}
+
+message SystemMetrics {
+  double cpu_usage_percent = 1;
+  double memory_usage_percent = 2;
+  uint64 memory_total_bytes = 3;
+  uint64 memory_used_bytes = 4;
+  double load_average_1m = 5;
+}
+
+message OcservStatus {
+  bool is_running = 1;
+  string version = 2;
+  uint32 active_sessions = 3;
+  uint64 total_bytes_in = 4;
+  uint64 total_bytes_out = 5;
+}
+
+// Metrics report
+message MetricsReport {
+  SystemMetrics system = 1;
+  OcservStatus ocserv = 2;
+  map<string, string> custom_metrics = 3;
+}
+
+// Event notification
+message EventNotification {
+  string event_type = 1;
+  string message = 2;
+  map<string, string> metadata = 3;
+}
+
+// Сообщения от сервера к агенту
+message ServerMessage {
+  string request_id = 1;
+
+  oneof payload {
+    CommandInstruction command = 10;
+    ConfigUpdate config_update = 11;
+    ControlAction action = 12;
+  }
+}
+
+// Command instruction
+message CommandInstruction {
+  string command_type = 1;
+  repeated string args = 2;
+  int32 timeout_seconds = 3;
+}
+
+// Config update instruction
+message ConfigUpdate {
+  ConfigType config_type = 1;
+  string config_name = 2;
+  string config_content = 3;
+  bool validate_only = 4;
+  bool create_backup = 5;
+}
+
+// Control action
+message ControlAction {
+  string action_type = 1;
+  map<string, string> parameters = 2;
+}
+
+// Запрос на выполнение команды
+message CommandRequest {
+  string request_id = 1;
+  string command_type = 2;
+  repeated string args = 3;
+  int32 timeout_seconds = 4;
+}
+
+message CommandResponse {
+  string request_id = 1;
+  bool success = 2;
+  string stdout = 3;
+  string stderr = 4;
+  int32 exit_code = 5;
+  string error_message = 6;
+}
+
+// Обновление конфигурации
+message ConfigUpdateRequest {
+  string request_id = 1;
+  ConfigType config_type = 2;
+  string config_name = 3;  // имя файла или пользователя/группы
+  string config_content = 4;
+  bool validate_only = 5;  // только валидация, не применять
+  bool create_backup = 6;
+}
+
+enum ConfigType {
+  CONFIG_TYPE_UNSPECIFIED = 0;
+  CONFIG_TYPE_MAIN = 1;          // ocserv.conf
+  CONFIG_TYPE_PER_USER = 2;      // config-per-user/
+  CONFIG_TYPE_PER_GROUP = 3;     // config-per-group/
+}
+
+message ConfigUpdateResponse {
+  string request_id = 1;
+  bool success = 2;
+  string validation_result = 3;
+  string backup_path = 4;
+  string error_message = 5;
+}
+
+// Streaming логов
+message LogStreamRequest {
+  string log_source = 1;  // "ocserv", "agent", "system"
+  google.protobuf.Timestamp start_time = 2;
+  bool follow = 3;  // tail -f mode
+}
+
+message LogEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  string level = 2;
+  string source = 3;
+  string message = 4;
+  map<string, string> fields = 5;
+}
+
+// Health Check
+message HealthCheckRequest {
+  int32 tier = 1;  // 1, 2, или 3
+}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string status_message = 2;
+  map<string, string> checks = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}

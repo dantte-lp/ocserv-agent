@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════
+  # Development Agent (Hot Reload)
+  # ═══════════════════════════════════════════════
+  agent-dev:
+    image: golang:1.25-trixie
+    container_name: ocserv-agent-dev
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace:z
+      - go-cache:/go/pkg
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+    command: |
+      sh -c '
+        echo "📦 Installing Air for hot reload..."
+        go install github.com/air-verse/air@latest
+        echo "🔄 Starting development server with hot reload..."
+        air -c .air.toml
+      '
+    ports:
+      - "9090:9090"
+      - "2345:2345"  # Delve debugger
+    networks:
+      - agent-net
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════
+  # Mock Control Server (для тестирования агента)
+  # ═══════════════════════════════════════════════
+  mock-control-server:
+    image: golang:1.25-trixie
+    container_name: mock-control-server
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace:z
+    command: |
+      sh -c '
+        cd test/mock-server
+        go run main.go
+      '
+    ports:
+      - "9091:9091"
+    networks:
+      - agent-net
+    depends_on:
+      - agent-dev
+
+  # ═══════════════════════════════════════════════
+  # Mock ocserv (для тестирования без реального VPN)
+  # ═══════════════════════════════════════════════
+  mock-ocserv:
+    image: debian:trixie-slim
+    container_name: mock-ocserv
+    volumes:
+      - ../../test/mock-ocserv:/opt/mock:z
+    command: |
+      sh -c '
+        apt-get update && apt-get install -y iproute2 procps
+        /opt/mock/run-mock.sh
+      '
+    networks:
+      - agent-net
+    cap_add:
+      - NET_ADMIN
+
+  # ═══════════════════════════════════════════════
+  # Redis (для кеша, если нужен)
+  # ═══════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: agent-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - agent-net
+    volumes:
+      - redis-data:/data
+
+networks:
+  agent-net:
+    driver: bridge
+
+volumes:
+  go-cache:
+  go-build-cache:
+  redis-data:
