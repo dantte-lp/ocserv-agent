@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  github-runner:
+    build:
+      context: github-runner
+      dockerfile: Dockerfile
+    container_name: ocserv-agent-github-runner
+    hostname: github-runner
+    restart: unless-stopped
+
+    environment:
+      # Repository URL
+      - REPO_URL=https://github.com/dantte-lp/ocserv-agent
+
+      # Runner configuration
+      - RUNNER_NAME=podman-runner-ocserv-agent
+      - RUNNER_LABELS=self-hosted,linux,x64,podman
+      - RUNNER_GROUP=Default
+
+      # Runner token (MUST be provided)
+      # Get with: gh api --method POST /repos/dantte-lp/ocserv-agent/actions/runners/registration-token --jq '.token'
+      - RUNNER_TOKEN=${RUNNER_TOKEN}
+
+    volumes:
+      # Mount project directory for builds
+      - ../../:/workspace:rw
+
+      # Mount Docker socket for Docker-in-Docker (if needed)
+      # - /var/run/docker.sock:/var/run/docker.sock
+
+      # Persistent runner work directory
+      - runner-work:/home/runner/_work
+
+    # Privileged mode for podman-in-podman (if needed)
+    privileged: false
+
+    # Security options
+    security_opt:
+      - label=disable
+
+    # Network
+    networks:
+      - runner-net
+
+volumes:
+  runner-work:
+    driver: local
+
+networks:
+  runner-net:
+    driver: bridge

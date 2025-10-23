@@ -23,7 +23,7 @@ jobs:
   # Detect what files changed to skip expensive jobs for docs-only changes
   detect-changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
     outputs:
@@ -72,7 +72,7 @@ jobs:
   # Test on multiple Go versions
   test:
     name: Test (Go ${{ matrix.go-version }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -96,10 +96,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          # protoc and protoc-gen-* already installed in self-hosted runner
+          echo "Using pre-installed protoc $(protoc --version)"
 
       - name: Generate protobuf code
         run: |
@@ -132,7 +130,7 @@ jobs:
   # Build test for multiple platforms
   build:
     name: Build (${{ matrix.os }}/${{ matrix.arch }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -153,13 +151,6 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-
-      - name: Install protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf
         run: |
@@ -190,7 +181,7 @@ jobs:
   # Integration tests with containers
   integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [detect-changes, build]
     # Skip if only docs changed (build will be skipped too)
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -207,13 +198,6 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-
-      - name: Install protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf
         run: |
@@ -232,7 +216,7 @@ jobs:
   # Always run (fast and catches issues early)
   checks:
     name: Code Quality Checks
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -248,13 +232,6 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-
-      - name: Install protoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf
         run: |
@@ -283,7 +260,7 @@ jobs:
   # This ensures docs-only PRs can be merged even when heavy jobs are skipped
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [detect-changes, test, build, integration, checks]
     if: always()  # Run even if jobs were skipped
     steps:

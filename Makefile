@@ -217,3 +217,51 @@ build-all-test:
 build-all-build:
 	@echo "🔨 Running multi-platform build..."
 	@./scripts/build-all.sh build
+
+# ============================================================================
+# GitHub Actions Self-Hosted Runner
+# ============================================================================
+
+.PHONY: runner-token runner-up runner-down runner-logs runner-shell runner-restart
+
+## Get GitHub Actions runner registration token
+runner-token:
+	@echo "📝 Getting runner registration token..."
+	@gh api --method POST \
+		/repos/dantte-lp/ocserv-agent/actions/runners/registration-token \
+		--jq '.token'
+
+## Start GitHub Actions runner container
+runner-up:
+	@echo "🏃 Starting GitHub Actions runner..."
+	@if [ -z "$$RUNNER_TOKEN" ]; then \
+		echo "❌ ERROR: RUNNER_TOKEN not set"; \
+		echo ""; \
+		echo "Get token with: make runner-token"; \
+		echo "Then run: RUNNER_TOKEN=<token> make runner-up"; \
+		exit 1; \
+	fi
+	cd deploy/compose && podman-compose -f github-runner.yml up -d
+	@echo "✅ Runner started"
+	@echo "Check logs: make runner-logs"
+	@echo "GitHub: https://github.com/dantte-lp/ocserv-agent/settings/actions/runners"
+
+## Stop GitHub Actions runner container
+runner-down:
+	@echo "🛑 Stopping GitHub Actions runner..."
+	cd deploy/compose && podman-compose -f github-runner.yml down
+	@echo "✅ Runner stopped"
+
+## Show runner logs (follow mode)
+runner-logs:
+	@podman logs -f ocserv-agent-github-runner
+
+## Restart runner
+runner-restart:
+	@$(MAKE) runner-down
+	@$(MAKE) runner-up
+
+## Enter runner shell (debug)
+runner-shell:
+	@podman exec -it ocserv-agent-github-runner bash
+

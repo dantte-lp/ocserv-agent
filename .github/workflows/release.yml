@@ -9,7 +9,7 @@ permissions: {}  # No default permissions - each job declares its own
 
 jobs:
   build-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       actions: write  # For artifact upload
@@ -31,13 +31,6 @@ jobs:
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf code
         run: |
@@ -124,7 +117,7 @@ jobs:
   # Create GitHub Release
   release:
     needs: [build-artifacts, build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
       actions: read  # For artifact download
@@ -173,7 +166,7 @@ jobs:
   # Container image build and push
   container:
     needs: build-artifacts
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
