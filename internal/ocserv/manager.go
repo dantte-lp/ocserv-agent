@@ -564,9 +564,13 @@ func (m *Manager) isCommandAllowed(command string) bool {
 func (m *Manager) validateArguments(args []string) error {
 	// Prevent command injection
 	dangerousPatterns := []*regexp.Regexp{
-		regexp.MustCompile(`[;&|><\$\(\)\{\}\[\]]`), // Shell metacharacters
-		regexp.MustCompile(`\.\./`),                 // Directory traversal
-		regexp.MustCompile(`^-`),                    // Flags starting with dash (potential flag injection)
+		regexp.MustCompile(`[;&|><\$\(\)\{\}\[\]]`),              // Shell metacharacters
+		regexp.MustCompile("`"),                                  // Backtick command substitution
+		regexp.MustCompile(`\\[;&|><\$\(\)\{\}\[\]` + "`" + `]`), // Escaped metacharacters
+		regexp.MustCompile(`[\n\r]`),                             // Newline injection
+		regexp.MustCompile(`[\x00-\x08\x0B\x0C\x0E-\x1F]`),       // Control characters (except \t and \n)
+		regexp.MustCompile(`\.\./`),                              // Directory traversal
+		regexp.MustCompile(`^-`),                                 // Flags starting with dash (potential flag injection)
 	}
 
 	for _, arg := range args {
@@ -577,7 +581,7 @@ func (m *Manager) validateArguments(args []string) error {
 			}
 		}
 
-		// Check for null bytes
+		// Check for null bytes (redundant with control chars but explicit)
 		if strings.Contains(arg, "\x00") {
 			return fmt.Errorf("argument contains null bytes")
 		}

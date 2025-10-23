@@ -219,7 +219,78 @@ func TestValidateArguments(t *testing.T) {
 			name:    "null byte injection",
 			args:    []string{"test\x00hack"},
 			wantErr: true,
-			errMsg:  "null bytes",
+			errMsg:  "dangerous characters", // Caught by control character check
+		},
+		{
+			name:    "backtick command substitution",
+			args:    []string{"test`whoami`"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "backtick at start",
+			args:    []string{"`ls -la`"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "escaped semicolon",
+			args:    []string{"test\\;whoami"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "escaped pipe",
+			args:    []string{"test\\|cat"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "escaped dollar",
+			args:    []string{"test\\$HOME"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "escaped backtick",
+			args:    []string{"test\\`whoami\\`"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "newline injection LF",
+			args:    []string{"test\nwhoami"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "newline injection CR",
+			args:    []string{"test\rwhoami"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "newline injection CRLF",
+			args:    []string{"test\r\nwhoami"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "control character BEL",
+			args:    []string{"test\x07alert"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "control character ESC",
+			args:    []string{"test\x1Bescape"},
+			wantErr: true,
+			errMsg:  "dangerous characters",
+		},
+		{
+			name:    "tab character allowed",
+			args:    []string{"test\ttab"},
+			wantErr: false, // Tab is allowed (not in control char range)
 		},
 		{
 			name:    "argument too long",
