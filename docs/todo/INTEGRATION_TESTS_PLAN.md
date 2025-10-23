@@ -179,9 +179,17 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 **Dependencies:** None
 
 **Next steps:**
-- Integrate into podman-compose for CI/CD
+- ✅ Integrated into podman-compose (`make compose-mock-ocserv`)
 - Add integration tests using mock server
 - Test with real ocserv-agent OcctlManager
+
+**Compose Integration (added 2025-10-23):**
+- ✅ Dockerfile: Multi-stage build (golang:1.25-alpine → alpine)
+- ✅ deploy/compose/mock-ocserv.yml with health checks
+- ✅ Makefile: `make compose-mock-ocserv` target
+- ✅ Shared volume for Unix socket
+- ✅ Network: ocserv-agent-test
+- ✅ Tested: Container healthy, 14 fixtures loaded, socket created
 
 ---
 

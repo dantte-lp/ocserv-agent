@@ -16,7 +16,27 @@ This mock server simulates the ocserv Unix socket that occtl uses to communicate
 
 ## Quick Start
 
-### Run Mock Server
+### Run Mock Server (Recommended: Podman Compose)
+
+```bash
+# From repository root
+make compose-mock-ocserv
+
+# View logs
+podman logs -f mock-ocserv
+
+# Stop
+cd deploy/compose && podman-compose -f mock-ocserv.yml down
+```
+
+**Container Details:**
+- Image: `ocserv-agent-mock-ocserv:latest`
+- Socket: `/var/run/occtl.socket` (inside container)
+- Fixtures: `/fixtures/ocserv/occtl` (mounted read-only)
+- Network: `ocserv-agent-test`
+- Health check: Every 5s
+
+### Run Locally (Development Only)
 
 ```bash
 # From repository root
@@ -30,6 +50,8 @@ go run . -socket /tmp/occtl-test.socket -fixtures ../fixtures/ocserv/occtl
 go run . -verbose
 ```
 
+**⚠️ Note:** Local runs are for development only. All testing should use podman-compose.
+
 ### Test with nc (netcat)
 
 ```bash
@@ -40,7 +62,20 @@ echo '{"command": ["show", "-j", "users"]}' | nc -U /tmp/occtl-test.socket
 echo 'show -j users' | nc -U /tmp/occtl-test.socket
 ```
 
-### Test with ocserv-agent
+### Test with ocserv-agent (in Compose)
+
+```bash
+# Start mock server
+make compose-mock-ocserv
+
+# In another terminal, run tests that connect to mock socket
+# Tests should use the shared volume or network to access socket
+
+# Integration tests will use mock-ocserv via shared volume
+# See docker-compose.test.yml for configuration
+```
+
+### Test Locally (Development)
 
 ```bash
 # Configure ocserv-agent to use mock socket

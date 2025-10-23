@@ -1,0 +1,56 @@
+---
+# Mock ocserv Unix socket server for integration testing
+#
+# Usage:
+#   make compose-mock-ocserv        # Start mock server
+#   podman exec mock-ocserv ls -l /var/run/occtl.socket
+#   podman logs mock-ocserv
+#
+# Socket path: /var/run/occtl.socket (inside container)
+# Shared volume: ./test-socket/ (on host) -> /var/run/ (in container)
+
+services:
+  mock-ocserv:
+    build:
+      context: ../../
+      dockerfile: test/mock-ocserv/Dockerfile
+    container_name: mock-ocserv
+    image: ocserv-agent-mock-ocserv:latest
+
+    # Mount fixtures as read-only
+    volumes:
+      - ../../test/fixtures:/fixtures:ro,z
+      # Share socket with other containers via volume
+      - mock-socket:/var/run:z
+
+    # Environment variables
+    environment:
+      - SOCKET_PATH=/var/run/occtl.socket
+      - FIXTURES_PATH=/fixtures/ocserv/occtl
+
+    # Verbose logging for development
+    command: ["-socket", "/var/run/occtl.socket", "-fixtures", "/fixtures/ocserv/occtl", "-verbose"]
+
+    # Keep container running
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/occtl.socket"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - ocserv-agent-test
+
+# Shared volume for Unix socket
+volumes:
+  mock-socket:
+    driver: local
+
+# Network for integration tests
+networks:
+  ocserv-agent-test:
+    driver: bridge

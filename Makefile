@@ -1,6 +1,6 @@
 .PHONY: all build test proto clean install help
 .PHONY: compose-dev compose-test compose-build compose-down compose-logs compose-clean
-.PHONY: compose-ansible ansible-shell
+.PHONY: compose-ansible ansible-shell compose-mock-ocserv
 .PHONY: local-build local-test local-proto setup-compose
 .PHONY: security-check security-gosec security-govulncheck security-trivy
 .PHONY: build-all build-all-security build-all-test build-all-build
@@ -32,6 +32,9 @@ help:
 	@echo "🤖 Ansible Deployment:"
 	@echo "  make compose-ansible - Start Ansible environment"
 	@echo "  make ansible-shell   - Enter Ansible container shell"
+	@echo ""
+	@echo "🧪 Mock Services:"
+	@echo "  make compose-mock-ocserv - Start mock ocserv socket server"
 	@echo ""
 	@echo "🔒 Security Testing (Podman Compose):"
 	@echo "  make security-check       - Run all security scans"
@@ -111,6 +114,14 @@ compose-ansible:
 ansible-shell:
 	@echo "🐚 Entering Ansible container..."
 	podman exec -it ocserv-agent-ansible bash
+
+compose-mock-ocserv:
+	@echo "🧪 Starting mock ocserv socket server..."
+	cd deploy/compose && podman-compose -f mock-ocserv.yml up -d
+	@echo "✅ Mock ocserv ready!"
+	@echo "Socket: /var/run/occtl.socket (inside container)"
+	@echo "Logs: podman logs -f mock-ocserv"
+	@echo "Stop: cd deploy/compose && podman-compose -f mock-ocserv.yml down"
 
 # ═══════════════════════════════════════════════
 # Setup
