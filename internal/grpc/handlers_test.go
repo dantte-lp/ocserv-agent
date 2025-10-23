@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
@@ -147,52 +148,203 @@ func TestHealthCheck(t *testing.T) {
 
 // TestExecuteCommand tests the ExecuteCommand RPC handler
 func TestExecuteCommand(t *testing.T) {
-	// Skip complex mocking for unit tests - will be covered by integration tests
-	// This test verifies basic request/response structure
-	t.Skip("ExecuteCommand requires ocserv manager mocking - covered by integration tests")
+	t.Run("command not allowed", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+			Security: config.SecurityConfig{
+				AllowedCommands:   []string{"systemctl"}, // Only systemctl allowed
+				MaxCommandTimeout: 30,
+			},
+		}
 
-	cfg := &config.Config{
-		AgentID: "test-agent",
-		TLS: config.TLSConfig{
-			Enabled: false,
-		},
-		Ocserv: config.OcservConfig{
-			ConfigPath:     "/etc/ocserv/ocserv.conf",
-			CtlSocket:      "/run/ocserv/occtl.socket",
-			SystemdService: "ocserv",
-		},
-	}
+		logger := zerolog.New(zerolog.NewTestWriter(t))
 
-	logger := zerolog.New(zerolog.NewTestWriter(t))
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
 
-	server, err := New(cfg, logger)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+		req := &pb.CommandRequest{
+			RequestId:   "test-req-1",
+			CommandType: "occtl", // Not allowed
+			Args:        []string{"show", "users"},
+		}
 
-	req := &pb.CommandRequest{
-		RequestId:   "test-req-1",
-		CommandType: "show_status",
-		Args:        []string{},
-	}
+		resp, err := server.ExecuteCommand(context.Background(), req)
 
-	// This will likely fail since ocserv is not running, but we can verify
-	// that the response structure is correct and errors are handled properly
-	resp, err := server.ExecuteCommand(context.Background(), req)
+		// ExecuteCommand should not return gRPC errors, it wraps them in response
+		if err != nil {
+			t.Errorf("ExecuteCommand() returned gRPC error (should wrap in response): %v", err)
+		}
 
-	// ExecuteCommand should not return gRPC errors, it wraps them in response
-	if err != nil {
-		t.Errorf("ExecuteCommand() returned gRPC error (should wrap in response): %v", err)
-	}
+		if resp == nil {
+			t.Fatal("ExecuteCommand() returned nil response")
+		}
 
-	if resp == nil {
-		t.Error("ExecuteCommand() returned nil response")
-		return
-	}
+		if resp.RequestId != req.RequestId {
+			t.Errorf("ExecuteCommand() RequestId = %v, want %v", resp.RequestId, req.RequestId)
+		}
 
-	if resp.RequestId != req.RequestId {
-		t.Errorf("ExecuteCommand() RequestId = %v, want %v", resp.RequestId, req.RequestId)
-	}
+		if resp.Success {
+			t.Error("ExecuteCommand() Success = true, want false for disallowed command")
+		}
+
+		if !strings.Contains(resp.ErrorMessage, "command not allowed") {
+			t.Errorf("ExecuteCommand() ErrorMessage = %q, want containing 'command not allowed'", resp.ErrorMessage)
+		}
+	})
+
+	t.Run("invalid arguments - injection attempt", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+			Security: config.SecurityConfig{
+				AllowedCommands:   []string{"systemctl"},
+				MaxCommandTimeout: 30,
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		req := &pb.CommandRequest{
+			RequestId:   "test-req-2",
+			CommandType: "systemctl",
+			Args:        []string{"start; rm -rf /"}, // Injection attempt
+		}
+
+		resp, err := server.ExecuteCommand(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("ExecuteCommand() returned gRPC error: %v", err)
+		}
+
+		if resp == nil {
+			t.Fatal("ExecuteCommand() returned nil response")
+		}
+
+		if resp.Success {
+			t.Error("ExecuteCommand() Success = true, want false for invalid arguments")
+		}
+
+		if !strings.Contains(resp.ErrorMessage, "invalid arguments") {
+			t.Errorf("ExecuteCommand() ErrorMessage = %q, want containing 'invalid arguments'", resp.ErrorMessage)
+		}
+	})
+
+	t.Run("backtick injection blocked", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+			Security: config.SecurityConfig{
+				AllowedCommands:   []string{"occtl"},
+				MaxCommandTimeout: 30,
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		req := &pb.CommandRequest{
+			RequestId:   "test-req-3",
+			CommandType: "occtl",
+			Args:        []string{"show", "users`whoami`"}, // Backtick injection
+		}
+
+		resp, err := server.ExecuteCommand(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("ExecuteCommand() returned gRPC error: %v", err)
+		}
+
+		if resp == nil {
+			t.Fatal("ExecuteCommand() returned nil response")
+		}
+
+		if resp.Success {
+			t.Error("ExecuteCommand() Success = true, want false for backtick injection")
+		}
+
+		if !strings.Contains(resp.ErrorMessage, "dangerous characters") {
+			t.Errorf("ExecuteCommand() ErrorMessage = %q, want containing 'dangerous characters'", resp.ErrorMessage)
+		}
+	})
+
+	t.Run("request ID propagation", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+			Security: config.SecurityConfig{
+				AllowedCommands:   []string{"systemctl"},
+				MaxCommandTimeout: 30,
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		testRequestID := "unique-test-id-12345"
+		req := &pb.CommandRequest{
+			RequestId:   testRequestID,
+			CommandType: "systemctl",
+			Args:        []string{}, // Empty args will fail
+		}
+
+		resp, err := server.ExecuteCommand(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("ExecuteCommand() returned gRPC error: %v", err)
+		}
+
+		if resp == nil {
+			t.Fatal("ExecuteCommand() returned nil response")
+		}
+
+		if resp.RequestId != testRequestID {
+			t.Errorf("ExecuteCommand() RequestId = %q, want %q", resp.RequestId, testRequestID)
+		}
+	})
 }
 
 // TestUpdateConfig tests the UpdateConfig RPC handler
