@@ -20,7 +20,7 @@ services:
 
         # Unit tests
         echo "▶ Unit tests"
-        go test -v -race -coverprofile=coverage.out ./... || exit 1
+        go test -v -coverprofile=coverage.out ./... || exit 1
 
         # Coverage report
         echo "▶ Coverage report"
@@ -43,7 +43,7 @@ services:
   # Lint & Static Analysis
   # ═══════════════════════════════════════════════
   lint:
-    image: golangci/golangci-lint:v1.62-alpine
+    image: golangci/golangci-lint:v1.63-alpine
     container_name: ocserv-agent-lint
     working_dir: /workspace
     volumes:

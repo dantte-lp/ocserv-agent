@@ -1,0 +1,13 @@
+agent_id: minimal-agent
+control_server:
+  address: localhost:9090
+tls:
+  enabled: false
+ocserv:
+  config_path: /etc/ocserv/ocserv.conf
+  ctl_socket: /run/ocserv/occtl.socket
+  backup_dir: /var/lib/ocserv-agent/backups
+security:
+  allowed_commands:
+    - occtl
+    - systemctl

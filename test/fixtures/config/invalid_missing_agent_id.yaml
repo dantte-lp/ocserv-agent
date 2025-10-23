@@ -1,0 +1,4 @@
+control_server:
+  address: localhost:9090
+tls:
+  enabled: false

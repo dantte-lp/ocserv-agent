@@ -1,0 +1,4 @@
+# Per-group config for admins
+route = 10.0.0.0/8
+no-route = 192.168.1.0/24
+max-same-clients = 5

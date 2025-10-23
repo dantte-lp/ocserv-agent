@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 37310dc - docs: update compatibility status and add security improvements
-**Status:** v0.3.1 BETA - JSON parsing fixed, production-tested with 3 users, comprehensive documentation
+**Last Commit:** 36b4678 - test: add unit tests for internal/ocserv/config.go (82-100% coverage)
+**Status:** v0.4.0 IN PROGRESS - Unit tests implementation, targeting >80% coverage
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -28,7 +28,8 @@ All critical Phase 2 tasks done ✅
 - [ ] ShowEvents() streaming support (requires ServerStream RPC)
 - [ ] ocpasswd wrapper
 - [ ] UpdateConfig RPC
-- [ ] Unit tests (>80% coverage)
+- [x] Unit tests for internal/config (97.1% coverage) ✅
+- [ ] Unit tests for other packages (cert, grpc, ocserv) - targeting >80% overall
 
 ## 🎉 v0.2.1: CI/CD Infrastructure - COMPLETED!
 
@@ -336,9 +337,26 @@ See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
 
 ## 🟢 Medium Priority (Testing & Polish)
 
-- [ ] **[TEST]** Add unit tests for config package
+- [x] **[TEST]** Add unit tests for config package
+  - ✅ Completed: 2025-10-23
+  - Commit: 83e3f05
+  - Coverage: 97.1% (exceeds >80% target)
+  - Files: config_test.go (347 lines), validation_test.go (579 lines)
+  - Test fixtures: 4 YAML files (valid, minimal, invalid scenarios)
+- [x] **[TEST]** Add unit tests for cert package
+  - ✅ Completed: 2025-10-23
+  - Commit: a6dee4c
+  - Coverage: 77.6% (close to 80% target)
+  - Files: generator_test.go (678 lines)
+  - Certificate generation, PEM operations, fingerprints
+- [x] **[TEST]** Add unit tests for ocserv/config.go
+  - ✅ Completed: 2025-10-23
+  - Commit: 36b4678
+  - Coverage: 82-100% for all functions
+  - Files: config_test.go (621 lines)
+  - Test fixtures: 4 ocserv config files
 - [ ] **[TEST]** Add unit tests for gRPC handlers
-- [ ] **[TEST]** Add unit tests for ocserv manager
+- [ ] **[TEST]** Add unit tests for remaining ocserv files (manager, occtl, systemctl)
 - [ ] **[FEATURE]** Create certificate generation script (scripts/generate-certs.sh)
 - [ ] **[TEST]** Test the agent with compose-build
 - [ ] **[TEST]** Create test certificates for mTLS
@@ -427,15 +445,25 @@ None yet
   - 4fd990f: **Fix occtl JSON parsing (CRITICAL)** ✅
   - 8837ee6: Add OCCTL_COMMANDS.md reference ✅
   - 37310dc: Update compatibility + add security docs ✅
+  - 83e3f05: Add comprehensive unit tests for internal/config (97.1% coverage) ✅
+  - a6dee4c: Add unit tests for internal/cert (77.6% coverage) ✅
+  - 36b4678: Add unit tests for internal/ocserv/config.go (82-100% coverage) ✅
 
-- **Tests:** 0% coverage (tests planned for v0.4.0+)
+- **Tests:**
+  - internal/config: 97.1% coverage ✅
+  - internal/cert: 77.6% coverage ✅
+  - internal/ocserv/config.go: 82-100% coverage ✅
+  - internal/ocserv (overall): 15.8% (other files pending)
+  - Overall project: Moving from 0% toward >80% target
+  - Target for v0.4.0: >80% overall coverage
 - **Documentation:** 100% complete + 5 new comprehensive guides
-- **Release notes:** v0.3.1 BETA ready for release
+- **Release notes:** v0.3.1 BETA completed, v0.4.0 in progress
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
 - **Phase 3:** COMPLETED (100%) ✅ - occtl commands working
 - **v0.2.1:** COMPLETED (100%) ✅ - CI/CD infrastructure
 - **v0.3.0:** COMPLETED (100%) ✅ - Certificate auto-generation
 - **v0.3.1:** COMPLETED (100%) ✅ - Critical bugfixes + Documentation
-- **Current:** v0.3.1 BETA - production-tested, comprehensive docs, ready for release
-- **Next Phase:** v0.4.0 - OSSF Scorecard improvements, ocpasswd, UpdateConfig, Unit tests
+- **v0.4.0:** IN PROGRESS - Unit tests implementation (internal/config ✅ 97.1%)
+- **Current:** v0.4.0 development - Unit test infrastructure established
+- **Next Steps:** Unit tests for cert/grpc/ocserv packages, OSSF improvements

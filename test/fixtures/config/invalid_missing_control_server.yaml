@@ -1,0 +1,3 @@
+agent_id: test-agent
+tls:
+  enabled: false
