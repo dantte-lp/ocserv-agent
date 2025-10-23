@@ -14,7 +14,9 @@
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
-> **Status:** BETA (v0.5.0) - Production-tested with real VPN users. Core features complete, test coverage expanded (51.2% overall, 87.6% grpc), critical security vulnerabilities fixed. See [ROADMAP.md](ROADMAP.md) for future plans.
+> **Status:** BETA (v0.5.0) - Production-tested with real VPN users. Core features complete, test coverage expanded (51.2% overall, 87.6% grpc), critical security vulnerabilities fixed.
+>
+> **v0.6.0 In Progress:** 🚧 Integration tests development (40% complete) - 64 integration tests created, ~70% coverage for occtl.go. See [ROADMAP.md](ROADMAP.md) for details.
 
 ## 📋 Overview
 

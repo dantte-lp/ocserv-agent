@@ -80,15 +80,34 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
 
 ## 🔮 Upcoming Releases
 
-### v0.6.0: Security Hardening & Integration Tests (Target: January 2026)
+### v0.6.0: Integration Tests & Coverage Expansion 🚧 IN PROGRESS (Target: January 2026)
 
-**Integration Tests (Deferred from v0.5.0):**
-- [ ] Mock ocserv framework
-- [ ] End-to-end gRPC tests
-- [ ] Real command execution tests
-- [ ] Configuration validation tests
-- [ ] Error scenario testing
-- **Goal:** >80% overall coverage
+**Status:** 40% Complete (6/15 tasks) ⚡
+
+**Integration Tests - IN PROGRESS:**
+- ✅ **Phase 1: Infrastructure Setup** [3/3] COMPLETE!
+  - ✅ Ansible environment in podman-compose (v0.3.0)
+  - ✅ Ansible playbooks for remote deployment
+  - ✅ Mock ocserv Unix socket server (900+ lines, 14 fixtures)
+
+- ✅ **Phase 2: Occtl Integration Tests** [3/4] 75% COMPLETE!
+  - ✅ Task 2.1: Test infrastructure (10 tests) - mock helpers, fixtures, utilities
+  - ✅ Task 2.2: ShowUsers and basic commands (24 tests) - ShowUsers(5), ShowStatus/Stats(7), errors(13)
+  - ✅ Task 2.3: User management commands (30 tests) - ShowUser/ID(9), Disconnect(11), edge cases(10)
+  - ⬜ Task 2.4: IP management commands (pending) - ShowIPBans, UnbanIP, Reload
+
+- ⬜ **Phase 3: Systemctl Integration Tests** [0/3]
+- ⬜ **Phase 4: gRPC End-to-End Tests** [0/3]
+- ⬜ **Phase 5: Remote Server Testing** [0/2]
+
+**Current Achievements:**
+- ✅ **64 integration tests** (10 + 24 + 30)
+- ✅ **~70% coverage** for occtl.go (target: 75-80%)
+- ✅ Mock ocserv running in podman-compose
+- ✅ Comprehensive edge cases: Unicode, special chars, long strings, concurrent operations
+- ✅ Ansible automation tested on production server
+
+**Coverage Goal:** 51.2% → 75-80% overall
 
 **OSSF Scorecard Improvements (Target: 7.5+/10):**
 

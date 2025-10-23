@@ -27,18 +27,32 @@
 
 **📋 Detailed Plan:** [INTEGRATION_TESTS_PLAN.md](INTEGRATION_TESTS_PLAN.md) (15 tasks, ~12 hours)
 
-**Progress:** 3/15 tasks (20.0%)
+**Progress:** 6/15 tasks (40.0%) ⚡ **MAJOR UPDATE!**
 - Phase 1: Infrastructure Setup [3/3] ✅✅✅ **COMPLETE!**
-- Phase 2: Occtl Integration Tests [0/4]
+- Phase 2: Occtl Integration Tests [3/4] ✅✅✅⬜ **75% COMPLETE!**
+  - ✅ Task 2.1: Test infrastructure (10 tests)
+  - ✅ Task 2.2: ShowUsers and basic commands (24 tests)
+  - ✅ Task 2.3: User management commands (30 tests)
+  - ⬜ Task 2.4: IP management commands (pending)
 - Phase 3: Systemctl Integration Tests [0/3]
 - Phase 4: gRPC End-to-End Tests [0/3]
 - Phase 5: Remote Server Testing [0/2]
 
-**Current Blockers:**
-- None! All blockers resolved ✅
-- ✅ **BLOCKER #1:** Ansible environment - RESOLVED (Tasks 1.1 & 1.2 completed, tested on production)
+**Current Status:**
+- ✅ **64 integration tests** created (10 + 24 + 30)
+- ✅ **Coverage:** ~70% for occtl.go (target: 75-80% by end of Phase 2)
+- ✅ **Test files:** 7 new integration test files
+- ✅ **Mock ocserv:** Running in podman-compose with 14 fixtures
+- ✅ No blockers!
 
-**Coverage goal:** 51.2% → 75-80%
+**Recent Achievements (2025-10-23):**
+- ✅ Task 2.3 completed: 30 tests for ShowUser, ShowID, DisconnectUser, DisconnectID
+- ✅ Edge cases: special chars, Unicode, long strings, concurrent operations
+- ✅ Test infrastructure: mock socket helpers, fixture validation, test utilities
+
+**Coverage progression:**
+- v0.5.0: 51.2% overall, 23.1% internal/ocserv
+- v0.6.0 (current): ~70% occtl.go, 64 integration tests
 
 **Remote Server (195.238.126.25):**
 - Configuration: Use `.env` file (see `.env.example` for RFC 5737 template)
