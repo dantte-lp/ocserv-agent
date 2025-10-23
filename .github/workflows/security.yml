@@ -58,16 +58,13 @@ jobs:
 
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
-        continue-on-error: true
         with:
-          args: '-fmt sarif -out gosec.sarif ./...'
+          args: '-no-fail -fmt sarif -out results.sarif ./...'
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true
         with:
-          sarif_file: gosec.sarif
+          sarif_file: results.sarif
 
   # Dependency vulnerability scanning
   govulncheck:
