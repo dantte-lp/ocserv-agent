@@ -25,13 +25,15 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   # Go security scanning with gosec
   gosec:
     name: Go Security Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -104,6 +106,9 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     strategy:
       fail-fast: false
@@ -151,6 +156,9 @@ jobs:
   trivy:
     name: Trivy Security Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
