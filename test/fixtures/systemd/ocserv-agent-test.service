@@ -1,0 +1,12 @@
+[Unit]
+Description=ocserv-agent Test Service
+Documentation=https://github.com/dantte-lp/ocserv-agent
+
+[Service]
+Type=oneshot
+# Simple test service that does nothing and exits successfully
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
