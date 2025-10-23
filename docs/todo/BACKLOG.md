@@ -15,7 +15,10 @@
 See `OCSERV_COMPATIBILITY.md` for complete breakdown.
 
 **High Priority:**
-- [x] Complete all 16 occtl commands (16/16 DONE!)
+- [x] occtl commands with JSON mode (13/16 working!)
+  - ✅ 13 fully working commands
+  - ⚠️ 3 with upstream occtl bugs (iroutes, sessions)
+  - [ ] 2 not implemented (show events, stop now)
 - [ ] ocpasswd wrapper for user management
 - [ ] UpdateConfig RPC with backup/rollback
 - [ ] Bidirectional streaming (AgentStream)
@@ -39,6 +42,32 @@ See `OCSERV_COMPATIBILITY.md` for complete breakdown.
 - [ ] Performance testing
 - [x] Security audit (OSSF Scorecard, Gosec, Trivy all passing)
 
+## v0.3.1 BETA Completed (2025-10-23)
+
+**Critical Bugfixes:**
+- [x] Fixed occtl JSON parsing (user count was showing 0)
+- [x] Switched to `occtl -j` mode with 40+ fields per user
+- [x] Fixed Routes field polymorphism (string vs []string)
+- [x] Production-tested with 3 real VPN users
+
+**Security Improvements:**
+- [x] SECURITY.md vulnerability disclosure policy
+- [x] Removed hardcoded credentials from repository
+- [x] Sanitized all deployment scripts
+- [x] OSSF Scorecard: 4.9/10 → 5.9/10 (+1.0)
+
+**Documentation (5 new guides):**
+- [x] docs/OCCTL_COMMANDS.md - Complete command reference
+- [x] docs/GRPC_TESTING.md - gRPC testing procedures
+- [x] docs/OSSF_SCORECARD_IMPROVEMENTS.md - Security roadmap
+- [x] Updated OCSERV_COMPATIBILITY.md with production results
+- [x] docs/releases/v0.3.1.md - Full release notes
+
+**Features:**
+- [x] gRPC reflection support for service discovery
+- [x] Production deployment scripts (deploy-and-test.sh, test-grpc.sh)
+- [x] Comprehensive testing of all occtl commands
+
 ## v0.3.0 BETA Completed (2025-10-23)
 
 **Infrastructure & Tooling:**
@@ -54,6 +83,26 @@ See `OCSERV_COMPATIBILITY.md` for complete breakdown.
 - [x] MIT License
 - [x] Complete documentation
 
+## v0.4.0 Planning - OSSF Scorecard & Security Improvements
+
+**See `docs/OSSF_SCORECARD_IMPROVEMENTS.md` for detailed plan**
+
+**Phase 1 - Quick Wins (Target: 6.5/10):**
+- [ ] Setup branch protection rules (require PR, code review)
+- [ ] Restrict GitHub workflow token permissions
+- [ ] Setup GPG commit signing
+- [ ] Create .github/CODEOWNERS file
+
+**Phase 2 - Dependency Pinning (Target: 7.5/10):**
+- [ ] Pin all 22 GitHub Actions to SHA hashes
+- [ ] Pin Docker base images to digests
+- [ ] Update all compose files
+
+**Phase 3 - Signing & Provenance (Target: 8.0/10):**
+- [ ] GPG sign all release artifacts
+- [ ] Cosign for container images
+- [ ] Improve release signing consistency
+
 ## Future Enhancements (Low Priority)
 
 **See `OCSERV_COMPATIBILITY.md` for detailed planning**
@@ -64,6 +113,8 @@ See `OCSERV_COMPATIBILITY.md` for complete breakdown.
 - [ ] ocserv-script documentation (custom hooks)
 - [ ] Support for multiple control servers (failover)
 - [ ] Automated backup scheduling
+- [ ] Fuzzing integration (OSS-Fuzz, go-fuzz)
+- [ ] CII Best Practices certification
 - [ ] Advanced ocserv 1.3.0 features:
   - Camouflage mode configuration
   - HTTP security headers management

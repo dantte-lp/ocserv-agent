@@ -2,6 +2,90 @@
 
 ## 2025-10-23
 
+### v0.3.1 BETA Release - Critical Bugfixes + Documentation + Security
+
+- [x] **[BUGFIX - CRITICAL]** Fixed occtl JSON parsing (Commit: 4fd990f)
+  - Problem: Agent showed "Connected users: 0" even when users were connected
+  - Root cause: parseUsers() expected YAML-like format but occtl returns tabular output
+  - Solution: Switched to JSON mode (`occtl -j`) with proper JSON unmarshaling
+  - internal/ocserv/occtl.go - Added executeJSON() and parseUsersJSON()
+  - Production-tested with 3 real VPN users ✅
+  - 40+ fields per user (vs 6 fields in text mode)
+
+- [x] **[BUGFIX]** Fixed Routes field polymorphism (Commit: 4fd990f)
+  - occtl sometimes returns Routes as string, sometimes as []string
+  - Added proper JSON unmarshaling with custom handler
+  - Prevents "cannot unmarshal string into Go struct field" errors
+
+- [x] **[BUGFIX]** Fixed VERSION variable expansion (Commit: 4a83924)
+  - docker-compose.build.yml now uses $$VERSION instead of ${VERSION}
+  - Archives created with correct version names
+
+- [x] **[BUGFIX]** Fixed RAW binary creation (Commit: 0161ffc)
+  - Fixed command order: copy before tar
+  - All 12 artifacts now created successfully
+
+- [x] **[FEATURE]** gRPC reflection support (Commit: cb1f848)
+  - Enables `grpcurl list` and `grpcurl describe`
+  - Service discovery without .proto files
+  - Easier testing and debugging
+
+- [x] **[SECURITY]** Removed hardcoded credentials (Commit: 3c2d96a)
+  - Removed production server IP from scripts
+  - Removed hardcoded SSH passwords from documentation
+  - Sanitized all deployment scripts to use environment variables
+  - All scripts now use SERVER="${1:-${SERVER:-localhost}}" pattern
+
+- [x] **[SECURITY]** SECURITY.md vulnerability disclosure policy (Commit: 37310dc)
+  - Complete vulnerability reporting process
+  - Response timeline commitments (48h initial, 7d assessment)
+  - Security features documentation
+  - Disclosure policy and hall of fame
+  - Fixes OSSF Scorecard Security-Policy check (0 → 10 points)
+  - OSSF Score: 4.9/10 → 5.9/10 (+1.0)
+
+- [x] **[DOCS]** OCCTL Commands Reference (Commit: 8837ee6)
+  - docs/OCCTL_COMMANDS.md - Complete user guide
+  - Status table: 13/16 working, 3 broken (upstream occtl bugs)
+  - 40+ user data fields documentation
+  - Examples for each command type
+  - Known issues with occtl 1.3.0 JSON output
+
+- [x] **[DOCS]** gRPC Testing Guide (Commit: 801b32d)
+  - docs/GRPC_TESTING.md - Step-by-step testing instructions
+  - Production testing procedures
+  - Certificate setup for remote testing
+  - Deployment scripts usage (deploy-and-test.sh, test-grpc.sh)
+
+- [x] **[DOCS]** OSSF Scorecard Improvements Plan (Commit: 37310dc)
+  - docs/OSSF_SCORECARD_IMPROVEMENTS.md - 4-phase plan
+  - Current: 4.9/10, Target: 7.5+/10
+  - Phase 1: Quick Wins (6.5/10) - Branch protection, token permissions, GPG
+  - Phase 2: Dependency Pinning (7.5/10) - Pin 22 GitHub Actions to SHA
+  - Phase 3: Signing & Provenance (8.0/10) - GPG sign artifacts, Cosign
+  - Phase 4: Advanced (9.0+/10) - Fuzzing, CII badge, multi-contributor
+
+- [x] **[DOCS]** Updated OCSERV Compatibility Status (Commit: 37310dc)
+  - docs/todo/OCSERV_COMPATIBILITY.md - Realistic production status
+  - Corrected from "16/16 working" to "13/16 working, 3 with upstream bugs"
+  - Documented occtl 1.3.0 JSON bugs (iroutes, sessions)
+  - Adjusted compatibility score: 40/100 → 36/100 (realistic)
+  - Added troubleshooting guide for JSON parsing issues
+
+- [x] **[DOCS]** Release Notes (Commit: 21596dd)
+  - docs/releases/v0.3.1.md - Complete release documentation
+  - Critical bugfix details with before/after code examples
+  - 5 new/updated documentation guides
+  - Security improvements summary
+  - Upgrade instructions
+  - Known issues (upstream occtl bugs)
+
+- [x] **[RELEASE]** v0.3.1 BETA published
+  - 4 platform binaries with SHA256 checksums
+  - SLSA Level 3 provenance attestation
+  - Marked as pre-release (BETA status)
+  - Complete release notes
+
 ### v0.3.0 BETA Release - Certificate Auto-Generation & Build Pipeline
 
 - [x] **[FEATURE]** Certificate auto-generation (Commit: 208021b)
