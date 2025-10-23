@@ -108,7 +108,7 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
 - ✅ **Phase 5: Remote Server Testing** [2/2] **COMPLETE!**
   - ✅ Task 5.1: Deploy to production server via Ansible
   - ✅ Task 5.2: End-to-end production tests
-  - Deployed to 195.238.126.25 (OracleLinux 9.6)
+  - Deployed to production (OracleLinux 9.6)
   - Zero-downtime deployment (3 VPN users unchanged)
 
 **Current Achievements:**

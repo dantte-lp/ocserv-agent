@@ -49,13 +49,13 @@
 - ✅ **Coverage:** ~90% for occtl.go, ~75-80% overall (target exceeded!)
 - ✅ **Test files:** 12 test files (11 integration + 1 unit)
 - ✅ **Mock ocserv:** Running in podman-compose with 17 fixtures
-- ✅ **Production deployment:** Agent v0.5.0-34-g6d7564b on 195.238.126.25
+- ✅ **Production deployment:** Agent v0.5.0-34-g6d7564b deployed successfully
 - ✅ **Zero downtime:** 3 VPN users unaffected
 - ✅ **All end-to-end tests passed**
 
 **Recent Achievements (2025-10-24):**
 - ✅ **Phase 5 COMPLETE!** Remote Server Testing 🎉
-  - ✅ Deployed agent v0.5.0-34-g6d7564b to production (195.238.126.25)
+  - ✅ Deployed agent v0.5.0-34-g6d7564b to production server
   - ✅ Zero-downtime deployment (3 VPN users unchanged)
   - ✅ End-to-end tests: all passed
   - ✅ SELinux configuration for systemd service
@@ -69,10 +69,10 @@
 - v0.6.0: ~90% occtl.go, comprehensive gRPC coverage, 119 tests ✅
 - **Achieved:** 75-80% overall ✅ (target exceeded!)
 
-**Remote Server (195.238.126.25):**
+**Remote Server:**
 - ✅ Deployed: Agent v0.5.0-34-g6d7564b (2025-10-24)
 - Current setup: OracleLinux 9.6 + ocserv 1.3 (active) + 3 active VPN users
-- Agent status: active (running), PID 854361, gRPC on :9090
+- Agent status: active (running), gRPC on :9090
 - Previous: v0.3.0-24-groutes (backed up)
 - **SUCCESS:** ✅ Zero-downtime deployment, VPN service unaffected
 

@@ -60,7 +60,7 @@ For example:
   "MTU": "1280",
   "Remote IP": "90.156.164.225",
   "Location": "unknown",
-  "Local Device IP": "195.238.126.25",
+  "Local Device IP": "203.0.113.10",
   "IPv4": "10.0.16.23",
   "P-t-P IPv4": "10.0.16.1",
   "IPv6": "fc00::1:8651",
