@@ -2,6 +2,38 @@
 
 Экономьте часы GitHub Actions, проводя тесты локально перед пушем!
 
+## 🎯 Полный Pipeline (Рекомендуется)
+
+**Новое!** Unified build script для запуска всего CI/CD pipeline локально:
+
+```bash
+# Запустить всё: security + tests + build
+make build-all
+
+# Или по отдельности:
+make build-all-security  # Security scans (gosec, govulncheck, trivy)
+make build-all-test      # Unit tests + linting
+make build-all-build     # Multi-platform builds (4 platforms)
+```
+
+Что запускается:
+- ✅ **Security scans**: gosec (with SARIF fix), govulncheck, trivy
+- ✅ **Unit tests**: coverage report, race detector
+- ✅ **Linting**: golangci-lint (30+ linters)
+- ✅ **Multi-platform build**: Linux/FreeBSD × amd64/arm64
+- ✅ **Artifacts**: tar.gz archives + SHA256 checksums
+
+Результаты сохраняются в:
+- `deploy/compose/security-results/` - SARIF и JSON отчеты
+- `bin/` - бинарники и checksums
+- `coverage.out`, `coverage.html` - покрытие тестов
+
+**Преимущества:**
+- 🚀 Один скрипт запускает всё
+- 🐳 Всё работает в контейнерах (изолировано)
+- 💰 Экономия минут GitHub Actions
+- 🔍 Раннее обнаружение проблем
+
 ## 🚀 Быстрая проверка (2-3 секунды)
 
 Для быстрой проверки перед коммитом:

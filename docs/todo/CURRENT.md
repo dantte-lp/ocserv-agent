@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 241c28b - feat(security): fix Gosec SARIF upload and add local security testing
-**Status:** v0.3.0 BETA - All security workflows passing, local testing infrastructure ready
+**Last Commit:** 09d3c50 - feat(build): add unified build pipeline script
+**Status:** v0.3.0 BETA - Production testing in progress, unified build pipeline ready
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -112,6 +112,10 @@ All critical Phase 2 tasks done ✅
 - ✅ Security workflow paths-ignore fix (b8aeb6e)
 - ✅ Gosec SARIF format fix with jq processing (241c28b)
 - ✅ Local security testing infrastructure (podman-compose) (241c28b)
+- ✅ Documentation updates and MIT license (5f0d2a7)
+- ✅ Binary installation path fix - /etc/ocserv-agent (18fd5c8)
+- ✅ Configuration validation logging (f6f077d)
+- ✅ Unified build pipeline script (09d3c50)
 
 ## 🔴 Critical (Next Steps - v0.4.0)
 
@@ -319,6 +323,10 @@ None yet
   - be3c5c0: Fix OSSF Scorecard permissions ✅
   - b8aeb6e: Fix security workflow paths-ignore ✅
   - 241c28b: Gosec SARIF fix + local security testing ✅
+  - 5f0d2a7: Documentation updates and MIT license ✅
+  - 18fd5c8: Binary installation path fix ✅
+  - f6f077d: Configuration validation logging ✅
+  - 09d3c50: Unified build pipeline script ✅
 
 - **Tests:** 0% coverage (tests planned for v0.4.0+)
 - **Documentation:** 100% complete
