@@ -59,6 +59,24 @@ make compose-dev
 
 ### Running Tests
 
+#### 🚀 Quick Local Check (Before Commit)
+
+```bash
+# Fast checks in 2-3 seconds
+./scripts/quick-check.sh
+```
+
+#### 🔬 Full Local CI (Before Push)
+
+```bash
+# Run all CI checks locally (saves GitHub Actions minutes!)
+./scripts/test-local.sh
+```
+
+See [LOCAL_TESTING.md](docs/LOCAL_TESTING.md) for details.
+
+#### 🐳 Container Tests
+
 ```bash
 # Run all tests in containers
 make compose-test
