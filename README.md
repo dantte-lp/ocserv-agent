@@ -496,4 +496,4 @@ We actively contribute bug reports and fixes to the ocserv project:
 - [ ] Virtual hosts support
 - [ ] RADIUS/Kerberos monitoring
 
-See [CURRENT.md](docs/todo/CURRENT.md) for detailed task tracking and [BACKLOG.md](docs/todo/BACKLOG.md) for long-term features.
+See [CURRENT.md](docs/todo/CURRENT.md) for current tasks and [ROADMAP.md](ROADMAP.md) for long-term project roadmap.

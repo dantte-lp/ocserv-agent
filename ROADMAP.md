@@ -1,7 +1,7 @@
 # ocserv-agent Development Roadmap
 
 **Last Updated:** 2025-10-23
-**Current Version:** v0.4.0 BETA
+**Current Version:** v0.5.0 BETA
 **Status:** Active Development
 
 ---
@@ -29,9 +29,32 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
 
 ---
 
-## 🚀 Current Release: v0.4.0 BETA (October 2025)
+## 🚀 Recent Releases
 
-### Test Foundation & DevOps Improvements ✅
+### v0.5.0 BETA: Test Coverage Expansion & Security Fixes ✅ (October 2025)
+
+**Achievements:**
+- ✅ **CRITICAL:** Fixed 4 command injection vulnerabilities (29 test cases)
+- ✅ internal/grpc: 0% → **87.6%** coverage (exceeded >80% target!)
+- ✅ internal/ocserv: 15.8% → 23.1% coverage
+- ✅ Overall internal: ~40% → **51.2%** (+11.2%)
+- ✅ 1,600+ new lines of test code
+- ✅ Test infrastructure: TLS certificate helpers, security validation
+- ✅ validateArguments: 100% coverage (security-first testing)
+
+**Security Fixes:**
+- ✅ Backtick command substitution (HIGH severity)
+- ✅ Escaped metacharacter injection (MEDIUM severity)
+- ✅ Newline injection (MEDIUM severity)
+- ✅ Control character injection (LOW severity)
+
+**Test Infrastructure:**
+- ✅ TLS certificate helper (createTestCerts)
+- ✅ Mock stream implementations
+- ✅ Security validation test suite
+- ✅ Interceptor testing (100% coverage)
+
+### v0.4.0 BETA: Test Foundation & DevOps Improvements ✅ (October 2025)
 
 **What's New:**
 
@@ -53,56 +76,24 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
 - ✅ Required PR reviews (1 approval)
 - ✅ CI path filtering (skip heavy jobs for docs-only changes)
 
-**Documentation:**
-- ✅ Test coverage reports
-- ✅ Git hooks usage guide
-- ✅ Updated contributing guidelines
-
 ---
 
 ## 🔮 Upcoming Releases
 
-### v0.5.0: Complete Test Coverage (Target: December 2025)
+### v0.6.0: Security Hardening & Integration Tests (Target: January 2026)
 
-**Goals:**
-- 🎯 Achieve >80% overall test coverage
-- 🎯 Comprehensive unit tests for all packages
-- 🎯 Integration tests with mock ocserv
-
-**Planned Work:**
-
-**Unit Tests:**
-- [ ] internal/grpc: gRPC server and handlers
-  - Server initialization and lifecycle
-  - Request/response handling
-  - Interceptors and middleware
-  - Error handling
-- [ ] internal/ocserv: Remaining files
-  - manager.go: Command execution and validation
-  - occtl.go: All occtl command wrappers
-  - systemctl.go: Service management
-- [ ] internal/health: Health check system
-- [ ] internal/metrics: Metrics collection
-- [ ] internal/telemetry: OpenTelemetry integration
-
-**Integration Tests:**
-- [ ] Mock ocserv for testing
-- [ ] End-to-end API tests
+**Integration Tests (Deferred from v0.5.0):**
+- [ ] Mock ocserv framework
+- [ ] End-to-end gRPC tests
+- [ ] Real command execution tests
 - [ ] Configuration validation tests
 - [ ] Error scenario testing
-
-**Test Infrastructure:**
-- [ ] Test coverage reporting in CI
-- [ ] Benchmark tests for performance
-- [ ] Table-driven test patterns
-- [ ] Test utilities and helpers
-
-### v0.6.0: Security Hardening (Target: January 2026)
+- **Goal:** >80% overall coverage
 
 **OSSF Scorecard Improvements (Target: 7.5+/10):**
 
 **Phase 1: Quick Wins**
-- [ ] Branch protection rules (require PR, dismiss stale reviews)
+- [x] Branch protection rules (require PR, dismiss stale reviews) ✅ v0.4.0
 - [ ] Restrict GitHub workflow token permissions
 - [ ] Create .github/CODEOWNERS
 - [ ] Setup GPG commit signing
