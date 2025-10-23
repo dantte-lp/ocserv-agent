@@ -14,7 +14,15 @@ podman-compose -f deploy/compose/ansible.yml up -d
 
 # Verify installation
 podman exec ocserv-agent-ansible poetry run ansible --version
+
+# Verify collections installed
+podman exec ocserv-agent-ansible poetry run ansible-galaxy collection list
 ```
+
+**Installed Collections:**
+- `ansible.posix` (>= 1.5.0) - firewalld, authorized_key, mount, sysctl
+- `community.general` (>= 8.0.0) - systemd_info, various utilities
+- `community.docker` (>= 3.4.0) - Docker/Podman support
 
 ### 2. Configure Credentials
 

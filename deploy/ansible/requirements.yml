@@ -1,0 +1,16 @@
+---
+# Ansible Collections Requirements
+# Install with: ansible-galaxy collection install -r requirements.yml
+
+collections:
+  # POSIX system administration (firewalld, authorized_key, mount, sysctl)
+  - name: ansible.posix
+    version: ">=1.5.0"
+
+  # Community general utilities (systemd_info, various tools)
+  - name: community.general
+    version: ">=8.0.0"
+
+  # Docker/Podman support (if needed for testing)
+  - name: community.docker
+    version: ">=3.4.0"

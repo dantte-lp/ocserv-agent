@@ -35,6 +35,9 @@ services:
         echo '==> Verifying Ansible installation...'
         poetry run ansible --version
 
+        echo '==> Installing Ansible collections...'
+        poetry run ansible-galaxy collection install -r /workspace/requirements.yml
+
         echo '==> Ansible environment ready!'
         echo 'Run: make ansible-shell to enter container'
         echo 'Or: podman exec -it ocserv-agent-ansible bash'
