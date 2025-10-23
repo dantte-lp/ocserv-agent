@@ -267,7 +267,7 @@ func (m *Manager) executeOcctl(ctx context.Context, args []string) (*CommandResu
 				}, fmt.Errorf("show user requires username")
 			}
 
-			user, err := m.occtl.ShowUser(ctx, args[2])
+			users, err := m.occtl.ShowUser(ctx, args[2])
 			if err != nil {
 				return &CommandResult{
 					Success:  false,
@@ -275,10 +275,28 @@ func (m *Manager) executeOcctl(ctx context.Context, args []string) (*CommandResu
 				}, err
 			}
 
+			if len(users) == 0 {
+				return &CommandResult{
+					Success: true,
+					Stdout:  fmt.Sprintf("No active sessions found for user: %s", args[2]),
+				}, nil
+			}
+
+			// Format output for multiple sessions
+			var output strings.Builder
+			output.WriteString(fmt.Sprintf("User: %s (%d session(s))\n", args[2], len(users)))
+			for i, user := range users {
+				output.WriteString(fmt.Sprintf("\nSession %d:\n", i+1))
+				output.WriteString(fmt.Sprintf("  ID: %d\n", user.ID))
+				output.WriteString(fmt.Sprintf("  State: %s\n", user.State))
+				output.WriteString(fmt.Sprintf("  Device: %s\n", user.Device))
+				output.WriteString(fmt.Sprintf("  Remote IP: %s\n", user.RemoteIP))
+				output.WriteString(fmt.Sprintf("  VPN IPv4: %s\n", user.IPv4))
+			}
+
 			return &CommandResult{
 				Success: true,
-				Stdout: fmt.Sprintf("User: %s (ID: %d)\nState: %s\nDevice: %s\nRemote IP: %s\nVPN IPv4: %s",
-					user.Username, user.ID, user.State, user.Device, user.RemoteIP, user.IPv4),
+				Stdout:  output.String(),
 			}, nil
 
 		case "id":

@@ -1,8 +1,24 @@
 [
   {
-    "Session":  "0/zuQ1",
-    "Full session":  "0/zuQ1RjBWv5J/hneJun8+sesWs=",
-    "Created":  "2025-10-23 02:30",
+    "Session":  "Y662UR",
+    "Full session":  "Y662URSDYK9V+c2DIPN2duakc2g=",
+    "Created":  "2025-10-23 02:59",
+    "State":  "authenticated",
+    "Username":  "test",
+    "Groupname":  "(none)",
+    "vhost":  "default",
+    "User-Agent":  "AnyConnect Darwin_i386 5.1.11.388",
+    "Remote IP":  "90.156.164.225",
+    "Location":  "unknown",
+    "session_is_open":  1,
+    "tls_auth_ok":  0,
+    "in_use":  1,
+  },
+
+  {
+    "Session":  "DN4npe",
+    "Full session":  "DN4npevJ3uos1fsnrk544zTSH2Y=",
+    "Created":  "2025-10-23 03:00",
     "State":  "authenticated",
     "Username":  "lpa",
     "Groupname":  "(none)",

@@ -35,16 +35,18 @@ This directory contains real output from a production ocserv deployment, useful 
 **Format:** JSON array
 **Description:** List all connected users with detailed connection information
 
+**Example:** Contains multiple users (lpa and test) with different configurations
+
 **Key fields:**
 ```json
 {
-  "ID": 835235,
+  "ID": 836649,
   "Username": "lpa",
   "Groupname": "(none)",
   "State": "connected",
   "vhost": "default",
-  "Device": "vpns0",
-  "MTU": "1402",
+  "Device": "vpns1",
+  "MTU": "1280",
   "Remote IP": "90.156.164.225",
   "Location": "unknown",
   "Local Device IP": "195.238.126.25",
@@ -53,21 +55,24 @@ This directory contains real output from a production ocserv deployment, useful 
   "IPv6": "fc00::1:8651",
   "P-t-P IPv6": "fc00::1:8601",
   "User-Agent": "AnyConnect AppleSSLVPN_Darwin_ARM (iPhone) 5.1.11.347",
-  "RX": "0",
-  "TX": "96",
-  "_RX": "0 bytes",
-  "_TX": "96 bytes",
-  "Average RX": "0 bytes/s",
-  "Average TX": "32 bytes/s",
+  "RX": "8512",
+  "TX": "11227",
+  "_RX": "8.5 kB",
+  "_TX": "11.2 kB",
+  "Average RX": "1.4 kB/s",
+  "Average TX": "1.9 kB/s",
   "DPD": "90",
   "KeepAlive": "32400",
   "Hostname": "localhost",
-  "Connected at": "2025-10-23 02:32",
-  "_Connected at": "    3s",
-  "raw_connected_at": 1761175942,
-  "Full session": "0/zuQ1RjBWv5J/hneJun8+sesWs=",
-  "Session": "0/zuQ1",
+  "Connected at": "2025-10-23 03:00",
+  "_Connected at": "    6s",
+  "raw_connected_at": 1761177633,
+  "Full session": "DN4npevJ3uos1fsnrk544zTSH2Y=",
+  "Session": "DN4npe",
   "TLS ciphersuite": "(TLS1.3)-(ECDHE-SECP256R1)-(RSA-PSS-RSAE-SHA256)-(AES-256-GCM)",
+  "DTLS cipher": "(DTLS1.2)-(ECDHE-RSA)-(AES-256-GCM)",
+  "CSTP compression": "lzs",
+  "DTLS compression": "lzs",
   "DNS": ["10.0.16.1", "fc00::1:8601"],
   "NBNS": [],
   "Split-DNS-Domains": [],
@@ -79,7 +84,12 @@ This directory contains real output from a production ocserv deployment, useful 
 }
 ```
 
-**Note:** Real production data shows iPhone AnyConnect client connection
+**Note:** Real production data shows:
+- iPhone AnyConnect client (lpa user)
+- Darwin AnyConnect client (test user)
+- DTLS cipher, CSTP/DTLS compression fields (optional)
+- Hostname field is optional (present for lpa, missing for test)
+- Routes can be "defaultroute" string or array of routes
 
 ---
 
@@ -132,14 +142,32 @@ This directory contains real output from a production ocserv deployment, useful 
 ---
 
 ### occtl -j show user
-**Format:** JSON object
-**Description:** Detailed information about specific user (includes all show users fields)
+**Format:** Multiple JSON arrays (one per session)
+**Description:** Detailed information about specific user
+
+**IMPORTANT:** When a user has multiple active sessions, occtl returns multiple
+JSON arrays separated by empty lines. Each array contains one element representing
+one session.
+
+**Example structure:**
+```
+[{...user session 1...}]
+
+[{...user session 2...}]
+```
+
+**Example:** File contains two separate arrays - one for user "lpa" (ID 835312)
+and one for user "test" (ID 836625).
+
+**Implementation note:** Parse by splitting on `\n\n` and unmarshaling each part separately.
 
 ---
 
 ### occtl -j show id
-**Format:** JSON object
+**Format:** Single JSON array with one element
 **Description:** Detailed information about specific connection ID
+
+**Example:** File contains two separate examples - ID 836625 (test) and ID 836769 (lpa)
 
 **Also available:** `occtl show id` (plain text format)
 
@@ -233,7 +261,8 @@ This directory contains real output from a production ocserv deployment, useful 
 **Strings:**
 - `Username`, `Groupname`, `State`, `vhost`, `Device`
 - `Remote IP`, `Local Device IP`, `IPv4`, `IPv6`
-- `User-Agent`, `Hostname`, `TLS ciphersuite`
+- `User-Agent`, `Hostname` (optional), `TLS ciphersuite`
+- `DTLS cipher` (optional), `CSTP compression` (optional), `DTLS compression` (optional)
 
 **Timestamps:**
 - `Connected at`: String (human-readable)
@@ -266,44 +295,68 @@ When implementing the missing commands, use these examples to:
 
 1. **Define Go structs** matching JSON structure:
 ```go
-type User struct {
-    ID           int      `json:"ID"`
-    Username     string   `json:"Username"`
-    Groupname    string   `json:"Groupname"`
-    State        string   `json:"State"`
-    Vhost        string   `json:"vhost"`
-    Device       string   `json:"Device"`
-    MTU          string   `json:"MTU"`
-    RemoteIP     string   `json:"Remote IP"`
-    IPv4         string   `json:"IPv4"`
-    IPv6         string   `json:"IPv6"`
-    DNS          []string `json:"DNS"`
+type UserDetailed struct {
+    ID              int      `json:"ID"`
+    Username        string   `json:"Username"`
+    Groupname       string   `json:"Groupname"`
+    State           string   `json:"State"`
+    Vhost           string   `json:"vhost"`
+    Device          string   `json:"Device"`
+    MTU             string   `json:"MTU"`
+    RemoteIP        string   `json:"Remote IP"`
+    IPv4            string   `json:"IPv4"`
+    IPv6            string   `json:"IPv6"`
+    UserAgent       string   `json:"User-Agent"`
+    Hostname        string   `json:"Hostname,omitempty"` // Optional
+    TLSCiphersuite  string   `json:"TLS ciphersuite"`
+    DTLSCipher      string   `json:"DTLS cipher,omitempty"` // Optional
+    CSTPCompression string   `json:"CSTP compression,omitempty"` // Optional
+    DTLSCompression string   `json:"DTLS compression,omitempty"` // Optional
+    DNS             []string `json:"DNS"`
+    Routes          interface{} `json:"Routes"` // Can be string or []string
     // ... more fields
 }
 ```
 
 2. **Parse JSON output** with proper error handling:
 ```go
-func (m *OcctlManager) ShowUser(ctx context.Context, username string) (*User, error) {
-    output, err := m.runCommand(ctx, "show", "user", username, "-j")
+// ShowUser can return multiple sessions for the same username
+func (m *OcctlManager) ShowUser(ctx context.Context, username string) ([]UserDetailed, error) {
+    output, err := m.executeJSON(ctx, "show", "user", username)
     if err != nil {
         return nil, err
     }
 
-    var user User
-    if err := json.Unmarshal([]byte(output), &user); err != nil {
-        return nil, fmt.Errorf("failed to parse user: %w", err)
+    var allUsers []UserDetailed
+
+    // Split by empty lines to separate multiple JSON arrays
+    parts := strings.Split(output, "\n\n")
+    for _, part := range parts {
+        part = strings.TrimSpace(part)
+        if part == "" {
+            continue
+        }
+
+        var users []UserDetailed
+        if err := json.Unmarshal([]byte(part), &users); err != nil {
+            m.logger.Warn().Err(err).Msg("Failed to parse user array")
+            continue
+        }
+
+        allUsers = append(allUsers, users...)
     }
 
-    return &user, nil
+    return allUsers, nil
 }
 ```
 
 3. **Handle edge cases:**
-   - Empty arrays vs null
-   - Fields that can be missing
-   - Multiple data formats (raw vs formatted)
-   - Boolean as string ("True"/"False") vs integer (0/1)
+   - **Multiple sessions per user:** `show user` can return multiple arrays
+   - **Optional fields:** Hostname, DTLS cipher, CSTP/DTLS compression
+   - **Empty arrays vs null:** Handle both cases
+   - **Routes field:** Can be string ("defaultroute") or []string
+   - **Multiple data formats:** raw vs formatted (e.g., RX/TX)
+   - **Boolean as string:** "True"/"False" vs integer (0/1)
 
 4. **Streaming commands** (show events):
    - Use `ServerStream` for real-time updates
@@ -319,7 +372,13 @@ func (m *OcctlManager) ShowUser(ctx context.Context, username string) (*User, er
 - **ocserv version:** 1.3.0
 - **GnuTLS:** 3.8.9
 - **Uptime:** 40+ days (stable)
-- **Client:** AnyConnect iPhone app
+- **Clients:**
+  - AnyConnect iPhone app (iOS)
+  - AnyConnect Darwin client (macOS)
+- **Features:**
+  - DTLS 1.2 support
+  - TLS 1.3 support
+  - LZS compression (CSTP and DTLS)
 
 ### Traffic Patterns
 - Total RX: 110.0 MB

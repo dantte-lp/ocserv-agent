@@ -151,7 +151,8 @@ func (m *OcctlManager) DisconnectID(ctx context.Context, id string) error {
 }
 
 // ShowUser retrieves detailed information about a specific user
-func (m *OcctlManager) ShowUser(ctx context.Context, username string) (*UserDetailed, error) {
+// Note: Can return multiple results if user has multiple active sessions
+func (m *OcctlManager) ShowUser(ctx context.Context, username string) ([]UserDetailed, error) {
 	m.logger.Debug().Str("username", username).Msg("Getting user details")
 
 	stdout, stderr, err := m.executeJSON(ctx, "show", "user", username)
@@ -159,18 +160,33 @@ func (m *OcctlManager) ShowUser(ctx context.Context, username string) (*UserDeta
 		return nil, fmt.Errorf("failed to get user %s: %w (stderr: %s)", username, err, stderr)
 	}
 
-	var user UserDetailed
-	if err := json.Unmarshal([]byte(stdout), &user); err != nil {
-		return nil, fmt.Errorf("failed to parse user details: %w", err)
+	// Output may contain multiple JSON arrays separated by newlines
+	// Split and parse each array
+	var allUsers []UserDetailed
+
+	// Split by empty lines to separate multiple JSON arrays
+	parts := strings.Split(stdout, "\n\n")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		var users []UserDetailed
+		if err := json.Unmarshal([]byte(part), &users); err != nil {
+			m.logger.Warn().Err(err).Str("part", part).Msg("Failed to parse user array")
+			continue
+		}
+
+		allUsers = append(allUsers, users...)
 	}
 
 	m.logger.Debug().
-		Str("username", user.Username).
-		Int("id", user.ID).
-		Str("state", user.State).
+		Str("username", username).
+		Int("count", len(allUsers)).
 		Msg("Retrieved user details")
 
-	return &user, nil
+	return allUsers, nil
 }
 
 // ShowID retrieves detailed information about a specific connection ID
@@ -182,10 +198,17 @@ func (m *OcctlManager) ShowID(ctx context.Context, id string) (*UserDetailed, er
 		return nil, fmt.Errorf("failed to get connection %s: %w (stderr: %s)", id, err, stderr)
 	}
 
-	var user UserDetailed
-	if err := json.Unmarshal([]byte(stdout), &user); err != nil {
+	// Parse JSON array (single element expected)
+	var users []UserDetailed
+	if err := json.Unmarshal([]byte(stdout), &users); err != nil {
 		return nil, fmt.Errorf("failed to parse connection details: %w", err)
 	}
+
+	if len(users) == 0 {
+		return nil, fmt.Errorf("no connection found with ID %s", id)
+	}
+
+	user := users[0]
 
 	m.logger.Debug().
 		Int("id", user.ID).

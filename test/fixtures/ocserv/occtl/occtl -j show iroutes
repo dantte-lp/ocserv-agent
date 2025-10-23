@@ -1,9 +1,18 @@
-{
-    "ID":  835257,
+[
+  {
+    "ID":  836873,
     "Username":  "lpa",
     "vhost":  "default",
-    "Device":  "vpns0",
+    "Device":  "vpns1",
     "IP":  "10.0.16.23",
-    "iRoutes":  [],
-    "IP":  "10.0.16.23"
+    "iRoutes":  []
+  },
+  {
+    "ID":  836625,
+    "Username":  "test",
+    "vhost":  "default",
+    "Device":  "vpns0",
+    "IP":  "10.0.16.190",
+    "iRoutes":  []
   }
+]

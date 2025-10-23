@@ -27,7 +27,7 @@ type UserDetailed struct {
 
 	// Client info
 	UserAgent string `json:"User-Agent"` // "AnyConnect AppleSSLVPN_Darwin_ARM (iPhone) 5.1.11.347"
-	Hostname  string `json:"Hostname"`   // "localhost"
+	Hostname  string `json:"Hostname,omitempty"`   // "localhost" (optional)
 
 	// Traffic stats
 	RX         string `json:"RX"`          // "0"
@@ -52,6 +52,11 @@ type UserDetailed struct {
 
 	// Security
 	TLSCiphersuite string `json:"TLS ciphersuite"` // "(TLS1.3)-(ECDHE-SECP256R1)-(RSA-PSS-RSAE-SHA256)-(AES-256-GCM)"
+	DTLSCipher     string `json:"DTLS cipher,omitempty"` // "(DTLS1.2)-(ECDHE-RSA)-(AES-256-GCM)" (optional)
+
+	// Compression
+	CSTPCompression string `json:"CSTP compression,omitempty"` // "lzs" (optional)
+	DTLSCompression string `json:"DTLS compression,omitempty"` // "lzs" (optional)
 
 	// Network config
 	DNS               []string `json:"DNS"`                  // ["10.0.16.1", "fc00::1:8601"]
