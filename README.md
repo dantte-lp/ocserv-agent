@@ -16,7 +16,7 @@
 
 > **Status:** BETA (v0.5.0) - Production-tested with real VPN users. Core features complete, test coverage expanded (51.2% overall, 87.6% grpc), critical security vulnerabilities fixed.
 >
-> **v0.6.0 In Progress:** 🚧 Integration tests development (46.7% complete) - Phase 2 complete! 82 integration tests, ~90% coverage for occtl.go ✅ See [ROADMAP.md](ROADMAP.md) for details.
+> **v0.6.0 In Progress:** 🚧 Integration tests development (66.7% complete) - Phases 1-3 complete! 93 tests (82 integration + 11 unit), ~90% coverage for occtl.go ✅ See [ROADMAP.md](ROADMAP.md) for details.
 
 ## 📋 Overview
 
