@@ -33,15 +33,47 @@ func NewOcctlManager(socketPath, sudoUser string, timeout time.Duration, logger 
 
 // User represents a connected VPN user
 type User struct {
-	ID          string
-	Username    string
-	GroupName   string
-	IPAddress   string
-	VPNIPv4     string
-	VPNIPv6     string
-	Device      string
-	ConnectedAt time.Time
-	Hostname    string
+	ID                int       `json:"ID"`
+	Username          string    `json:"Username"`
+	Groupname         string    `json:"Groupname"`
+	State             string    `json:"State"`
+	VHost             string    `json:"vhost"`
+	Device            string    `json:"Device"`
+	MTU               string    `json:"MTU"`
+	RemoteIP          string    `json:"Remote IP"`
+	Location          string    `json:"Location"`
+	LocalDeviceIP     string    `json:"Local Device IP"`
+	IPv4              string    `json:"IPv4"`
+	PtPIPv4           string    `json:"P-t-P IPv4"`
+	IPv6              string    `json:"IPv6"`
+	PtPIPv6           string    `json:"P-t-P IPv6"`
+	UserAgent         string    `json:"User-Agent"`
+	RX                string    `json:"RX"`
+	TX                string    `json:"TX"`
+	ReadableRX        string    `json:"_RX"`
+	ReadableTX        string    `json:"_TX"`
+	AverageRX         string    `json:"Average RX"`
+	AverageTX         string    `json:"Average TX"`
+	DPD               string    `json:"DPD"`
+	KeepAlive         string    `json:"KeepAlive"`
+	Hostname          string    `json:"Hostname"`
+	ConnectedAt       string    `json:"Connected at"`
+	ConnectedDuration string    `json:"_Connected at"`
+	RawConnectedAt    int64     `json:"raw_connected_at"`
+	FullSession       string    `json:"Full session"`
+	Session           string    `json:"Session"`
+	TLSCiphersuite    string    `json:"TLS ciphersuite"`
+	DTLSCipher        string    `json:"DTLS cipher"`
+	CSTPCompression   string    `json:"CSTP compression"`
+	DTLSCompression   string    `json:"DTLS compression"`
+	DNS               []string     `json:"DNS"`
+	NBNS              []string     `json:"NBNS"`
+	SplitDNSDomains   []string     `json:"Split-DNS-Domains"`
+	Routes            interface{}  `json:"Routes"` // Can be []string or string (e.g. "defaultroute")
+	NoRoutes          []string     `json:"No-routes"`
+	IRoutes           []string     `json:"iRoutes"`
+	RestrictedRoutes  string       `json:"Restricted to routes"`
+	RestrictedPorts   []string     `json:"Restricted to ports"`
 }
 
 // ServerStatus represents ocserv status
@@ -68,13 +100,17 @@ type ServerStats struct {
 func (m *OcctlManager) ShowUsers(ctx context.Context) ([]User, error) {
 	m.logger.Debug().Msg("Getting connected users")
 
-	stdout, stderr, err := m.execute(ctx, "show", "users")
+	// Use -j flag for JSON output
+	stdout, stderr, err := m.executeJSON(ctx, "show", "users")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users: %w (stderr: %s)", err, stderr)
 	}
 
-	// Parse output
-	users := m.parseUsers(stdout)
+	// Parse JSON output
+	users, err := m.parseUsersJSON(stdout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse users: %w", err)
+	}
 
 	m.logger.Debug().Int("count", len(users)).Msg("Retrieved connected users")
 
@@ -452,44 +488,24 @@ func (m *OcctlManager) executeJSON(ctx context.Context, args ...string) (string,
 	return m.execute(ctx, jsonArgs...)
 }
 
-// parseUsers parses 'occtl show users' output
+// parseUsers is deprecated, use parseUsersJSON instead
+// This function is kept for backwards compatibility but is not used
 func (m *OcctlManager) parseUsers(output string) []User {
+	// Deprecated: This function parses text output, but we now use JSON
+	// Return empty list as this should not be called
+	m.logger.Warn().Msg("parseUsers (text mode) is deprecated, use JSON mode")
+	return []User{}
+}
+
+// parseUsersJSON parses 'occtl -j show users' JSON output
+func (m *OcctlManager) parseUsersJSON(output string) ([]User, error) {
 	var users []User
 
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "id") {
-			// Skip empty lines and header
-			continue
-		}
-
-		// Example format:
-		// id: 1
-		//     username: testuser
-		//     groupname: users
-		//     ip: 192.168.1.100
-		//     vpn-ipv4: 10.10.10.2
-		//     device: vpns0
-
-		fields := strings.Fields(line)
-		if len(fields) < 2 {
-			continue
-		}
-
-		key := strings.TrimSuffix(fields[0], ":")
-		value := strings.Join(fields[1:], " ")
-
-		// This is a simplified parser - real implementation would need
-		// to properly track which user we're building
-		// For now, create a basic user object
-		if key == "id" {
-			user := User{ID: value}
-			users = append(users, user)
-		}
+	if err := json.Unmarshal([]byte(output), &users); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal users JSON: %w", err)
 	}
 
-	return users
+	return users, nil
 }
 
 // parseStatus parses 'occtl show status' output
