@@ -19,9 +19,12 @@ netaddr = "^1.3.0"
 # Useful Ansible modules
 jmespath = "^1.0.1"
 
-[tool.poetry.group.dev.dependencies]
-ansible-lint = "^24.10.0"
-yamllint = "^1.35.1"
+# Dev dependencies removed due to ansible-lint compatibility issues
+# ansible-lint requires will-not-work-on-windows-try-from-wsl-instead
+# which is not available. Linting can be added later if needed.
+# [tool.poetry.group.dev.dependencies]
+# ansible-lint = "^24.10.0"
+# yamllint = "^1.35.1"
 
 [build-system]
 requires = ["poetry-core"]
