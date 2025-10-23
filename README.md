@@ -247,11 +247,19 @@ grpcurl -cacert certs/ca.crt \
 
 ## 🤝 Contributing
 
-1. Fork the repository
+We welcome contributions! Please follow our development workflow:
+
+1. Read the [Contributing Guide](.github/CONTRIBUTING.md) for detailed instructions
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (see [Conventional Commits](https://www.conventionalcommits.org/))
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes and ensure CI passes
+4. Create a Pull Request
+
+**Required checks before merge:**
+- ✅ Test (Go 1.25)
+- ✅ Code Quality Checks
+- ✅ golangci-lint
+
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for complete workflow documentation
 
 ### Commit Message Format
 
