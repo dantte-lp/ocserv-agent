@@ -100,7 +100,7 @@ make compose-build
 
 - [GitHub Actions Workflows](.github/WORKFLOWS.md) - CI/CD pipeline documentation
 - [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
-- [Release Notes](docs/releases/v0.1.0.md) - Version history and changes
+- [Release Notes](docs/releases/v0.3.0.md) - Version history and changes
 - [Configuration Guide](config.yaml.example) - All configuration options
 
 ## 🔧 Configuration
@@ -215,7 +215,8 @@ See [agent.proto](pkg/proto/agent/v1/agent.proto) for full API specification.
 
 ```bash
 # Download latest release
-curl -L https://github.com/dantte-lp/ocserv-agent/releases/download/v0.1.0/ocserv-agent-linux-amd64 -o ocserv-agent
+wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.3.0/ocserv-agent-v0.3.0-linux-amd64.tar.gz
+tar -xzf ocserv-agent-v0.3.0-linux-amd64.tar.gz
 chmod +x ocserv-agent
 sudo mv ocserv-agent /usr/local/bin/
 

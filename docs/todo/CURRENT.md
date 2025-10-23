@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 4b65e05 - fix(docker): add libprotobuf-dev for well-known proto types
-**Status:** v0.3.0 BETA published - All platforms released, container build fixed
+**Last Commit:** 241c28b - feat(security): fix Gosec SARIF upload and add local security testing
+**Status:** v0.3.0 BETA - All security workflows passing, local testing infrastructure ready
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -102,8 +102,16 @@ All critical Phase 2 tasks done ✅
 - ✅ Complete release notes and documentation
 
 **Post-Release Fixes:**
-- ✅ SLSA workflow job dependency ordering
-- ✅ Container build protobuf include paths (libprotobuf-dev)
+- ✅ SLSA workflow job dependency ordering (68185df)
+- ✅ Container build protobuf include paths - libprotobuf-dev (4b65e05)
+- ✅ Documentation cleanup - removed CLAUDE_PROMPT.md from repo (ad75891)
+- ✅ TODO documentation updates with v0.3.0 status (903797d)
+- ✅ Marked v0.3.0 as BETA pre-release (89897c1)
+- ✅ Local testing scripts for CI/CD (01ebe67, 597eb62)
+- ✅ OSSF Scorecard permission error fix (be3c5c0)
+- ✅ Security workflow paths-ignore fix (b8aeb6e)
+- ✅ Gosec SARIF format fix with jq processing (241c28b)
+- ✅ Local security testing infrastructure (podman-compose) (241c28b)
 
 ## 🔴 Critical (Next Steps - v0.4.0)
 
@@ -303,6 +311,14 @@ None yet
   - 084a0b5: v0.3.0 release notes ✅
   - 68185df: Fix release workflow and Docker build ✅
   - 4b65e05: Add libprotobuf-dev for proto types ✅
+  - ad75891: Remove CLAUDE_PROMPT.md from repo ✅
+  - 903797d: Update TODO docs with v0.3.0 status ✅
+  - 89897c1: Mark v0.3.0 as BETA pre-release ✅
+  - 01ebe67: Create local testing scripts ✅
+  - 597eb62: Update README with local testing section ✅
+  - be3c5c0: Fix OSSF Scorecard permissions ✅
+  - b8aeb6e: Fix security workflow paths-ignore ✅
+  - 241c28b: Gosec SARIF fix + local security testing ✅
 
 - **Tests:** 0% coverage (tests planned for v0.4.0+)
 - **Documentation:** 100% complete
