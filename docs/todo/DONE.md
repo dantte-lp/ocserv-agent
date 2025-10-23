@@ -1,5 +1,125 @@
 # Completed Tasks - ocserv-agent
 
+## 2025-10-23
+
+### v0.3.0 BETA Release - Certificate Auto-Generation & Build Pipeline
+
+- [x] **[FEATURE]** Certificate auto-generation (Commit: 208021b)
+  - internal/cert/generator.go - Self-signed certificate generation
+  - ECDSA P-256 algorithm
+  - SHA256 fingerprint calculation
+  - Proper file permissions (0644 certs, 0600 keys)
+  - 1-year validity period
+  - Auto-generate on first run (bootstrap mode)
+
+- [x] **[FEATURE]** CLI commands for certificate management (Commit: 208021b)
+  - `ocserv-agent gencert` - Generate certificates
+  - `ocserv-agent help` - Usage guide
+  - `ocserv-agent version` - Version info
+  - Flags: -output, -hostname, -self-signed
+
+- [x] **[BUILD]** Versioned archive packaging (Commit: 520a42b)
+  - Format: ocserv-agent-{version}-{os}-{arch}.tar.gz
+  - FreeBSD support (amd64, arm64)
+  - SHA256 checksums for all artifacts
+  - SLSA Level 3 provenance
+
+- [x] **[DOCS]** Complete certificate management guide (Commit: 208021b)
+  - docs/CERTIFICATES.md - Bootstrap vs Production modes
+  - CLI command reference
+  - Security considerations
+  - Troubleshooting workflows
+
+- [x] **[DOCS]** Sanitize sensitive data (Commit: 2d50a1c)
+  - RFC-compliant examples (RFC 5737, RFC 2606)
+  - Generic hostnames and credentials
+
+- [x] **[BUILD]** Fix Go toolchain issue (Commit: a710481)
+  - Added toolchain directive to go.mod
+  - Updated to Go 1.25
+  - Removed Go 1.24 from CI test matrix
+
+- [x] **[RELEASE]** v0.3.0 BETA published (Commit: 084a0b5)
+  - 4 platform binaries with SHA256 checksums
+  - SLSA Level 3 provenance attestation
+  - Marked as pre-release (BETA status)
+  - Complete release notes
+
+### Post-Release Fixes & Infrastructure
+
+- [x] **[BUILD]** Fix SLSA workflow (Commit: 68185df)
+  - Job dependency ordering
+  - Container build protobuf paths
+
+- [x] **[DOCS]** Documentation cleanup (Commit: ad75891)
+  - Removed CLAUDE_PROMPT.md from repo
+  - Updated TODO with v0.3.0 status
+
+- [x] **[CI]** Local testing infrastructure (Commits: 01ebe67, 597eb62)
+  - scripts/quick-check.sh - Fast pre-commit checks
+  - scripts/test-local.sh - Full local CI
+  - Updated README with local testing section
+
+- [x] **[CI]** OSSF Scorecard fix (Commit: be3c5c0)
+  - Fixed permissions error
+  - Security workflow paths-ignore
+
+- [x] **[CI]** Gosec SARIF format fix (Commit: 241c28b)
+  - Added jq processing to remove invalid 'fixes' field
+  - Local security testing with deploy/compose/security.yml
+  - All security workflows passing
+
+- [x] **[DOCS]** MIT License (Commit: 5f0d2a7)
+  - Added LICENSE file
+  - Documentation updates
+
+- [x] **[FIX]** Binary installation path (Commit: 18fd5c8)
+  - Changed from /usr/local/bin to /etc/ocserv-agent
+  - Updated systemd service, Makefile, all documentation
+
+- [x] **[FEATURE]** Configuration validation logging (Commit: f6f077d)
+  - Added startup logs for loaded configuration
+  - Info level: version, agent_id, config file, log settings
+  - Debug level: detailed configuration (TLS, ocserv, health)
+  - Warning for invalid log levels
+
+### Build Pipeline & Automation
+
+- [x] **[FEATURE]** Unified build pipeline script (Commit: 09d3c50)
+  - scripts/build-all.sh - Complete CI/CD pipeline locally
+  - Security scans (gosec, govulncheck, trivy)
+  - Unit tests with coverage
+  - Linting (golangci-lint)
+  - Multi-platform builds (Linux/FreeBSD × amd64/arm64)
+  - Color-coded output and summary
+
+- [x] **[BUILD]** Makefile targets for pipeline (Commit: 09d3c50)
+  - make build-all - Run everything
+  - make build-all-security - Security only
+  - make build-all-test - Tests only
+  - make build-all-build - Build only
+
+- [x] **[DOCS]** Pipeline documentation (Commit: 8500b69)
+  - Updated README.md with Full Build Pipeline section
+  - Updated docs/LOCAL_TESTING.md
+  - Updated docs/todo/CURRENT.md
+
+- [x] **[FIX]** VERSION variable expansion (Commit: 4a83924)
+  - Fixed docker-compose.build.yml shell quoting
+  - Changed from ${VERSION} to $$VERSION
+  - Archives now created with correct version names
+
+- [x] **[FIX]** RAW binary creation (Commit: 0161ffc)
+  - Fixed command order: copy before tar
+  - All 12 artifacts now created successfully:
+    - 4 RAW binaries (ocserv-agent-{os}-{arch})
+    - 4 tar.gz archives (ocserv-agent-{version}-{os}-{arch}.tar.gz)
+    - 4 SHA256 checksums
+
+- [x] **[DOCS]** TODO updates (Commit: 7f0a18c)
+  - Updated with all build pipeline fixes
+  - Current status: All 12 artifacts created successfully
+
 ## 2025-01-23
 
 ### Initial Project Setup
