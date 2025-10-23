@@ -14,25 +14,26 @@
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
-> **Status:** BETA (v0.5.0) - Production-tested with real VPN users. Core features complete, test coverage expanded (51.2% overall, 87.6% grpc), critical security vulnerabilities fixed.
+> **Status:** BETA (v0.6.0) - Production-tested deployment with zero downtime! Integration tests complete (119 tests), 75-80% coverage achieved, all phases done.
 >
-> **v0.6.0 In Progress:** 🚧 Integration tests development (66.7% complete) - Phases 1-3 complete! 93 tests (82 integration + 11 unit), ~90% coverage for occtl.go ✅ See [ROADMAP.md](ROADMAP.md) for details.
+> **Latest Release:** [v0.6.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.6.0) (October 2025) - All integration tests complete (100%), production deployment validated ✅
 
 ## 📋 Overview
 
 ocserv-agent is a **production-tested BETA** agent that runs on each ocserv instance and provides secure remote management capabilities through a gRPC API. It enables centralized control of distributed VPN infrastructure.
 
-**Current Release:** [v0.5.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.5.0) (October 2025)
-- ✅ **CRITICAL security fixes:** Fixed 4 command injection vulnerabilities (29 test cases)
-- ✅ **Test coverage expansion:** internal/grpc 0% → 87.6%, overall 40% → 51.2%
-- ✅ 1,600+ new lines of test code (total: 3,800+ lines)
-- ✅ Test infrastructure: TLS certificate helpers, security validation tests
-- ✅ Security-first testing: validateArguments 100% coverage
+**Current Release:** [v0.6.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.6.0) (October 2025)
+- ✅ **Integration tests complete:** 119 tests (82 occtl + 11 systemctl + 26 gRPC)
+- ✅ **Test coverage:** 75-80% overall (exceeded target!), ~90% for occtl.go
+- ✅ **Production deployment:** Zero-downtime deployment to OracleLinux 9.6 server
+- ✅ **Mock ocserv server:** 900+ lines, 14 production fixtures
+- ✅ **Ansible automation:** Automated deployment with backup/rollback
+- ✅ **All 5 phases complete:** Infrastructure, Occtl, Systemctl, gRPC, Production
 
-**Previous Release:** [v0.3.1 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1) (October 2025)
-- Production-tested with 3 active VPN users
-- 13/16 occtl commands working (3 broken due to upstream ocserv bugs)
-- Security hardening: mTLS, command validation, audit logging
+**Previous Release:** [v0.5.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.5.0) (October 2025)
+- ✅ CRITICAL security fixes: Fixed 4 command injection vulnerabilities
+- ✅ Test coverage expansion: internal/grpc 0% → 87.6%, overall 40% → 51.2%
+- ✅ Security-first testing: validateArguments 100% coverage
 
 ### Architecture
 
@@ -80,22 +81,108 @@ ocserv daemon
 
 ## 🚀 Quick Start
 
+### TLS Certificate Setup
+
+ocserv-agent requires TLS certificates for secure communication. You have two options:
+
+**🔐 Bootstrap Mode (Recommended for Testing)**
+
+Enable auto-generation in config:
+
+```yaml
+tls:
+  enabled: true
+  auto_generate: true  # Auto-generate self-signed certs
+```
+
+On first run, agent will generate:
+- Self-signed CA certificate
+- Agent certificate signed by CA
+- Private key
+
+**🏭 Production Mode (Recommended for Production)**
+
+Generate certificates manually or disable auto-generation:
+
+```bash
+# Option A: Generate with CLI command
+sudo ocserv-agent gencert -output /etc/ocserv-agent/certs
+
+# Option B: Use your own CA-signed certificates
+# Place your certs in /etc/ocserv-agent/certs/
+# - agent.crt (agent certificate)
+# - agent.key (private key)
+# - ca.crt (CA certificate)
+```
+
+Set config:
+
+```yaml
+tls:
+  enabled: true
+  auto_generate: false  # Use existing certificates
+  cert_file: "/etc/ocserv-agent/certs/agent.crt"
+  key_file: "/etc/ocserv-agent/certs/agent.key"
+  ca_file: "/etc/ocserv-agent/certs/ca.crt"
+```
+
+📚 **See [docs/CERTIFICATES.md](docs/CERTIFICATES.md) for detailed certificate management guide.**
+
+## 🚀 Quick Start
+
 ### Prerequisites
 
 - Go 1.25+
 - Podman and podman-compose
 - protobuf-compiler (for proto generation)
 
-### Development Setup
+### Installation & First Run
+
+**Option 1: Quick Start (Development)**
 
 ```bash
 # Clone repository
 git clone https://github.com/dantte-lp/ocserv-agent.git
 cd ocserv-agent
 
-# Setup compose environment
-make setup-compose
+# Build binary
+make build
 
+# Create config with TLS auto-generation
+cat > config.yaml <<EOF
+agent_id: "server-01"
+control_server:
+  address: "localhost:9090"
+tls:
+  enabled: true
+  auto_generate: true  # Auto-generate self-signed certs on first run
+  cert_file: "/etc/ocserv-agent/certs/agent.crt"
+  key_file: "/etc/ocserv-agent/certs/agent.key"
+  ca_file: "/etc/ocserv-agent/certs/ca.crt"
+ocserv:
+  config_path: "/etc/ocserv/ocserv.conf"
+  ctl_socket: "/var/run/occtl.socket"
+  systemd_service: "ocserv"
+  backup_dir: "/var/backups/ocserv-agent"
+logging:
+  level: "info"
+  format: "json"
+security:
+  allowed_commands: ["occtl", "systemctl"]
+  max_command_timeout: 300s
+EOF
+
+# Run agent (certificates will be auto-generated)
+sudo ./bin/ocserv-agent --config config.yaml
+```
+
+**Option 2: Production Deployment with Ansible**
+
+See [deploy/ansible/README.md](deploy/ansible/README.md) for automated deployment.
+
+**Option 3: Container Development**
+
+```bash
 # Start development server with hot reload
 make compose-dev
 ```

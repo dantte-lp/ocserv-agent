@@ -88,6 +88,65 @@ make compose-build
 podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/deploy-agent.yml
 ```
 
+### TLS Configuration
+
+The deployed agent requires TLS certificates. Choose one of these options:
+
+**Option 1: Auto-Generated Certificates (Testing/Initial Setup)**
+
+The default config uses auto-generation:
+
+```yaml
+tls:
+  enabled: true
+  auto_generate: true  # Agent will generate self-signed certs on first run
+```
+
+On first start, the agent will:
+1. Generate self-signed CA certificate
+2. Generate agent certificate signed by CA
+3. Create private key
+4. Display fingerprints for verification
+
+**Option 2: Manual Certificate Generation**
+
+Generate certificates before starting the agent:
+
+```bash
+# On remote server (via SSH or Ansible)
+sudo /usr/sbin/ocserv-agent gencert -output /etc/ocserv-agent/certs
+
+# Update config to disable auto-generation
+tls:
+  auto_generate: false
+```
+
+**Option 3: CA-Signed Certificates (Production)**
+
+For production with a control server:
+
+1. Obtain CA certificate from control server
+2. Generate and sign agent certificate with control server's CA
+3. Copy certificates to `/etc/ocserv-agent/certs/`:
+   - `agent.crt` - Agent certificate
+   - `agent.key` - Private key (permissions: 0600)
+   - `ca.crt` - CA certificate
+
+4. Update config:
+
+```yaml
+tls:
+  enabled: true
+  auto_generate: false  # Use existing certificates
+  cert_file: "/etc/ocserv-agent/certs/agent.crt"
+  key_file: "/etc/ocserv-agent/certs/agent.key"
+  ca_file: "/etc/ocserv-agent/certs/ca.crt"
+  server_name: "control-server"  # Expected CN in server cert
+  min_version: "TLS1.3"
+```
+
+📚 **See [docs/CERTIFICATES.md](../../docs/CERTIFICATES.md) for complete certificate management guide.**
+
 **Rollback if needed:**
 
 ```bash
@@ -181,11 +240,24 @@ podman exec ocserv-agent-ansible tail -f ansible.log
 
 ## Security
 
-- **Credentials:** Never commit `.env` or credentials to git
-- **SSH Keys:** Use ed25519 keys with strong passphrases
-- **Ansible Vault:** Encrypt sensitive variables in production
-- **Least Privilege:** Create dedicated deployment user (not root)
-- **Audit Logs:** All deployments are logged in `ansible.log`
+**Credentials:**
+- **Never commit** `.env` or credentials to git
+- Use **SSH keys** (ed25519) with strong passphrases
+- Use **Ansible Vault** to encrypt sensitive variables in production
+- Create dedicated deployment user (not root) with minimal privileges
+
+**TLS Certificates:**
+- **Development:** Auto-generated self-signed certs are OK for initial setup
+- **Production:** Use CA-signed certificates from your control server
+- **Never share** private keys or copy over insecure channels
+- **Verify fingerprints** when using self-signed certificates
+- **Monitor expiration:** Self-signed certs are valid for 1 year
+
+**Audit & Monitoring:**
+- All deployments are logged in `ansible.log`
+- Monitor agent status: `systemctl status ocserv-agent`
+- Check agent logs: `journalctl -u ocserv-agent -f`
+- Verify VPN service unchanged: `systemctl status ocserv`
 
 ## References
 
