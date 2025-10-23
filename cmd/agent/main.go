@@ -54,11 +54,32 @@ func main() {
 
 	// Setup logging
 	logger := setupLogger(cfg.Logging)
+
+	// Log startup with version and config
 	logger.Info().
 		Str("version", version).
 		Str("agent_id", cfg.AgentID).
 		Str("hostname", cfg.Hostname).
 		Msg("Starting ocserv-agent")
+
+	// Log loaded configuration for validation
+	logger.Info().
+		Str("config_file", *configPath).
+		Str("log_level", cfg.Logging.Level).
+		Str("log_format", cfg.Logging.Format).
+		Str("log_output", cfg.Logging.Output).
+		Msg("Configuration loaded")
+
+	logger.Debug().
+		Str("control_server", cfg.ControlServer.Address).
+		Bool("tls_enabled", cfg.TLS.Enabled).
+		Bool("tls_auto_generate", cfg.TLS.AutoGenerate).
+		Str("tls_min_version", cfg.TLS.MinVersion).
+		Str("ocserv_config", cfg.Ocserv.ConfigPath).
+		Str("ocserv_service", cfg.Ocserv.SystemdService).
+		Dur("heartbeat_interval", cfg.Health.HeartbeatInterval).
+		Dur("deep_check_interval", cfg.Health.DeepCheckInterval).
+		Msg("Detailed configuration")
 
 	// Create context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -130,6 +151,8 @@ func setupLogger(cfg config.LoggingConfig) zerolog.Logger {
 	// Set log level
 	level, err := zerolog.ParseLevel(cfg.Level)
 	if err != nil {
+		// Log to stderr since logger not ready yet
+		fmt.Fprintf(os.Stderr, "Warning: invalid log level '%s', using 'info'\n", cfg.Level)
 		level = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(level)
