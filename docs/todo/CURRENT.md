@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** b11bb9e - fix(ocserv): correct JSON parsing - single array per command
-**Preparing:** v0.2.0 BETA release
+**Last Commit:** b4ac820 - security fix golang.org/x/net (0.34.0 → 0.38.0)
+**Status:** v0.2.1 BETA prepared - CI/CD infrastructure complete
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -29,6 +29,39 @@ All critical Phase 2 tasks done ✅
 - [ ] ocpasswd wrapper
 - [ ] UpdateConfig RPC
 - [ ] Unit tests (>80% coverage)
+
+## 🎉 v0.2.1: CI/CD Infrastructure - COMPLETED!
+
+**GitHub Actions Workflows (4 workflows):**
+- ✅ CI Pipeline (ci.yml) - Tests, builds, coverage
+- ✅ Lint Pipeline (lint.yml) - golangci-lint, markdown, YAML, Dockerfile
+- ✅ Security Pipeline (security.yml) - gosec, CodeQL, Trivy, OSSF Scorecard
+- ✅ Release Pipeline (release.yml) - SLSA Level 3, multi-arch builds
+
+**Smart CI Optimization:**
+- ✅ Path filtering - skip heavy checks for docs-only changes
+- ✅ File-type filtering - each lint runs only for relevant files
+- ✅ Resource optimization - docs PRs only run markdown lint
+
+**Branch Protection:**
+- ✅ PR workflow configured
+- ✅ Branch protection rules (no force push, no delete)
+- ✅ Required status checks (temporarily disabled for initial setup)
+
+**Documentation:**
+- ✅ CONTRIBUTING.md (339 lines) - complete development guide
+- ✅ WORKFLOWS.md - CI/CD pipeline documentation
+- ✅ README display fix (GitHub homepage)
+- ✅ Platform updates (Linux + FreeBSD: amd64/x86_64, arm64/aarch64)
+
+**Code Quality:**
+- ✅ All Go code formatted with gofmt
+- ✅ golangci-lint configuration (30+ linters)
+- ✅ YAML and Markdown linting
+
+**Dependencies:**
+- ✅ golang.org/x/net 0.34.0 → 0.38.0 (security fix)
+- ✅ Dependabot configuration (auto updates)
 
 ## 🔴 Critical (Next Steps - Phase 3 Continued)
 
@@ -212,12 +245,21 @@ None yet
   - 66600a3: Phase 3 progress docs
   - 9c6942a: New fields and multiple sessions
   - b11bb9e: JSON parsing fix ✅
+  - 778145b: v0.2.0 BETA release ✅
+  - ee9fbe3: Build infrastructure (go.sum)
+  - 4bc5b19: GitHub Actions workflows ✅
+  - a6bfd55: Code formatting (gofmt) ✅
+  - a25e925: README display fix ✅
+  - 612e212: Contributing guide ✅
+  - 22f38cc: Platform updates ✅
+  - b4ac820: Security fix (golang.org/x/net) ✅
 
 - **Tests:** 0% coverage (tests planned for v0.3.0+)
-- **Documentation:** 95% complete
-- **Release notes:** v0.2.0 BETA preparing
+- **Documentation:** 100% complete
+- **Release notes:** v0.2.1 BETA prepared
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
 - **Phase 3:** COMPLETED (100%) ✅ - All occtl commands
-- **Current:** Preparing v0.2.0 BETA release
+- **v0.2.1:** COMPLETED (100%) ✅ - CI/CD infrastructure
+- **Current:** Ready for v0.2.1 tag and release
 - **Next Phase:** Phase 4 - Streaming, ocpasswd, UpdateConfig (v0.3.0)
