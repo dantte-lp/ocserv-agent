@@ -23,32 +23,26 @@
 
 ## 🚀 v0.6.0: Security Hardening & Integration Tests (Target: January 2026)
 
-### Integration Tests (HIGH PRIORITY)
+### Integration Tests (HIGH PRIORITY) - IN PROGRESS
 
-**Deferred from v0.5.0 - Require real system dependencies:**
+**📋 Detailed Plan:** [INTEGRATION_TESTS_PLAN.md](INTEGRATION_TESTS_PLAN.md) (15 tasks, ~12 hours)
 
-- [ ] **Mock ocserv framework**
-  - Test socket for occtl commands
-  - Simulated ocserv responses
-  - Integration with test compose
+**Progress:** 0/15 tasks (0%)
+- Phase 1: Infrastructure Setup [0/3]
+- Phase 2: Occtl Integration Tests [0/4]
+- Phase 3: Systemctl Integration Tests [0/3]
+- Phase 4: gRPC End-to-End Tests [0/3]
+- Phase 5: Remote Server Testing [0/2]
 
-- [ ] **End-to-end gRPC tests**
-  - Real server startup tests
-  - Network listener tests
-  - mTLS connection tests
+**Current Blockers:**
+- 🔴 **BLOCKER #1:** Ansible environment not set up (Task 1.1) - IN PROGRESS
 
-- [ ] **Real command execution tests**
-  - systemctl integration tests
-  - occtl integration tests
-  - Error scenario coverage
+**Coverage goal:** 51.2% → 75-80%
 
-- [ ] **Coverage goal:** >80% overall (currently 51.2%)
-
-**Files requiring integration tests:**
-- `internal/grpc/server.go:134` - Serve (0%)
-- `internal/grpc/handlers.go:59` - ExecuteCommand real execution (35.3% uncovered)
-- `internal/ocserv/occtl.go` - All functions (0%)
-- `internal/ocserv/systemctl.go` - All functions (0%)
+**Remote Server:**
+- Host: 195.238.126.25 (ocserv 1.3 + active VPN users)
+- Current agent: v0.3.0-24-groutes
+- **CRITICAL:** Do NOT break existing VPN service
 
 ### OSSF Scorecard Improvements (HIGH PRIORITY)
 
