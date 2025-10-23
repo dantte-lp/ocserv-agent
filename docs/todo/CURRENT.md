@@ -27,13 +27,13 @@
 
 **📋 Detailed Plan:** [INTEGRATION_TESTS_PLAN.md](INTEGRATION_TESTS_PLAN.md) (15 tasks, ~12 hours)
 
-**Progress:** 6/15 tasks (40.0%) ⚡ **MAJOR UPDATE!**
+**Progress:** 7/15 tasks (46.7%) ⚡ **MAJOR UPDATE!**
 - Phase 1: Infrastructure Setup [3/3] ✅✅✅ **COMPLETE!**
-- Phase 2: Occtl Integration Tests [3/4] ✅✅✅⬜ **75% COMPLETE!**
+- Phase 2: Occtl Integration Tests [4/4] ✅✅✅✅ **COMPLETE!** 🎉
   - ✅ Task 2.1: Test infrastructure (10 tests)
   - ✅ Task 2.2: ShowUsers and basic commands (24 tests)
   - ✅ Task 2.3: User management commands (30 tests)
-  - ⬜ Task 2.4: IP management commands (pending)
+  - ✅ Task 2.4: IP management commands (18 tests)
 - Phase 3: Systemctl Integration Tests [0/3]
 - Phase 4: gRPC End-to-End Tests [0/3]
 - Phase 5: Remote Server Testing [0/2]
@@ -46,13 +46,16 @@
 - ✅ No blockers!
 
 **Recent Achievements (2025-10-23):**
-- ✅ Task 2.3 completed: 30 tests for ShowUser, ShowID, DisconnectUser, DisconnectID
+- ✅ **Phase 2 COMPLETE!** All occtl commands tested (82 tests)
+- ✅ Task 2.4 completed: 18 tests for ShowIPBans, ShowIPBanPoints, UnbanIP, Reload
+- ✅ New fixtures: IP bans, ban points, unban, reload
+- ✅ Fixed compilation errors in previous test files
 - ✅ Edge cases: special chars, Unicode, long strings, concurrent operations
 - ✅ Test infrastructure: mock socket helpers, fixture validation, test utilities
 
 **Coverage progression:**
 - v0.5.0: 51.2% overall, 23.1% internal/ocserv
-- v0.6.0 (current): ~70% occtl.go, 64 integration tests
+- v0.6.0 (current): ~90% occtl.go, 82 integration tests ✅
 
 **Remote Server (195.238.126.25):**
 - Configuration: Use `.env` file (see `.env.example` for RFC 5737 template)
