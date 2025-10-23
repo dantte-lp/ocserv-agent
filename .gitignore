@@ -73,3 +73,4 @@ deploy/compose/security-results/
 # Build cache
 .cache/
 .env
+test/mock-ocserv/mock-ocserv
