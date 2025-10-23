@@ -27,31 +27,34 @@
 
 **📋 Detailed Plan:** [INTEGRATION_TESTS_PLAN.md](INTEGRATION_TESTS_PLAN.md) (15 tasks, ~12 hours)
 
-**Progress:** 7/15 tasks (46.7%) ⚡ **MAJOR UPDATE!**
+**Progress:** 10/15 tasks (66.7%) ⚡ **MAJOR UPDATE!**
 - Phase 1: Infrastructure Setup [3/3] ✅✅✅ **COMPLETE!**
 - Phase 2: Occtl Integration Tests [4/4] ✅✅✅✅ **COMPLETE!** 🎉
   - ✅ Task 2.1: Test infrastructure (10 tests)
   - ✅ Task 2.2: ShowUsers and basic commands (24 tests)
   - ✅ Task 2.3: User management commands (30 tests)
   - ✅ Task 2.4: IP management commands (18 tests)
-- Phase 3: Systemctl Integration Tests [0/3]
+- Phase 3: Systemctl Unit Tests [3/3] ✅✅✅ **COMPLETE!**
+  - ✅ Task 3.1-3.3: Unit tests for SystemctlManager (11 tests)
 - Phase 4: gRPC End-to-End Tests [0/3]
 - Phase 5: Remote Server Testing [0/2]
 
 **Current Status:**
-- ✅ **82 integration tests** created (10 + 24 + 30 + 18)
-- ✅ **Coverage:** ~90% for occtl.go (exceeded target!) 🎯
-- ✅ **Test files:** 8 integration test files
+- ✅ **93 tests** created: 82 integration + 11 unit tests
+- ✅ **Coverage:** ~90% for occtl.go, basic systemctl validation ✅
+- ✅ **Test files:** 9 test files (8 integration + 1 unit)
 - ✅ **Mock ocserv:** Running in podman-compose with 17 fixtures
+- ✅ **Systemctl:** Unit tests (Phase 5 will have integration on remote server)
 - ✅ No blockers!
 
 **Recent Achievements (2025-10-23):**
+- ✅ **Phase 3 COMPLETE!** Systemctl unit tests (11 tests)
 - ✅ **Phase 2 COMPLETE!** All occtl commands tested (82 tests)
+- ✅ Task 3.1-3.3: SystemctlManager unit tests, timeout handling, ServiceStatus validation
+- ✅ Test approach: Unit tests now, integration tests on remote server (Phase 5)
 - ✅ Task 2.4 completed: 18 tests for ShowIPBans, ShowIPBanPoints, UnbanIP, Reload
-- ✅ New fixtures: IP bans, ban points, unban, reload
-- ✅ Fixed compilation errors in previous test files
-- ✅ Edge cases: special chars, Unicode, long strings, concurrent operations
-- ✅ Test infrastructure: mock socket helpers, fixture validation, test utilities
+- ✅ New fixtures: IP bans, ban points, unban, reload, systemd test service
+- ✅ Test infrastructure: mock socket helpers, fixture validation, systemd helpers
 
 **Coverage progression:**
 - v0.5.0: 51.2% overall, 23.1% internal/ocserv
