@@ -1,71 +1,385 @@
-# Agent identification
-agent_id: "server-01"
-hostname: ""  # auto-detect if empty
+# ============================================================================
+# ocserv-agent Configuration Example
+# ============================================================================
+# Файл конфигурации агента для управления OpenConnect VPN (ocserv)
+# Agent configuration file for managing OpenConnect VPN (ocserv)
+#
+# Формат: YAML
+# Документация: https://github.com/dantte-lp/ocserv-agent/blob/main/docs/
+#
+# Переменные окружения (имеют приоритет над файлом):
+# Environment variables (override file values):
+#   AGENT_ID                 - Идентификатор агента / Agent identifier
+#   CONTROL_SERVER_ADDRESS   - Адрес control server / Control server address
+#   TLS_CERT_FILE           - Путь к сертификату / Certificate path
+#   TLS_KEY_FILE            - Путь к ключу / Key path
+#   TLS_CA_FILE             - Путь к CA сертификату / CA certificate path
+#   LOG_LEVEL               - Уровень логов / Log level
+#   TELEMETRY_ENDPOINT      - Endpoint телеметрии / Telemetry endpoint
+# ============================================================================
 
-# Control server connection
+# ----------------------------------------------------------------------------
+# Agent Identification / Идентификация агента
+# ----------------------------------------------------------------------------
+
+# Уникальный идентификатор агента (обязательно)
+# Unique agent identifier (required)
+# Используется для регистрации в control server
+# Used for registration with control server
+agent_id: "server-01"
+
+# Имя хоста (опционально, автоопределяется если пусто)
+# Hostname (optional, auto-detected if empty)
+# Используется в сертификатах и логах
+# Used in certificates and logs
+hostname: ""  # Auto-detect from system
+
+# ----------------------------------------------------------------------------
+# Control Server Connection / Подключение к Control Server
+# ----------------------------------------------------------------------------
 control_server:
+  # Адрес control server (host:port, обязательно)
+  # Control server address (host:port, required)
+  # Примеры / Examples:
+  #   - "control.example.com:9090"
+  #   - "203.0.113.10:9090" (RFC 5737 test address)
+  #   - "localhost:9090" (для тестирования / for testing)
   address: "control.example.com:9090"
+
+  # Настройки переподключения при разрыве связи
+  # Reconnection settings on connection loss
   reconnect:
+    # Начальная задержка перед первой попыткой переподключения
+    # Initial delay before first reconnection attempt
     initial_delay: 1s
+
+    # Максимальная задержка между попытками
+    # Maximum delay between attempts
     max_delay: 60s
+
+    # Множитель увеличения задержки (exponential backoff)
+    # Delay multiplier (exponential backoff)
+    # Формула: delay = min(initial_delay * multiplier^attempt, max_delay)
     multiplier: 2
+
+    # Максимальное количество попыток переподключения (0 = бесконечно)
+    # Maximum reconnection attempts (0 = infinite)
     max_attempts: 5
+
+  # Circuit Breaker - защита от cascade failures
+  # Circuit Breaker - protection against cascade failures
   circuit_breaker:
+    # Количество последовательных ошибок для открытия circuit
+    # Number of consecutive failures to open circuit
     failure_threshold: 5
+
+    # Таймаут перед попыткой закрыть circuit (half-open state)
+    # Timeout before trying to close circuit (half-open state)
     timeout: 5m
 
-# TLS configuration
+# ----------------------------------------------------------------------------
+# TLS Configuration / Конфигурация TLS
+# ----------------------------------------------------------------------------
 tls:
+  # Включить mTLS аутентификацию (рекомендуется для production)
+  # Enable mTLS authentication (recommended for production)
   enabled: true
 
-  # Auto-generate self-signed certificates if they don't exist
-  # Useful for bootstrap/autonomous mode
-  # Set to false for production with real CA certificates
+  # Автогенерация self-signed сертификатов при отсутствии
+  # Auto-generate self-signed certificates if missing
+  #
+  # ВНИМАНИЕ / WARNING:
+  #   true  - Bootstrap режим: автосоздание сертификатов для автономной работы
+  #           Bootstrap mode: auto-create certs for autonomous operation
+  #   false - Production режим: требуются настоящие CA-подписанные сертификаты
+  #           Production mode: require real CA-signed certificates
+  #
+  # Для production используйте false и создайте сертификаты вручную:
+  # For production use false and create certificates manually:
+  #   ocserv-agent gencert --output /etc/ocserv-agent/certs
+  #
+  # См. документацию: docs/CERTIFICATES.md
+  # See documentation: docs/CERTIFICATES.md
   auto_generate: true
 
+  # Путь к сертификату агента (обязательно при enabled: true)
+  # Path to agent certificate (required when enabled: true)
   cert_file: "/etc/ocserv-agent/certs/agent.crt"
+
+  # Путь к приватному ключу агента (обязательно при enabled: true)
+  # Path to agent private key (required when enabled: true)
+  # ВАЖНО: права доступа должны быть 0600 (только root read)
+  # IMPORTANT: permissions must be 0600 (root read only)
   key_file: "/etc/ocserv-agent/certs/agent.key"
+
+  # Путь к CA сертификату control server (обязательно при enabled: true)
+  # Path to control server CA certificate (required when enabled: true)
   ca_file: "/etc/ocserv-agent/certs/ca.crt"
-  server_name: "control-server"  # Expected CN in server cert
+
+  # Ожидаемое Common Name (CN) в сертификате control server
+  # Expected Common Name (CN) in control server certificate
+  # Используется для валидации сертификата сервера
+  # Used for server certificate validation
+  server_name: "control-server"
+
+  # Минимальная версия TLS (TLS1.2 или TLS1.3)
+  # Minimum TLS version (TLS1.2 or TLS1.3)
+  # Рекомендуется TLS1.3 для максимальной безопасности
+  # TLS1.3 recommended for maximum security
   min_version: "TLS1.3"
 
-# ocserv configuration
+# ----------------------------------------------------------------------------
+# ocserv Configuration / Конфигурация ocserv
+# ----------------------------------------------------------------------------
 ocserv:
+  # Путь к главному конфигу ocserv (обязательно)
+  # Path to main ocserv config (required)
   config_path: "/etc/ocserv/ocserv.conf"
+
+  # Директория для per-user конфигов (опционально)
+  # Directory for per-user configs (optional)
+  # Используется командами UpdateConfig для пользовательских настроек
+  # Used by UpdateConfig commands for user-specific settings
   config_per_user_dir: "/etc/ocserv/config-per-user"
+
+  # Директория для per-group конфигов (опционально)
+  # Directory for per-group configs (optional)
   config_per_group_dir: "/etc/ocserv/config-per-group"
+
+  # Путь к Unix socket occtl (обязательно)
+  # Path to occtl Unix socket (required)
+  # Используется для выполнения команд occtl
+  # Used for executing occtl commands
   ctl_socket: "/var/run/occtl.socket"
+
+  # Имя systemd сервиса ocserv (обязательно)
+  # ocserv systemd service name (required)
+  # Default: "ocserv"
   systemd_service: "ocserv"
+
+  # Директория для backup конфигов (обязательно)
+  # Directory for config backups (required)
+  # Используется перед изменением конфигурации для rollback
+  # Used before config changes for rollback capability
   backup_dir: "/var/backups/ocserv-agent"
 
-# Health checks
+# ----------------------------------------------------------------------------
+# Health Checks / Проверки работоспособности
+# ----------------------------------------------------------------------------
 health:
+  # Интервал отправки heartbeat в control server
+  # Heartbeat interval to control server
+  # Показывает что агент активен и доступен
+  # Shows that agent is alive and available
   heartbeat_interval: 15s
+
+  # Интервал глубоких проверок (Tier 2)
+  # Deep health checks interval (Tier 2)
+  # Проверка: ocserv socket, systemd service, config validity
+  # Checks: ocserv socket, systemd service, config validity
   deep_check_interval: 2m
+
+  # Интервал сбора метрик (Tier 3)
+  # Metrics collection interval (Tier 3)
+  # Сбор: количество пользователей, трафик, статистика
+  # Collects: user count, traffic, statistics
   metrics_interval: 30s
 
-# Telemetry (OpenTelemetry)
+# ----------------------------------------------------------------------------
+# Telemetry (OpenTelemetry) / Телеметрия
+# ----------------------------------------------------------------------------
 telemetry:
+  # Включить OpenTelemetry tracing и metrics
+  # Enable OpenTelemetry tracing and metrics
   enabled: true
+
+  # OTLP endpoint для экспорта телеметрии
+  # OTLP endpoint for telemetry export
+  # Примеры / Examples:
+  #   - "http://uptrace:14318"           (Uptrace)
+  #   - "http://jaeger:4318"             (Jaeger)
+  #   - "http://localhost:4318"          (OpenTelemetry Collector)
+  #   - "https://api.honeycomb.io:443"   (Honeycomb)
   endpoint: "http://uptrace:14318"
+
+  # Имя сервиса в телеметрии
+  # Service name in telemetry
+  # Default: "ocserv-agent"
   service_name: "ocserv-agent"
-  service_version: "0.1.0"
+
+  # Версия сервиса (автоопределяется из build info)
+  # Service version (auto-detected from build info)
+  service_version: "0.6.0"
+
+  # Sample rate для traces (0.0 - 1.0)
+  # Sample rate for traces (0.0 - 1.0)
+  # 1.0 = все traces, 0.1 = 10% traces
+  # 1.0 = all traces, 0.1 = 10% of traces
   sample_rate: 1.0
 
-# Logging
+# ----------------------------------------------------------------------------
+# Logging / Логирование
+# ----------------------------------------------------------------------------
 logging:
-  level: "info"  # debug, info, warn, error
+  # Уровень логирования (debug, info, warn, error)
+  # Logging level (debug, info, warn, error)
+  # Рекомендации / Recommendations:
+  #   debug - разработка и отладка / development and debugging
+  #   info  - production (по умолчанию / default)
+  #   warn  - только предупреждения и ошибки / warnings and errors only
+  #   error - только ошибки / errors only
+  level: "info"
+
+  # Формат вывода логов (json, text)
+  # Log output format (json, text)
+  # json - structured logging, удобен для парсинга / good for parsing
+  # text - human-readable, удобен для чтения / good for reading
   format: "json"
-  output: "stdout"  # stdout, file
+
+  # Куда выводить логи (stdout, file)
+  # Where to output logs (stdout, file)
+  # stdout - в контейнерах и systemd / for containers and systemd
+  # file   - в файл (требуется file_path) / to file (requires file_path)
+  output: "stdout"
+
+  # Путь к файлу логов (используется при output: file)
+  # Path to log file (used when output: file)
   file_path: "/var/log/ocserv-agent/agent.log"
+
+  # Максимальный размер файла логов в МБ (rotation)
+  # Maximum log file size in MB (rotation)
   max_size_mb: 100
+
+  # Количество backup файлов (после rotation)
+  # Number of backup files (after rotation)
   max_backups: 3
+
+  # Максимальный возраст backup файлов в днях
+  # Maximum age of backup files in days
   max_age_days: 30
 
-# Security
+# ----------------------------------------------------------------------------
+# Security / Безопасность
+# ----------------------------------------------------------------------------
 security:
+  # Список разрешённых команд (whitelist, обязательно)
+  # List of allowed commands (whitelist, required)
+  # ВАЖНО: Только эти команды могут быть выполнены через gRPC API
+  # IMPORTANT: Only these commands can be executed via gRPC API
+  #
+  # Безопасность:
+  # Security:
+  #   - Используется строгая валидация аргументов
+  #     Strict argument validation is used
+  #   - Блокируются command injection попытки (`;`, `|`, `&&`, и т.д.)
+  #     Command injection attempts are blocked (`;`, `|`, `&&`, etc.)
+  #   - Невалидные аргументы отклоняются
+  #     Invalid arguments are rejected
   allowed_commands:
-    - "occtl"
-    - "systemctl"
+    - "occtl"      # ocserv control commands / команды управления ocserv
+    - "systemctl"  # systemd service management / управление systemd сервисами
+
+  # Пользователь для sudo (опционально)
+  # User for sudo execution (optional)
+  # Если указан, команды выполняются через sudo -u <user>
+  # If specified, commands are executed via sudo -u <user>
+  # По умолчанию команды выполняются от имени агента
+  # By default commands run as agent user
   sudo_user: "ocserv-agent"
+
+  # Максимальный таймаут выполнения команды
+  # Maximum command execution timeout
+  # Команды прерываются после этого времени
+  # Commands are terminated after this time
+  # Default: 300s (5 минут / 5 minutes)
   max_command_timeout: 300s
+
+# ============================================================================
+# Примеры конфигураций / Configuration Examples
+# ============================================================================
+
+# --- Bootstrap режим (автономная работа без control server) ---
+# --- Bootstrap mode (autonomous operation without control server) ---
+#
+# agent_id: "standalone-agent"
+# control_server:
+#   address: "localhost:9090"  # Не используется / Not used
+# tls:
+#   enabled: true
+#   auto_generate: true  # Автосоздание self-signed сертификатов
+# ocserv:
+#   config_path: "/etc/ocserv/ocserv.conf"
+#   ctl_socket: "/var/run/occtl.socket"
+#   systemd_service: "ocserv"
+#   backup_dir: "/var/backups/ocserv-agent"
+# security:
+#   allowed_commands: ["occtl", "systemctl"]
+#   max_command_timeout: 300s
+
+# --- Production режим (с control server и CA-подписанными сертификатами) ---
+# --- Production mode (with control server and CA-signed certificates) ---
+#
+# agent_id: "prod-server-01"
+# control_server:
+#   address: "control.example.com:9090"
+#   reconnect:
+#     initial_delay: 1s
+#     max_delay: 60s
+#     multiplier: 2
+#     max_attempts: 0  # Infinite retry
+# tls:
+#   enabled: true
+#   auto_generate: false  # Требуются настоящие сертификаты / Require real certs
+#   cert_file: "/etc/ocserv-agent/certs/agent.crt"
+#   key_file: "/etc/ocserv-agent/certs/agent.key"
+#   ca_file: "/etc/ocserv-agent/certs/ca.crt"
+#   server_name: "control-server"
+#   min_version: "TLS1.3"
+# logging:
+#   level: "info"
+#   format: "json"
+#   output: "stdout"
+# telemetry:
+#   enabled: true
+#   endpoint: "https://telemetry.example.com:4318"
+
+# --- Development режим (отладка, verbose логи) ---
+# --- Development mode (debugging, verbose logs) ---
+#
+# agent_id: "dev-agent"
+# tls:
+#   enabled: false  # Небезопасно! Только для dev / Insecure! Dev only
+# logging:
+#   level: "debug"
+#   format: "text"
+#   output: "stdout"
+# health:
+#   heartbeat_interval: 5s
+#   deep_check_interval: 30s
+#   metrics_interval: 10s
+# telemetry:
+#   enabled: false  # Отключить для dev / Disable for dev
+
+# ============================================================================
+# Дополнительная информация / Additional Information
+# ============================================================================
+#
+# 📚 Документация / Documentation:
+#   - README.md              - Общая информация / General information
+#   - docs/CERTIFICATES.md   - Управление сертификатами / Certificate management
+#   - docs/GRPC_TESTING.md   - Тестирование gRPC API / gRPC API testing
+#   - docs/OCCTL_COMMANDS.md - Команды occtl / occtl commands reference
+#
+# 🔧 Проверка конфигурации / Configuration validation:
+#   ocserv-agent --config config.yaml --validate
+#
+# 🏃 Запуск агента / Running the agent:
+#   ocserv-agent --config /etc/ocserv-agent/config.yaml
+#
+# 📝 Логирование в systemd / Systemd logging:
+#   journalctl -u ocserv-agent -f
+#
+# 🔐 Генерация сертификатов / Certificate generation:
+#   ocserv-agent gencert --output /etc/ocserv-agent/certs
+#
+# ============================================================================
