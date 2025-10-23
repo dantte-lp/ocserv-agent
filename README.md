@@ -80,6 +80,7 @@ make compose-build
 
 ## 📖 Documentation
 
+- [GitHub Actions Workflows](.github/WORKFLOWS.md) - CI/CD pipeline documentation
 - [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
 - [Release Notes](docs/releases/v0.1.0.md) - Version history and changes
 - [Configuration Guide](config.yaml.example) - All configuration options
