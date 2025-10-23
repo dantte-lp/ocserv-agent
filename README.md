@@ -47,12 +47,14 @@ ocserv daemon
 - **📊 ocserv Control**: Execute occtl/systemctl commands remotely (13/16 working, 3 upstream bugs)
 - **⚙️ Configuration Management**: Read ocserv configs (main, per-user, per-group)
 - **🔒 Security Hardening**: Command whitelist, input validation, command injection protection
-- **📝 Comprehensive Docs**: 800+ lines of documentation (5 new guides in v0.3.1)
+- **📝 Comprehensive Docs**: 800+ lines of documentation, ROADMAP, release notes
 - **🏗️ Production Ready**: Certificate auto-generation, systemd service, multi-platform builds
 - **🐳 Container-First**: Podman Compose based development and testing
 - **🤝 Open Source**: MIT license, OSSF security best practices, upstream contributions
+- **✅ Test Coverage**: 97.1% config, 77.6% cert, 82-100% ocserv/config (2,225 lines of tests)
+- **⚙️ DevOps**: Automatic formatting, git hooks, CI optimizations
 
-### What's Working (v0.3.1)
+### What's Working (v0.4.0)
 
 ✅ **Core Features:**
 - gRPC server with mTLS authentication
@@ -180,7 +182,8 @@ make compose-build
 ## 📖 Documentation
 
 ### User Guides
-- **[Release Notes v0.3.1](docs/releases/v0.3.1.md)** - Latest release with bugfixes and docs
+- **[Release Notes v0.4.0](docs/releases/v0.4.0.md)** - Latest release: Test foundation & DevOps
+- **[Project Roadmap](ROADMAP.md)** - Development roadmap and timeline (NEW!)
 - **[occtl Commands Reference](docs/OCCTL_COMMANDS.md)** - Complete command guide with examples
 - **[gRPC Testing Guide](docs/GRPC_TESTING.md)** - Test API with grpcurl
 - **[Certificate Management](docs/CERTIFICATES.md)** - TLS/mTLS setup (bootstrap + production)
@@ -190,7 +193,7 @@ make compose-build
 - [Local Testing Guide](docs/LOCAL_TESTING.md) - Development and CI testing
 - [GitHub Actions Workflows](.github/WORKFLOWS.md) - CI/CD pipeline
 - [Contributing Guide](.github/CONTRIBUTING.md) - Development workflow
-- [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
+- [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress (tactical)
 
 ### Security
 - **[Security Policy](SECURITY.md)** - Vulnerability disclosure process
@@ -198,8 +201,9 @@ make compose-build
 - [ocserv Compatibility](docs/todo/OCSERV_COMPATIBILITY.md) - Feature coverage analysis
 
 ### Releases
-- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) - Unit tests & test infrastructure (In Development)
+- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) - Test foundation & DevOps (Oct 2025) ✅
 - [v0.3.1 Release Notes](docs/releases/v0.3.1.md) - Critical bugfixes + documentation (Oct 2025)
+- [All Releases](https://github.com/dantte-lp/ocserv-agent/releases) - Full release history
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) - Certificate auto-generation (Oct 2025)
 
 ## 🔧 Configuration
@@ -284,13 +288,15 @@ ocserv-agent/
 - **OSSF Scorecard**: 5.9/10 (improving to 7.5+/10)
 - **Vulnerability Disclosure**: [SECURITY.md](SECURITY.md) with 48h response time
 
-### Recent Security Improvements (v0.3.1)
+### Recent Security Improvements (v0.3.1 - v0.4.0)
 
 - ✅ SECURITY.md vulnerability disclosure policy created
 - ✅ Removed hardcoded credentials from repository
 - ✅ Sanitized all deployment scripts
 - ✅ OSSF Scorecard improved from 4.9/10 to 5.9/10
-- 📋 Roadmap to 7.5+/10 in v0.4.0 (branch protection, GPG signing, dependency pinning)
+- ✅ Branch protection with required PR reviews (v0.4.0)
+- ✅ Admin bypass for emergency hotfixes (v0.4.0)
+- 📋 Roadmap to 7.5+/10 in v0.6.0 (GPG signing, dependency pinning, token permissions)
 
 ## 📊 Monitoring
 
@@ -325,8 +331,8 @@ See [agent.proto](pkg/proto/agent/v1/agent.proto) for full API specification.
 
 ```bash
 # Download latest release
-wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.3.1/ocserv-agent-v0.3.1-linux-amd64.tar.gz
-tar -xzf ocserv-agent-v0.3.1-linux-amd64.tar.gz
+wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.4.0/ocserv-agent-v0.4.0-linux-amd64.tar.gz
+tar -xzf ocserv-agent-v0.4.0-linux-amd64.tar.gz
 
 # Install to /etc/ocserv-agent
 sudo mkdir -p /etc/ocserv-agent
