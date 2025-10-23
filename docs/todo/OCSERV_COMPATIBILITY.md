@@ -52,45 +52,45 @@ This document provides a complete roadmap for implementing full compatibility wi
 
 ---
 
-## ✅ occtl Commands - COMPLETED! (16/16) 🎉
+## ✅ occtl Commands - Implementation Status (13/16 Working) 🎯
 
-**Status:** All occtl commands from ocserv 1.3.0 are now implemented!
+**Status:** Most occtl commands from ocserv 1.3.0 are implemented and tested with JSON mode.
 
-### User Information Commands ✅
-- [x] `show user [NAME]` - Display detailed user information
+**See also:** [docs/OCCTL_COMMANDS.md](../OCCTL_COMMANDS.md) for detailed user guide with examples.
+
+### ✅ Fully Working Commands (JSON Mode) - Tested in Production
+- [x] `show user [NAME]` - Display detailed user information (40+ fields)
 - [x] `show id [ID]` - Display connection ID details
-- [x] `show users` - List all connected users (detailed)
-
-### Session Management ✅
-- [x] `show sessions all` - Display all session identifiers
-- [x] `show sessions valid` - List sessions eligible for reconnection
-- [x] `show session [SID]` - Show details for specified session
-
-### Security & Network ✅
-- [x] `unban ip [IP]` - Remove IP from ban list
-- [x] `show ip bans` - Display banned IP addresses
-- [x] `show ip ban points` - Show IPs with accumulated violation points
-- [x] `show iroutes` - Display user-provided routes
-
-### Server Status & Monitoring ✅
+- [x] `show users` - List all connected users with full details
 - [x] `show status` - Detailed server status with metrics
 - [x] `show stats` - Server statistics
-- [x] `reload` - Reload configuration
-
-### Disconnection ✅
+- [x] `show ip bans` - Display banned IP addresses
+- [x] `show ip ban points` - Show IPs with accumulated violation points
+- [x] `unban ip [IP]` - Remove IP from ban list
 - [x] `disconnect user [NAME]` - Disconnect by username
 - [x] `disconnect id [ID]` - Disconnect by session ID
+- [x] `reload` - Reload configuration
+- [x] systemctl commands - start, stop, restart, reload, status
 
-### Remaining (Special Implementation Required)
-- [ ] `show events` - Real-time event streaming (requires ServerStream RPC)
-- [ ] `stop now` - Can use systemctl stop instead
+### ⚠️ Partially Working (occtl 1.3.0 JSON Bugs) - Upstream Issues
+- [!] `show iroutes` - **occtl returns invalid JSON** (duplicate keys, missing commas)
+- [!] `show sessions all` - **occtl returns invalid JSON**
+- [!] `show sessions valid` - **occtl returns invalid JSON**
+- [!] `show session [SID]` - Untested, likely same JSON issues
+
+**Note:** These commands fail due to bugs in occtl 1.3.0 JSON output, not in ocserv-agent. The agent correctly identifies and reports these parsing errors.
+
+### 🔴 Not Implemented (Special Requirements)
+- [ ] `show events` - Requires ServerStream RPC implementation (planned for v0.4.0)
+- [ ] `stop now` - Blocked for safety (use `systemctl stop ocserv` instead)
 
 **Implementation Details:**
-- ✅ Complete type definitions in `internal/ocserv/occtl_types.go`
-- ✅ All methods in `internal/ocserv/occtl.go` with JSON parsing
+- ✅ Complete type definitions with 40+ JSON fields in `internal/ocserv/occtl_types.go`
+- ✅ JSON parsing with `occtl -j` in `internal/ocserv/occtl.go`
 - ✅ Full routing in `internal/ocserv/manager.go`
-- ✅ Production-tested with real ocserv 1.3.0 output
-- ✅ Commit: d577619
+- ✅ Production-tested with 3 real VPN users on ocserv 1.3.0
+- ✅ Commit: 4fd990f (JSON mode implementation)
+- ✅ Documentation: docs/OCCTL_COMMANDS.md
 
 ---
 
@@ -602,11 +602,11 @@ github.com/prometheus/client_golang/prometheus
 
 ## 🎯 Compatibility Score
 
-### Current Score: 40/100 ⬆️ (+5 from Phase 3)
+### Current Score: 36/100 ⬆️ (Updated after production testing)
 
 **Breakdown:**
 - ✅ Core infrastructure: 10/10
-- ✅ occtl commands: 20/20 (100%) 🎉 **ALL IMPLEMENTED**
+- ✅ occtl commands: 16/20 (80%) - 13 fully working, 3 broken due to occtl bugs, 2 not implemented
 - ✅ Config reading: 10/10
 - ❌ Config writing: 0/10
 - ❌ ocpasswd: 0/15
@@ -614,6 +614,8 @@ github.com/prometheus/client_golang/prometheus
 - ❌ Streaming: 0/10 (show events requires ServerStream)
 - ❌ Advanced monitoring: 0/5
 - ❌ Testing: 0/10
+
+**Note:** Score adjusted to reflect real production testing results. Some commands don't work due to upstream occtl 1.3.0 JSON bugs, not agent implementation issues.
 
 ### Target Score (v1.0): 85/100
 
@@ -640,12 +642,13 @@ github.com/prometheus/client_golang/prometheus
 
 ---
 
-**Last Updated:** 2025-10-23 (Commit d577619)
+**Last Updated:** 2025-10-23 (Commit 8837ee6)
 **Next Review:** After ocpasswd implementation
 
 **Recent Changes:**
-- ✅ Implemented all 16 occtl commands (Phase 3)
-- ✅ Added complete type definitions (occtl_types.go)
-- ✅ JSON parsing for all commands
-- ✅ Production-tested with real ocserv 1.3.0 output
-- ⬆️ Compatibility score: 35/100 → 40/100
+- ✅ Implemented JSON mode for occtl commands (Commit 4fd990f)
+- ✅ Added complete type definitions with 40+ JSON fields (occtl_types.go)
+- ✅ Production-tested with 3 real VPN users on ocserv 1.3.0
+- ✅ Created comprehensive user documentation (docs/OCCTL_COMMANDS.md)
+- ⚠️ Identified 3 commands with upstream occtl JSON bugs (iroutes, sessions)
+- 📊 Compatibility score: 40/100 → 36/100 (adjusted after real testing)
