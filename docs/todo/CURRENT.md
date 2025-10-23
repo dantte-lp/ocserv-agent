@@ -1,8 +1,41 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 36b4678 - test: add unit tests for internal/ocserv/config.go (82-100% coverage)
-**Status:** v0.4.0 IN PROGRESS - Unit tests implementation, targeting >80% coverage
+**Last Commit:** 9ee265d - devops: add automatic gofmt to local development workflow
+**Status:** v0.4.0 IN PROGRESS - Unit tests (97.1% config) + DevOps improvements (automatic formatting)
+
+## 🎉 v0.4.0: DevOps Improvements - COMPLETED!
+
+**Local Development Workflow:**
+- ✅ Automatic code formatting (scripts/quick-check.sh)
+- ✅ Git hooks for pre-commit and pre-push (scripts/install-hooks.sh)
+- ✅ Updated README.md with git hooks documentation
+
+**Git Hooks:**
+- ✅ pre-commit: Auto-formats Go code with gofmt before each commit
+- ✅ pre-push: Runs quick-check.sh before each push
+- ✅ One-time installation: `./scripts/install-hooks.sh`
+
+**Benefits:**
+- Eliminates CI formatting failures
+- Consistent code style automatically
+- Fast local checks (2-3 seconds)
+- Optional (can skip with --no-verify)
+
+## 🎉 v0.4.0: Unit Tests - IN PROGRESS!
+
+**Test Coverage Achieved:**
+- ✅ internal/config: 97.1% coverage (exceeds >80% target)
+- ✅ internal/cert: 77.6% coverage (close to 80% target)
+- ✅ internal/ocserv/config.go: 82-100% coverage (per function)
+
+**Remaining Tests:**
+- [ ] Unit tests for internal/grpc (server, handlers)
+- [ ] Unit tests for internal/ocserv (manager, occtl, systemctl)
+- [ ] Unit tests for internal/health
+- [ ] Unit tests for internal/metrics
+- [ ] Unit tests for internal/telemetry
+- [ ] Achieve >80% overall test coverage
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
