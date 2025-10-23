@@ -1,8 +1,28 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 37310dc - docs: update compatibility status and add security improvements
-**Status:** v0.3.1 BETA - JSON parsing fixed, production-tested with 3 users, comprehensive documentation
+**Last Commit:** 9ee265d - devops: add automatic gofmt to local development workflow
+**Status:** v0.4.0 IN PROGRESS - DevOps improvements (automatic code formatting)
+
+## 🎉 v0.4.0: DevOps Improvements - IN PROGRESS!
+
+**Local Development Workflow:**
+- ✅ Automatic code formatting (scripts/quick-check.sh)
+- ✅ Git hooks for pre-commit and pre-push (scripts/install-hooks.sh)
+- ✅ Updated README.md with git hooks documentation
+- [ ] Unit tests for remaining packages
+- [ ] Integration tests
+
+**Git Hooks:**
+- ✅ pre-commit: Auto-formats Go code with gofmt before each commit
+- ✅ pre-push: Runs quick-check.sh before each push
+- ✅ One-time installation: `./scripts/install-hooks.sh`
+
+**Benefits:**
+- Eliminates CI formatting failures
+- Consistent code style automatically
+- Fast local checks (2-3 seconds)
+- Optional (can skip with --no-verify)
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
