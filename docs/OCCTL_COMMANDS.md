@@ -151,21 +151,67 @@ grpcurl -d '{"command_type": "systemctl", "args": ["restart", "ocserv"]}' \
 
 ## Known Issues
 
-### occtl JSON Bugs
+### occtl JSON Bugs (Production Tested: 2025-10-23)
 
-Some occtl commands return invalid JSON with:
-- Duplicate object keys (e.g., `"IP"` appears twice)
-- Missing commas between array elements
-- Malformed object structures
+Some occtl commands return invalid JSON. These are **upstream bugs in occtl 1.3.0**, not in ocserv-agent.
 
-These are bugs in occtl 1.3.0, not in ocserv-agent. The agent correctly identifies these as parsing errors.
+#### 1. `show iroutes` - COMPLETELY BROKEN
 
-**Affected commands:**
-- `show iroutes`
-- `show sessions all/valid`
-- `show session [SID]` (untested)
+**Issue:** Invalid JSON structure - completely unparseable
 
-**Workaround:** For these commands, you can use text mode output (agent will return raw stdout).
+**Example output:**
+```json
+  {
+    "ID":  844960,
+    "Username":  "lpa",
+    "Device":  "vpns1",
+    "IP":  "10.0.16.23",
+    "iRoutes": [],
+    "IP":  "10.0.16.23"    // ❌ DUPLICATE KEY!
+    "ID":  843724,          // ❌ MISSING COMMA!
+    "Username":  "win2k25",
+    ...
+  }
+```
+
+**Problems:**
+- ❌ Duplicate "IP" key in each object
+- ❌ Missing commas between objects
+- ❌ Missing array wrapper `[` at start
+- ❌ Would fail any JSON parser
+
+**Status:** Cannot be parsed by ocserv-agent or any JSON library.
+
+#### 2. `show sessions all` - MINOR BUG
+
+**Issue:** Trailing commas in JSON objects (not allowed in strict JSON)
+
+**Example output:**
+```json
+[
+  {
+    "Session": "Al/uNv",
+    "Username": "win2k25",
+    "Remote IP": "90.156.162.214",
+    "in_use": 1,  // ⚠️ TRAILING COMMA
+  },
+  ...
+]
+```
+
+**Status:** Some parsers may accept this, but it's technically invalid JSON.
+
+#### 3. `show sessions valid` - MINOR BUG
+
+**Issue:** Same as `show sessions all` - trailing commas in objects.
+
+**Status:** Same parsing issues as above.
+
+---
+
+**Tested on:** Production server with 3 active VPN users (ocserv 1.3.0)
+**Date:** 2025-10-23
+**Workaround:** For `show iroutes`, use text mode output. For `show sessions`, some lenient JSON parsers may work.
 
 ## Command Validation
 
