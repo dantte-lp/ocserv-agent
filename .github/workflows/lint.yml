@@ -11,21 +11,40 @@ permissions:
   pull-requests: read
 
 jobs:
+  # Go code linting - only run when Go files change
   golangci:
     name: golangci-lint
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.changed_files, '.go') ||
+       contains(github.event.pull_request.changed_files, 'go.mod') ||
+       contains(github.event.pull_request.changed_files, 'go.sum') ||
+       contains(github.event.pull_request.changed_files, '.proto'))
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for Go files
+        id: check
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}... 2>/dev/null | grep -E '\.(go|proto)$|go\.(mod|sum)$'; then
+            echo "has_go_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_go_files=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Go
+        if: steps.check.outputs.has_go_files == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: false
 
       - name: Install protoc
+        if: steps.check.outputs.has_go_files == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
@@ -33,6 +52,7 @@ jobs:
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf code
+        if: steps.check.outputs.has_go_files == 'true'
         run: |
           protoc --go_out=. --go-grpc_out=. \
             --go_opt=paths=source_relative \
@@ -40,12 +60,14 @@ jobs:
             pkg/proto/agent/v1/agent.proto
 
       - name: Run golangci-lint
+        if: steps.check.outputs.has_go_files == 'true'
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
           args: --timeout=5m
           only-new-issues: false
 
+  # Markdown linting - only run when .md files change
   markdown:
     name: Markdown lint
     runs-on: ubuntu-latest
@@ -54,12 +76,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for Markdown files
+        id: check
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}... 2>/dev/null | grep -E '\.md$'; then
+            echo "has_md_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_md_files=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Lint markdown files
+        if: steps.check.outputs.has_md_files == 'true'
         uses: avto-dev/markdown-lint@v1
         with:
           args: '**/*.md'
           ignore: 'vendor'
 
+  # YAML linting - only run when .yml/.yaml files change
   yaml:
     name: YAML lint
     runs-on: ubuntu-latest
@@ -68,13 +101,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for YAML files
+        id: check
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}... 2>/dev/null | grep -E '\.(yml|yaml)$'; then
+            echo "has_yaml_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_yaml_files=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Lint YAML files
+        if: steps.check.outputs.has_yaml_files == 'true'
         uses: ibiqlik/action-yamllint@v3
         with:
           config_file: .yamllint.yml
           file_or_dir: .
           strict: true
 
+  # Dockerfile linting - only run when Dockerfile changes
   dockerfile:
     name: Dockerfile lint
     runs-on: ubuntu-latest
@@ -83,7 +127,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for Dockerfile
+        id: check
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}... 2>/dev/null | grep -E '^Dockerfile'; then
+            echo "has_dockerfile=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_dockerfile=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Lint Dockerfile
+        if: steps.check.outputs.has_dockerfile == 'true'
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile

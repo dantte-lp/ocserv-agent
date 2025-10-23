@@ -26,16 +26,30 @@ The `main` branch is protected with the following rules:
 
 **Smart CI Triggering:**
 
-The CI system intelligently skips heavy checks when only documentation or configuration files are changed:
+The CI system intelligently skips checks based on which files are changed:
 
-**Documentation-only changes** (only .md, .yml, .yaml, docs/*, LICENSE, .gitignore):
-- ✅ Lint checks (Markdown, YAML, Dockerfile) - **RUNS**
+**Only .md files changed:**
+- ✅ Markdown lint - **RUNS**
+- ❌ YAML lint, Dockerfile lint, golangci-lint - **SKIPPED**
 - ❌ Tests, builds, security scans - **SKIPPED**
 
-**Code changes** (.go, proto, Dockerfile, go.mod, etc.):
-- ✅ All checks run - **FULL CI**
+**Only .yml/.yaml files changed:**
+- ✅ YAML lint - **RUNS**
+- ❌ Markdown lint, Dockerfile lint, golangci-lint - **SKIPPED**
+- ❌ Tests, builds, security scans - **SKIPPED**
 
-This saves CI resources and speeds up documentation PRs while ensuring code changes are thoroughly tested.
+**Only Dockerfile changed:**
+- ✅ Dockerfile lint - **RUNS**
+- ❌ Other lints - **SKIPPED**
+- ❌ Tests, builds, security scans - **SKIPPED**
+
+**Go code changed** (.go, .proto, go.mod, go.sum):
+- ✅ **ALL checks run** - Full CI/Lint/Security
+
+**Mixed changes** (e.g., .md + .go files):
+- ✅ **ALL relevant checks run** - Each lint for its file type + full CI for code
+
+This saves CI resources and speeds up documentation/config PRs while ensuring all code changes are thoroughly tested.
 
 ### 2. Development Process
 
