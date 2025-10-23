@@ -46,7 +46,7 @@ When you start the agent, it will:
 🔐 Generated self-signed certificates for bootstrap mode
    CA Fingerprint:   SHA256:a1:b2:c3:d4:...
    Cert Fingerprint: SHA256:e5:f6:g7:h8:...
-   Subject:          ocserv-agent-cn02-lt-vno
+   Subject:          ocserv-agent-vpn-server-01
    Valid:            2025-10-23 - 2026-10-23
    Location:         /etc/ocserv-agent/certs
 
@@ -152,7 +152,7 @@ sudo ocserv-agent gencert -hostname vpn01.example.com
 
 ```
 🔐 Generating self-signed certificates...
-   Hostname:        cn02-lt-vno
+   Hostname:        vpn-server-01
    Output dir:      /etc/ocserv-agent/certs
 
 ✅ Certificates generated successfully!
@@ -160,7 +160,7 @@ sudo ocserv-agent gencert -hostname vpn01.example.com
 Certificate Information:
    CA Fingerprint:   SHA256:a1:b2:c3:...
    Cert Fingerprint: SHA256:e5:f6:g7:...
-   Subject:          ocserv-agent-cn02-lt-vno
+   Subject:          ocserv-agent-vpn-server-01
    Valid From:       2025-10-23 12:00:00 UTC
    Valid Until:      2026-10-23 12:00:00 UTC
 

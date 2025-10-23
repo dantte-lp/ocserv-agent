@@ -4,6 +4,10 @@
 **Date:** 2025-10-23
 **Purpose:** Reference examples for parsing occtl command output
 
+> **Note:** These are real production outputs with **sanitized data** for testing purposes.
+> IP addresses, usernames, and hostnames have been kept for realistic parsing tests
+> but should be considered as example data only.
+
 This directory contains real output from a production ocserv deployment, useful for:
 - Testing occtl output parsing in OcctlManager
 - Understanding JSON structure for each command

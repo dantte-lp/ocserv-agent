@@ -1,6 +1,6 @@
 # Testing ocserv-agent v0.2.0 BETA
 
-**Target Server:** 195.238.126.25 (production ocserv 1.3.0)
+**Target Server:** Your production server with ocserv 1.3.0
 
 ## Quick Start
 
@@ -8,7 +8,7 @@
 
 ```bash
 # SSH to server
-ssh root@195.238.126.25
+ssh admin@203.0.113.10
 
 # Create directory
 mkdir -p /opt/ocserv-agent

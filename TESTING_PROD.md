@@ -2,7 +2,7 @@
 
 ## 📋 Quick Start
 
-Test the new certificate auto-generation feature on production server `195.238.126.25`.
+Test the new certificate auto-generation feature on your production server.
 
 ## ✅ What's New
 
@@ -14,7 +14,7 @@ The agent can now automatically generate self-signed certificates on first run, 
 
 ```bash
 # SSH to production server
-ssh root@195.238.126.25
+ssh admin@203.0.113.10
 
 # Download latest build from this repository
 cd /opt/projects/repositories/ocserv-agent
@@ -38,7 +38,7 @@ chmod +x /tmp/ocserv-agent
 /tmp/ocserv-agent help
 
 # Test manual cert generation
-/tmp/ocserv-agent gencert -output /tmp/test-certs -hostname cn02-lt-vno
+/tmp/ocserv-agent gencert -output /tmp/test-certs -hostname vpn-server-01
 
 # Verify certs created
 ls -lh /tmp/test-certs/
@@ -57,8 +57,8 @@ openssl x509 -in /tmp/test-certs/agent.crt -noout -dates
 ```bash
 # Create test config with auto-generation
 cat > /tmp/test-config.yaml <<'EOF'
-agent_id: "cn02-lt-vno-test"
-hostname: "cn02-lt-vno"
+agent_id: "vpn-server-01-test"
+hostname: "vpn-server-01"
 
 control_server:
   address: "localhost:9090"
@@ -107,7 +107,7 @@ EOF
 # 🔐 Generated self-signed certificates for bootstrap mode
 #    CA Fingerprint:   SHA256:xx:xx:xx:...
 #    Cert Fingerprint: SHA256:yy:yy:yy:...
-#    Subject:          ocserv-agent-cn02-lt-vno
+#    Subject:          ocserv-agent-vpn-server-01
 #    Valid:            2025-10-23 - 2026-10-23
 #    Location:         /tmp/auto-certs
 #
@@ -146,8 +146,8 @@ openssl x509 -in /tmp/auto-certs/agent.crt -text -noout | grep -E "(Subject:|Iss
 ```bash
 # Modify config to disable auto-generation
 cat > /tmp/test-config-no-auto.yaml <<'EOF'
-agent_id: "cn02-lt-vno-test"
-hostname: "cn02-lt-vno"
+agent_id: "vpn-server-01-test"
+hostname: "vpn-server-01"
 
 control_server:
   address: "localhost:9090"
@@ -212,8 +212,8 @@ sudo chmod +x /usr/local/bin/ocserv-agent-linux-amd64
 
 # Create production config with auto-generation
 sudo tee /etc/ocserv-agent/config.yaml <<'EOF'
-agent_id: "cn02-lt-vno"
-hostname: "cn02-lt-vno"
+agent_id: "vpn-server-01"
+hostname: "vpn-server-01"
 
 control_server:
   address: "localhost:9090"
