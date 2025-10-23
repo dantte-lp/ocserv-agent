@@ -13,7 +13,7 @@ The `main` branch is protected with the following rules:
 
 **Other Checks (informational only):**
 - Test (Go 1.24)
-- Build checks (linux/amd64, linux/arm64, darwin, windows)
+- Build checks (linux/amd64, linux/arm64, freebsd/amd64, freebsd/arm64)
 - Markdown lint
 - YAML lint
 - Security scans (gosec, govulncheck, CodeQL, Trivy, OSSF Scorecard)

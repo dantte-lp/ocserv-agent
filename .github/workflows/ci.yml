@@ -69,11 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [linux, darwin, windows]
+        os: [linux, freebsd]
         arch: [amd64, arm64]
-        exclude:
-          - os: windows
-            arch: arm64
 
     steps:
       - name: Checkout code
