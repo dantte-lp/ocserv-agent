@@ -1,0 +1,4 @@
+# Per-user config for john
+route = 10.10.0.0/16
+dns = 10.10.10.1
+ipv4-network = 192.168.100.0
