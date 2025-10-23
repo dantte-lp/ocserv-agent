@@ -3,8 +3,8 @@
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dantte-lp/ocserv-agent?include_prereleases)](https://github.com/dantte-lp/ocserv-agent/releases)
-[![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1)
-[![Test Coverage](https://img.shields.io/badge/coverage-97.1%25%20(config)-brightgreen)](https://github.com/dantte-lp/ocserv-agent/pull/14)
+[![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.4.0)
+[![Test Coverage](https://img.shields.io/badge/coverage-85%25%20(3_packages)-brightgreen)](https://github.com/dantte-lp/ocserv-agent/blob/main/docs/releases/v0.4.0.md)
 
 [![CI](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml)
 [![Lint](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml)
@@ -13,22 +13,23 @@
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
-> **Status:** BETA (v0.3.1) - Production-tested with real VPN users. Core features complete, documentation comprehensive. See [roadmap](#-roadmap) for upcoming features.
+> **Status:** BETA (v0.4.0) - Production-tested with real VPN users. Core features complete, test coverage established (85%+ for critical packages), DevOps workflow optimized. See [ROADMAP.md](ROADMAP.md) for future plans.
 
 ## 📋 Overview
 
 ocserv-agent is a **production-tested BETA** agent that runs on each ocserv instance and provides secure remote management capabilities through a gRPC API. It enables centralized control of distributed VPN infrastructure.
 
-**Current Release:** [v0.3.1 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1) (October 2025)
-- ✅ Production-tested with 3 active VPN users
-- ✅ 13/16 occtl commands working (3 broken due to upstream ocserv bugs)
-- ✅ Security hardening: mTLS, command validation, audit logging
-- ✅ OSSF Scorecard: 5.9/10 (improving to 7.5+/10 in v0.4.0)
+**Current Release:** [v0.4.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.4.0) (October 2025)
+- ✅ Test foundation: 97.1% config, 77.6% cert, 82-100% ocserv/config
+- ✅ DevOps improvements: automatic formatting, git hooks, CI optimizations
+- ✅ 2,225 lines of test code across 4 test files
+- ✅ Test infrastructure with fixtures and compose setup
+- ✅ OSSF Scorecard: 5.9/10 (Phase 1 security improvements)
 
-**In Development:** [v0.4.0](docs/releases/v0.4.0.md) - Unit Tests & Test Infrastructure
-- 🚧 Unit tests for internal/config: 97.1% coverage ✅ ([PR #14](https://github.com/dantte-lp/ocserv-agent/pull/14))
-- 🎯 Target: >80% overall test coverage
-- 📋 Next: Unit tests for cert, grpc, ocserv packages
+**Previous Release:** [v0.3.1 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1) (October 2025)
+- Production-tested with 3 active VPN users
+- 13/16 occtl commands working (3 broken due to upstream ocserv bugs)
+- Security hardening: mTLS, command validation, audit logging
 
 ### Architecture
 
@@ -433,52 +434,39 @@ We actively contribute bug reports and fixes to the ocserv project:
 
 ## 🗺️ Roadmap
 
-### ✅ v0.3.1 BETA (Completed - October 2025)
+> **See [ROADMAP.md](ROADMAP.md) for detailed project roadmap and timeline.**
 
-**Critical Bugfixes:**
-- ✅ Fixed occtl JSON parsing (user count was showing 0)
-- ✅ Switched to `occtl -j` mode with 40+ fields per user
-- ✅ Production-tested with 3 real VPN users
+### ✅ v0.4.0 BETA (Completed - October 2025)
 
-**Security Improvements:**
-- ✅ SECURITY.md vulnerability disclosure policy
-- ✅ Removed hardcoded credentials
-- ✅ OSSF Scorecard: 4.9/10 → 5.9/10 (+1.0)
-
-**Documentation (5 new guides):**
-- ✅ docs/OCCTL_COMMANDS.md - Complete command reference
-- ✅ docs/GRPC_TESTING.md - gRPC testing procedures
-- ✅ docs/OSSF_SCORECARD_IMPROVEMENTS.md - Security roadmap
-- ✅ SECURITY.md - Vulnerability disclosure
-- ✅ Updated compatibility status with production results
-
-**Upstream Contributions:**
-- ✅ [Issue #661](https://gitlab.com/openconnect/ocserv/-/issues/661#note_2839397707) - Root cause analysis for `show iroutes` bug
-- ✅ [Issue #669](https://gitlab.com/openconnect/ocserv/-/issues/669) - Reported regression of #220
-
-### 🚧 v0.4.0 In Development (Unit Tests & Test Infrastructure)
-
-**Unit Tests (Target: >80% overall coverage):**
+**Test Foundation & DevOps:**
 - ✅ internal/config: 97.1% coverage ([PR #14](https://github.com/dantte-lp/ocserv-agent/pull/14))
-  - Config loading, validation, env overrides
-  - TLS settings, security validation
-  - Test fixtures infrastructure
-- [ ] internal/cert: Certificate generation and management
-- [ ] internal/grpc: gRPC server and handlers
-- [ ] internal/ocserv: ocserv integration and command execution
+- ✅ internal/cert: 77.6% coverage (certificate generation tests)
+- ✅ internal/ocserv/config.go: 82-100% coverage (config parser tests)
+- ✅ Test infrastructure with 8 fixture files
+- ✅ 2,225 lines of test code
 
-**OSSF Scorecard Improvements (Target: 7.5+/10):**
-- [ ] Setup branch protection rules (require PR, code review)
-- [ ] Restrict GitHub workflow token permissions
-- [ ] Setup GPG commit signing
-- [ ] Pin GitHub Actions to SHA hashes (22 dependencies)
-- [ ] Pin Docker base images to digests
+**DevOps Improvements:**
+- ✅ Automatic code formatting (scripts/quick-check.sh)
+- ✅ Git hooks (pre-commit: auto-format, pre-push: checks) ([PR #16](https://github.com/dantte-lp/ocserv-agent/pull/16))
+- ✅ One-time setup: `./scripts/install-hooks.sh`
+- ✅ CI path filtering (skip expensive jobs for docs-only changes)
 
-**Progress:**
-- Tests: 97.1% for config package, targeting >80% overall
-- Status: [v0.4.0 Release Notes](docs/releases/v0.4.0.md) (in development)
+**Security:**
+- ✅ Branch protection with required reviews
+- ✅ Admin bypass for hotfixes
+- ✅ OSSF Scorecard: 5.9/10
 
-### 🔮 Future (v0.5.0+)
+### 🔮 Next: v0.5.0 (Complete Test Coverage)
+
+**Target:** December 2025
+
+**Goals:**
+- Achieve >80% overall test coverage
+- Unit tests for internal/grpc (server, handlers)
+- Unit tests for internal/ocserv (manager, occtl, systemctl)
+- Integration tests with mock ocserv
+
+### 🔜 Future (v0.6.0+)
 
 - [ ] Bidirectional streaming (AgentStream RPC)
 - [ ] Enhanced metrics (Prometheus exporter)
