@@ -25,12 +25,12 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 ## 📊 Progress Tracking
 
 **Phase 1: Infrastructure Setup** [3/3] ✅✅✅ **COMPLETE!**
-**Phase 2: Occtl Integration Tests** [3/4] ✅✅✅⬜
+**Phase 2: Occtl Integration Tests** [4/4] ✅✅✅✅ COMPLETE!
 **Phase 3: Systemctl Integration Tests** [0/3] ⬜⬜⬜
 **Phase 4: gRPC End-to-End Tests** [0/3] ⬜⬜⬜
 **Phase 5: Remote Server Testing** [0/2] ⬜⬜
 
-**Total Progress:** 6/15 (40.0%)
+**Total Progress:** 7/15 (46.7%)
 
 ---
 
@@ -428,11 +428,11 @@ go test -tags=integration -v -run "ShowUser|ShowID|Disconnect" ./internal/ocserv
 ---
 
 ### Task 2.4: Test IP management commands
-**Status:** PENDING | **Priority:** MEDIUM | **Time:** 30 min
+**Status:** ✅ COMPLETED (2025-10-23) | **Priority:** MEDIUM | **Time:** 30 min
 
 **Objectives:**
-- Test `ShowIPBans()` with banned/no banned IPs
-- Test `ShowIPBanPoints()` with various points
+- ✅ Test `ShowIPBans()` with banned/no banned IPs
+- ✅ Test `ShowIPBanPoints()` with various points
 - Test `UnbanIP(ip)` success/failure
 - Test `Reload()` command
 
