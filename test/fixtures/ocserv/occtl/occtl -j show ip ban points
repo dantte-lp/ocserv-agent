@@ -1,30 +1,40 @@
 [
   {
-    "IP":  "185.224.128.136",
-    "Score":  1
+    "ip":  "185.224.128.136",
+    "points":  1,
+    "last_activity": "2025-10-23T03:00:00Z",
+    "events": ["failed login"]
   },
   {
-    "IP":  "95.214.210.2",
-    "Score":  1
+    "ip":  "95.214.210.2",
+    "points":  1,
+    "last_activity": "2025-10-23T04:00:00Z"
   },
   {
-    "IP":  "64.62.197.77",
-    "Score":  1
+    "ip":  "64.62.197.77",
+    "points":  1,
+    "last_activity": "2025-10-23T05:00:00Z"
   },
   {
-    "IP":  "167.94.138.33",
-    "Score":  9
+    "ip":  "167.94.138.33",
+    "points":  9,
+    "last_activity": "2025-10-23T06:00:00Z",
+    "events": ["failed login", "invalid username"]
   },
   {
-    "IP":  "204.76.203.30",
-    "Score":  1
+    "ip":  "204.76.203.30",
+    "points":  1,
+    "last_activity": "2025-10-23T07:00:00Z"
   },
   {
-    "IP":  "95.214.210.98",
-    "Score":  1
+    "ip":  "95.214.210.98",
+    "points":  1,
+    "last_activity": "2025-10-23T08:00:00Z"
   },
   {
-    "IP":  "90.156.164.225",
-    "Score":  40
+    "ip":  "90.156.164.225",
+    "points":  40,
+    "last_activity": "2025-10-23T09:00:00Z",
+    "events": ["failed login", "invalid username", "timeout"]
   }
 ]

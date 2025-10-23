@@ -4,7 +4,6 @@
 package ocserv_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -331,7 +330,7 @@ func TestShowUserAndShowIDConsistency(t *testing.T) {
 
 	firstUser := users[0]
 	username := firstUser.Username
-	userID := firstUser.ID
+	_ = firstUser.ID // userID not used in this test
 
 	// Get via ShowUser
 	userDetailsByName, err := manager.ShowUser(ctx, username)

@@ -4,7 +4,6 @@
 package ocserv_test
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"

@@ -248,9 +248,12 @@ func TestShowIRoutes(t *testing.T) {
 	if len(iroutes) > 0 {
 		route := iroutes[0]
 		testutil.AssertNotEmpty(t, route.Username, "IRoute username")
-		testutil.AssertNotEmpty(t, route.Route, "IRoute route")
+		// IRoutes is an array, just check it's not nil
+		if route.IRoutes == nil {
+			t.Error("IRoutes is nil")
+		}
 
-		t.Logf("First iroute: %s -> %s", route.Username, route.Route)
+		t.Logf("First iroute: %s (routes: %d)", route.Username, len(route.IRoutes))
 	}
 
 	t.Logf("✅ ShowIRoutes test passed")

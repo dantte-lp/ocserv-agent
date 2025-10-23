@@ -4,7 +4,6 @@
 package ocserv_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -183,30 +182,30 @@ func TestShowStatusDetailedStructure(t *testing.T) {
 		if status.Uptime < 0 {
 			t.Errorf("Uptime is negative: %d", status.Uptime)
 		}
-		if status.UptimeStr == "" {
-			t.Log("UptimeStr is empty (may be acceptable)")
+		if status.UpSinceRelative == "" {
+			t.Log("UpSinceRelative is empty (may be acceptable)")
 		}
-		t.Logf("Uptime: %d seconds (%s)", status.Uptime, status.UptimeStr)
+		t.Logf("Uptime: %d seconds (%s)", status.Uptime, status.UpSinceRelative)
 	})
 
 	t.Run("SecurityInfo", func(t *testing.T) {
-		t.Logf("Sec-mod: %s", status.SecMod)
-		t.Logf("Compression: %s", status.Compression)
+		t.Logf("Sec-mod PID: %d", status.SecModPID)
+		t.Logf("Sec-mod Instances: %d", status.SecModInstances)
 	})
 
 	t.Run("UserMetrics", func(t *testing.T) {
-		if status.OnlineUsers < 0 {
-			t.Errorf("OnlineUsers is negative: %d", status.OnlineUsers)
+		if status.ActiveSessions < 0 {
+			t.Errorf("ActiveSessions is negative: %d", status.ActiveSessions)
 		}
-		if status.MaxOnline < 0 {
-			t.Errorf("MaxOnline is negative: %d", status.MaxOnline)
+		if status.TotalSessions < 0 {
+			t.Errorf("TotalSessions is negative: %d", status.TotalSessions)
 		}
-		t.Logf("Users: online=%d, max=%d", status.OnlineUsers, status.MaxOnline)
+		t.Logf("Sessions: active=%d, total=%d", status.ActiveSessions, status.TotalSessions)
 	})
 
 	t.Run("TrafficMetrics", func(t *testing.T) {
-		t.Logf("Bytes in: %d (%s)", status.TotalBytesIn, status.TotalBytesInStr)
-		t.Logf("Bytes out: %d (%s)", status.TotalBytesOut, status.TotalBytesOutStr)
+		t.Logf("RX: %d bytes (%s)", status.RawRX, status.RX)
+		t.Logf("TX: %d bytes (%s)", status.RawTX, status.TX)
 	})
 
 	t.Logf("✅ ShowStatusDetailed structure test passed")
@@ -316,7 +315,7 @@ func TestStatusComparison(t *testing.T) {
 		// Detailed should have session info
 		t.Logf("Detailed has ActiveSessions: %d", statusDetailed.ActiveSessions)
 		t.Logf("Detailed has TotalSessions: %d", statusDetailed.TotalSessions)
-		t.Logf("Detailed has OnlineUsers: %d", statusDetailed.OnlineUsers)
+		t.Logf("Detailed has IPsInBanList: %d", statusDetailed.IPsInBanList)
 
 		// These fields are only in detailed version
 		if statusDetailed.ActiveSessions < 0 {
