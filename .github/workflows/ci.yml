@@ -24,10 +24,62 @@ permissions:
   contents: read
 
 jobs:
+  # Detect what files changed to skip expensive jobs for docs-only changes
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need history to compare
+
+      - name: Check changed files
+        id: filter
+        run: |
+          # Determine base reference for comparison
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="origin/${{ github.base_ref }}"
+          else
+            BASE_REF="${{ github.event.before }}"
+          fi
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only $BASE_REF...${{ github.sha }} 2>/dev/null || echo "")
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Check if any code files changed (Go, proto, configs, workflows)
+          if echo "$CHANGED_FILES" | grep -qE '\.(go|proto|mod|sum)$|^(cmd|internal|pkg|deploy)/|^\.github/workflows/'; then
+            echo "code=true" >> $GITHUB_OUTPUT
+            echo "Code files changed: YES"
+          else
+            echo "code=false" >> $GITHUB_OUTPUT
+            echo "Code files changed: NO"
+          fi
+
+          # Check if any docs changed
+          if echo "$CHANGED_FILES" | grep -qE '\.(md|txt)$|^docs/'; then
+            echo "docs=true" >> $GITHUB_OUTPUT
+            echo "Docs files changed: YES"
+          else
+            echo "docs=false" >> $GITHUB_OUTPUT
+            echo "Docs files changed: NO"
+          fi
+
   # Test on multiple Go versions
   test:
     name: Test (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    needs: detect-changes
+    # Skip if only docs changed
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
     permissions:
       contents: read
       actions: read
@@ -85,6 +137,9 @@ jobs:
   build:
     name: Build (${{ matrix.os }}/${{ matrix.arch }})
     runs-on: ubuntu-latest
+    needs: detect-changes
+    # Skip if only docs changed
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
     permissions:
       contents: read
       actions: write  # For artifact upload
@@ -140,7 +195,9 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: build
+    needs: [detect-changes, build]
+    # Skip if only docs changed (build will be skipped too)
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
     permissions:
       contents: read
       actions: read  # For artifact download
@@ -176,9 +233,13 @@ jobs:
           # go test -v -tags=integration ./test/integration/...
 
   # Check for formatting and vet issues
+  # Always run (fast and catches issues early)
   checks:
     name: Code Quality Checks
     runs-on: ubuntu-latest
+    needs: detect-changes
+    # Skip if only docs changed
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
     permissions:
       contents: read
 
@@ -221,3 +282,36 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
+
+  # Summary job that always succeeds (for required status checks)
+  # This ensures docs-only PRs can be merged even when heavy jobs are skipped
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test, build, integration, checks]
+    if: always()  # Run even if jobs were skipped
+    steps:
+      - name: Check job results
+        run: |
+          # If only docs changed, all jobs will be skipped - that's OK
+          if [ "${{ needs.detect-changes.outputs.code }}" = "false" ]; then
+            echo "✅ Docs-only changes - heavy jobs skipped (expected)"
+            exit 0
+          fi
+
+          # If code changed, check that all jobs succeeded
+          if [ "${{ needs.test.result }}" = "success" ] && \
+             [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.integration.result }}" = "success" ] && \
+             [ "${{ needs.checks.result }}" = "success" ]; then
+            echo "✅ All CI jobs passed"
+            exit 0
+          fi
+
+          # Some job failed
+          echo "❌ Some CI jobs failed"
+          echo "test: ${{ needs.test.result }}"
+          echo "build: ${{ needs.build.result }}"
+          echo "integration: ${{ needs.integration.result }}"
+          echo "checks: ${{ needs.checks.result }}"
+          exit 1
