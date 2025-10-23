@@ -20,6 +20,10 @@ services:
     command: >
       bash -c "
         set -e
+        echo '==> Installing system dependencies...'
+        apt-get update -qq
+        apt-get install -y -qq curl git openssh-client sshpass
+
         echo '==> Installing Poetry 2.2...'
         curl -sSL https://install.python-poetry.org | python3 - --version 2.2.0
         export PATH=\"/root/.local/bin:\$PATH\"
@@ -32,7 +36,8 @@ services:
         poetry run ansible --version
 
         echo '==> Ansible environment ready!'
-        echo 'Run: podman-compose -f deploy/compose/ansible.yml run --rm ansible poetry run ansible-playbook ...'
+        echo 'Run: make ansible-shell to enter container'
+        echo 'Or: podman exec -it ocserv-agent-ansible bash'
 
         # Keep container running for interactive use
         tail -f /dev/null
