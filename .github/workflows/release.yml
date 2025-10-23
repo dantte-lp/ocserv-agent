@@ -57,15 +57,17 @@ jobs:
             --go-grpc_opt=paths=source_relative \
             pkg/proto/agent/v1/agent.proto
 
-      - name: Build binaries
+      - name: Build and package binaries
         env:
           VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
           # Build for multiple platforms
+          # Format: OS/ARCH
           PLATFORMS=(
             "linux/amd64"
             "linux/arm64"
-            "linux/arm/v7"
+            "freebsd/amd64"
+            "freebsd/arm64"
           )
 
           mkdir -p dist
@@ -73,26 +75,37 @@ jobs:
           for PLATFORM in "${PLATFORMS[@]}"; do
             GOOS=${PLATFORM%/*}
             GOARCH=${PLATFORM#*/}
-            GOARM=""
 
-            if [[ "$GOARCH" == *"/"* ]]; then
-              GOARM=${GOARCH#*/}
-              GOARCH=${GOARCH%/*}
-            fi
+            # Archive name includes version and platform
+            # Format: ocserv-agent-v0.2.1-linux-amd64.tar.gz
+            ARCHIVE_NAME="ocserv-agent-${VERSION}-${GOOS}-${GOARCH}"
 
-            OUTPUT="dist/ocserv-agent-${GOOS}-${GOARCH}${GOARM:+-v${GOARM}}"
+            # Binary inside archive is always named 'ocserv-agent'
+            BINARY_NAME="ocserv-agent"
 
-            echo "Building for $GOOS/$GOARCH${GOARM:+ ARMv${GOARM}}..."
+            echo "Building ${ARCHIVE_NAME}.tar.gz..."
 
-            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH GOARM=$GOARM \
+            # Build binary
+            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH \
               go build -trimpath \
               -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${GITHUB_SHA} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-              -o "$OUTPUT" \
+              -o "${BINARY_NAME}" \
               ./cmd/agent
 
-            # Create checksums
-            sha256sum "$OUTPUT" > "$OUTPUT.sha256"
+            # Create tar.gz archive with binary named 'ocserv-agent'
+            tar -czf "dist/${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}"
+
+            # Create checksum for archive
+            sha256sum "dist/${ARCHIVE_NAME}.tar.gz" > "dist/${ARCHIVE_NAME}.tar.gz.sha256"
+
+            # Cleanup binary
+            rm "${BINARY_NAME}"
+
+            echo "✅ Created dist/${ARCHIVE_NAME}.tar.gz"
           done
+
+          # List created files
+          ls -lh dist/
 
       - name: Generate hashes for provenance
         id: hash

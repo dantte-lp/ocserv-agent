@@ -29,6 +29,7 @@ services:
   # ═══════════════════════════════════════════════
   # Multi-arch Build
   # ═══════════════════════════════════════════════
+  # Linux amd64 build
   build-linux-amd64:
     image: golang:1.25-trixie
     container_name: build-amd64
@@ -44,14 +45,36 @@ services:
     command: |
       sh -c '
         echo "🔨 Building for linux/amd64..."
+
+        # Build binary (always named ocserv-agent)
         go build -ldflags="-s -w -X main.version=${VERSION}" \
-          -o bin/ocserv-agent-linux-amd64 \
+          -o ocserv-agent \
           ./cmd/agent || echo "Build failed (expected if cmd/agent/main.go does not exist yet)"
-        echo "✅ Built: bin/ocserv-agent-linux-amd64"
+
+        # Create bin directory
+        mkdir -p bin
+
+        # Archive name with version
+        ARCHIVE="ocserv-agent-${VERSION}-linux-amd64.tar.gz"
+
+        # Package as tar.gz
+        tar -czf "bin/${ARCHIVE}" ocserv-agent
+
+        # Create checksum
+        sha256sum "bin/${ARCHIVE}" > "bin/${ARCHIVE}.sha256"
+
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-linux-amd64
+        rm ocserv-agent
+
+        echo "✅ Created:"
+        echo "   - bin/${ARCHIVE} (release)"
+        echo "   - bin/ocserv-agent-linux-amd64 (testing)"
       '
     depends_on:
       - proto-gen
 
+  # Linux arm64 build
   build-linux-arm64:
     image: golang:1.25-trixie
     container_name: build-arm64
@@ -67,10 +90,121 @@ services:
     command: |
       sh -c '
         echo "🔨 Building for linux/arm64..."
+
+        # Build binary (always named ocserv-agent)
         go build -ldflags="-s -w -X main.version=${VERSION}" \
-          -o bin/ocserv-agent-linux-arm64 \
+          -o ocserv-agent \
           ./cmd/agent || echo "Build failed (expected if cmd/agent/main.go does not exist yet)"
-        echo "✅ Built: bin/ocserv-agent-linux-arm64"
+
+        # Create bin directory
+        mkdir -p bin
+
+        # Archive name with version
+        ARCHIVE="ocserv-agent-${VERSION}-linux-arm64.tar.gz"
+
+        # Package as tar.gz
+        tar -czf "bin/${ARCHIVE}" ocserv-agent
+
+        # Create checksum
+        sha256sum "bin/${ARCHIVE}" > "bin/${ARCHIVE}.sha256"
+
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-linux-arm64
+        rm ocserv-agent
+
+        echo "✅ Created:"
+        echo "   - bin/${ARCHIVE} (release)"
+        echo "   - bin/ocserv-agent-linux-arm64 (testing)"
+      '
+    depends_on:
+      - proto-gen
+
+  # FreeBSD amd64 build
+  build-freebsd-amd64:
+    image: golang:1.25-trixie
+    container_name: build-freebsd-amd64
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace:z
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=freebsd
+      - GOARCH=amd64
+      - VERSION=${VERSION:-dev}
+    command: |
+      sh -c '
+        echo "🔨 Building for freebsd/amd64..."
+
+        # Build binary (always named ocserv-agent)
+        go build -ldflags="-s -w -X main.version=${VERSION}" \
+          -o ocserv-agent \
+          ./cmd/agent || echo "Build failed (expected if cmd/agent/main.go does not exist yet)"
+
+        # Create bin directory
+        mkdir -p bin
+
+        # Archive name with version
+        ARCHIVE="ocserv-agent-${VERSION}-freebsd-amd64.tar.gz"
+
+        # Package as tar.gz
+        tar -czf "bin/${ARCHIVE}" ocserv-agent
+
+        # Create checksum
+        sha256sum "bin/${ARCHIVE}" > "bin/${ARCHIVE}.sha256"
+
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-freebsd-amd64
+        rm ocserv-agent
+
+        echo "✅ Created:"
+        echo "   - bin/${ARCHIVE} (release)"
+        echo "   - bin/ocserv-agent-freebsd-amd64 (testing)"
+      '
+    depends_on:
+      - proto-gen
+
+  # FreeBSD arm64 build
+  build-freebsd-arm64:
+    image: golang:1.25-trixie
+    container_name: build-freebsd-arm64
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace:z
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=freebsd
+      - GOARCH=arm64
+      - VERSION=${VERSION:-dev}
+    command: |
+      sh -c '
+        echo "🔨 Building for freebsd/arm64..."
+
+        # Build binary (always named ocserv-agent)
+        go build -ldflags="-s -w -X main.version=${VERSION}" \
+          -o ocserv-agent \
+          ./cmd/agent || echo "Build failed (expected if cmd/agent/main.go does not exist yet)"
+
+        # Create bin directory
+        mkdir -p bin
+
+        # Archive name with version
+        ARCHIVE="ocserv-agent-${VERSION}-freebsd-arm64.tar.gz"
+
+        # Package as tar.gz
+        tar -czf "bin/${ARCHIVE}" ocserv-agent
+
+        # Create checksum
+        sha256sum "bin/${ARCHIVE}" > "bin/${ARCHIVE}.sha256"
+
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-freebsd-arm64
+        rm ocserv-agent
+
+        echo "✅ Created:"
+        echo "   - bin/${ARCHIVE} (release)"
+        echo "   - bin/ocserv-agent-freebsd-arm64 (testing)"
       '
     depends_on:
       - proto-gen
