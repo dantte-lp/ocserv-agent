@@ -13,10 +13,12 @@ This guide explains how to test the ocserv-agent gRPC API using grpcurl.
 Use the automated test script:
 
 ```bash
-./scripts/test-grpc.sh [server-ip]
-```
+# For localhost
+./scripts/test-grpc.sh
 
-Default server: `195.238.126.25`
+# For remote server
+SERVER=<ip-address> SSH_PASS=<password> ./scripts/test-grpc.sh
+```
 
 ## Manual Testing
 

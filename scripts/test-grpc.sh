@@ -1,13 +1,14 @@
 #!/bin/bash
 # Test ocserv-agent gRPC API using grpcurl
-# Usage: ./scripts/test-grpc.sh [server]
+# Usage: SERVER=<ip> SSH_PASS=<password> ./scripts/test-grpc.sh
+#    or: ./scripts/test-grpc.sh [server] [password]
 
 set -e
 
-# Configuration
-SERVER="${1:-195.238.126.25}"
-SSH_USER="root"
-SSH_PASS="lnwwPBE43PkuLKq0"
+# Configuration from environment or arguments
+SERVER="${1:-${SERVER:-localhost}}"
+SSH_PASS="${2:-${SSH_PASS}}"
+SSH_USER="${SSH_USER:-root}"
 GRPC_HOST="localhost:9090"
 CERT_DIR="/etc/ocserv-agent/certs"
 
@@ -15,6 +16,7 @@ CERT_DIR="/etc/ocserv-agent/certs"
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
@@ -25,10 +27,23 @@ echo -e "${YELLOW}Server: ${SERVER}${NC}"
 echo -e "${YELLOW}gRPC endpoint: ${GRPC_HOST}${NC}"
 echo ""
 
-# Function to run grpcurl on remote server
+# Check if SSH_PASS is set
+if [ -z "$SSH_PASS" ] && [ "$SERVER" != "localhost" ]; then
+    echo -e "${RED}✗ SSH_PASS environment variable not set${NC}"
+    echo -e "${YELLOW}Usage:${NC}"
+    echo -e "  SERVER=<ip> SSH_PASS=<password> $0"
+    echo -e "  or: $0 [server] [password]"
+    exit 1
+fi
+
+# Function to run grpcurl on remote server or locally
 grpc_call() {
-    sshpass -p "${SSH_PASS}" ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER}" \
-        "grpcurl -cacert ${CERT_DIR}/ca.crt -cert ${CERT_DIR}/agent.crt -key ${CERT_DIR}/agent.key $@"
+    if [ "$SERVER" = "localhost" ]; then
+        grpcurl -cacert ${CERT_DIR}/ca.crt -cert ${CERT_DIR}/agent.crt -key ${CERT_DIR}/agent.key "$@"
+    else
+        sshpass -p "${SSH_PASS}" ssh -o StrictHostKeyChecking=no "${SSH_USER}@${SERVER}" \
+            "grpcurl -cacert ${CERT_DIR}/ca.crt -cert ${CERT_DIR}/agent.crt -key ${CERT_DIR}/agent.key $@"
+    fi
 }
 
 echo -e "${GREEN}[1/6] Testing gRPC Reflection - List Services${NC}"
@@ -55,7 +70,7 @@ echo ""
 
 echo -e "${GREEN}[6/6] Testing ExecuteCommand - systemctl status${NC}"
 grpc_call -d '{"command_type": "systemctl", "args": ["status", "ocserv"]}' \
-    "${GRPC_HOST}" agent.v1.AgentService/ExecuteCommand
+    "${GRPC_HOST}" agent.v1.AgentService/ExecuteCommand || echo -e "${YELLOW}(ocserv may not be running)${NC}"
 echo ""
 
 echo -e "${BLUE}╔════════════════════════════════════════════════╗${NC}"
@@ -70,6 +85,8 @@ echo ""
 echo -e "${GREEN}Describe service:${NC}"
 echo -e "  grpc_call '${GRPC_HOST}' describe agent.v1.AgentService"
 echo ""
-echo -e "${GREEN}Check agent logs:${NC}"
-echo -e "  ssh root@${SERVER} 'tail -f /tmp/ocserv-agent.log | jq .'"
-echo ""
+if [ "$SERVER" != "localhost" ]; then
+    echo -e "${GREEN}Check agent logs:${NC}"
+    echo -e "  ssh ${SSH_USER}@${SERVER} 'tail -f /tmp/ocserv-agent.log | jq .'"
+    echo ""
+fi

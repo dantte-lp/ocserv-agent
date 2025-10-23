@@ -1,15 +1,16 @@
 #!/bin/bash
 # Deploy and test ocserv-agent on production server
-# Usage: ./scripts/deploy-and-test.sh [version]
+# Usage: SERVER=<ip> SSH_PASS=<password> ./scripts/deploy-and-test.sh [version]
+#    or: ./scripts/deploy-and-test.sh [version] [server] [password]
 
 set -e
 
-# Configuration
-SERVER="195.238.126.25"
-SSH_USER="root"
-SSH_PASS="lnwwPBE43PkuLKq0"
-INSTALL_DIR="/etc/ocserv-agent"
+# Configuration from environment or arguments
 VERSION="${1:-v0.3.0-21-gcb1f848}"
+SERVER="${2:-${SERVER:-localhost}}"
+SSH_PASS="${3:-${SSH_PASS}}"
+SSH_USER="${SSH_USER:-root}"
+INSTALL_DIR="/etc/ocserv-agent"
 ARCHIVE="ocserv-agent-${VERSION}-linux-amd64.tar.gz"
 
 # Colors
@@ -23,6 +24,15 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║   ocserv-agent Deployment & Testing Script    ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════╝${NC}"
 echo ""
+
+# Check if SSH_PASS is set
+if [ -z "$SSH_PASS" ]; then
+    echo -e "${RED}✗ SSH_PASS environment variable not set${NC}"
+    echo -e "${YELLOW}Usage:${NC}"
+    echo -e "  SERVER=<ip> SSH_PASS=<password> $0 [version]"
+    echo -e "  or: $0 [version] [server] [password]"
+    exit 1
+fi
 
 # Check if archive exists
 if [ ! -f "bin/${ARCHIVE}" ]; then
@@ -60,7 +70,7 @@ echo -e "${GREEN}✓ Archive copied${NC}"
 echo ""
 
 echo -e "${BLUE}[3/7] Stopping ocserv-agent service...${NC}"
-ssh_cmd "systemctl stop ocserv-agent || true"
+ssh_cmd "systemctl stop ocserv-agent 2>/dev/null || pkill ocserv-agent || true"
 sleep 2
 echo -e "${GREEN}✓ Service stopped${NC}"
 echo ""
@@ -70,14 +80,14 @@ ssh_cmd "cd /tmp && tar -xzf ${ARCHIVE} && mv ocserv-agent ${INSTALL_DIR}/ocserv
 echo -e "${GREEN}✓ Binary installed${NC}"
 echo ""
 
-echo -e "${BLUE}[5/7] Starting ocserv-agent service...${NC}"
-ssh_cmd "systemctl start ocserv-agent"
+echo -e "${BLUE}[5/7] Starting ocserv-agent...${NC}"
+ssh_cmd "cd ${INSTALL_DIR} && nohup ./ocserv-agent -config config.yaml > /tmp/ocserv-agent.log 2>&1 &"
 sleep 3
-echo -e "${GREEN}✓ Service started${NC}"
+echo -e "${GREEN}✓ Agent started${NC}"
 echo ""
 
-echo -e "${BLUE}[6/7] Checking service status...${NC}"
-ssh_cmd "systemctl status ocserv-agent --no-pager -n 10 || true"
+echo -e "${BLUE}[6/7] Checking agent status...${NC}"
+ssh_cmd "ps aux | grep ocserv-agent | grep -v grep || echo 'Agent not running!'"
 echo ""
 
 echo -e "${BLUE}[7/7] Testing gRPC reflection API...${NC}"
@@ -106,7 +116,7 @@ echo -e "${YELLOW}Version deployed: ${VERSION}${NC}"
 echo -e "${YELLOW}Server: ${SERVER}${NC}"
 echo ""
 echo -e "${GREEN}Next steps:${NC}"
-echo -e "  - Review service logs: ssh root@${SERVER} 'journalctl -u ocserv-agent -f'"
+echo -e "  - Review service logs: ssh root@${SERVER} 'tail -f /tmp/ocserv-agent.log | jq .'"
 echo -e "  - Test other RPCs with grpcurl"
-echo -e "  - Monitor performance and debug logs"
+echo -e "  - Run test suite: SERVER=${SERVER} SSH_PASS=\$SSH_PASS ./scripts/test-grpc.sh"
 echo ""
