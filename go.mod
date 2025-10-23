@@ -3,7 +3,7 @@ module github.com/dantte-lp/ocserv-agent
 go 1.25
 
 require (
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.4
 	gopkg.in/yaml.v3 v3.0.1
