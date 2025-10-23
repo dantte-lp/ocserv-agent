@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dantte-lp/ocserv-agent/internal/cert"
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	grpcserver "github.com/dantte-lp/ocserv-agent/internal/grpc"
 	"github.com/rs/zerolog"
@@ -19,7 +20,22 @@ var (
 )
 
 func main() {
-	// Parse command line flags
+	// Check for subcommands
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "gencert":
+			runGenCert()
+			return
+		case "version", "--version", "-v":
+			fmt.Printf("ocserv-agent version %s\n", version)
+			os.Exit(0)
+		case "help", "--help", "-h":
+			printUsage()
+			os.Exit(0)
+		}
+	}
+
+	// Parse command line flags for server mode
 	configPath := flag.String("config", "config.yaml", "Path to configuration file")
 	showVersion := flag.Bool("version", false, "Show version and exit")
 	flag.Parse()
@@ -143,4 +159,119 @@ func setupLogger(cfg config.LoggingConfig) zerolog.Logger {
 	}
 
 	return logger
+}
+
+// printUsage prints command usage information
+func printUsage() {
+	fmt.Printf(`ocserv-agent - OpenConnect VPN Server Management Agent
+
+Usage:
+  ocserv-agent [flags]                Run the agent server
+  ocserv-agent gencert [flags]        Generate certificates
+  ocserv-agent version                Show version
+  ocserv-agent help                   Show this help
+
+Server Flags:
+  -config string
+        Path to configuration file (default "config.yaml")
+  -version
+        Show version and exit
+
+GenCert Flags:
+  -output string
+        Output directory for certificates (default "/etc/ocserv-agent/certs")
+  -hostname string
+        Hostname for certificate (default: auto-detect)
+  -self-signed
+        Generate self-signed certificates (default: true)
+  -ca string
+        Path to CA certificate for signing (not implemented yet)
+
+Examples:
+  # Run agent server with default config
+  ocserv-agent
+
+  # Run with custom config
+  ocserv-agent -config /etc/ocserv-agent/config.yaml
+
+  # Generate self-signed certificates
+  ocserv-agent gencert -output /etc/ocserv-agent/certs
+
+  # Generate with custom hostname
+  ocserv-agent gencert -hostname vpn.example.com -output /etc/ocserv-agent/certs
+
+For more information, visit: https://github.com/dantte-lp/ocserv-agent
+`)
+}
+
+// runGenCert handles the 'gencert' subcommand
+func runGenCert() {
+	// Create flagset for gencert subcommand
+	gencertCmd := flag.NewFlagSet("gencert", flag.ExitOnError)
+	outputDir := gencertCmd.String("output", "/etc/ocserv-agent/certs", "Output directory for certificates")
+	hostname := gencertCmd.String("hostname", "", "Hostname for certificate (auto-detect if empty)")
+	selfSigned := gencertCmd.Bool("self-signed", true, "Generate self-signed certificates")
+	caPath := gencertCmd.String("ca", "", "Path to CA certificate (not implemented)")
+
+	// Parse flags
+	if err := gencertCmd.Parse(os.Args[2:]); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Auto-detect hostname if not provided
+	if *hostname == "" {
+		h, err := os.Hostname()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to auto-detect hostname: %v\n", err)
+			os.Exit(1)
+		}
+		*hostname = h
+	}
+
+	// Check if not self-signed and CA provided
+	if !*selfSigned && *caPath != "" {
+		fmt.Fprintf(os.Stderr, "Error: CA-signed certificate generation not yet implemented\n")
+		fmt.Fprintf(os.Stderr, "Use -self-signed flag to generate self-signed certificates\n")
+		os.Exit(1)
+	}
+
+	// Generate self-signed certificates
+	if *selfSigned {
+		fmt.Printf("🔐 Generating self-signed certificates...\n")
+		fmt.Printf("   Hostname:        %s\n", *hostname)
+		fmt.Printf("   Output dir:      %s\n", *outputDir)
+		fmt.Printf("\n")
+
+		info, err := cert.GenerateSelfSignedCerts(*outputDir, *hostname)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "❌ Failed to generate certificates: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("✅ Certificates generated successfully!\n\n")
+		fmt.Printf("Certificate Information:\n")
+		fmt.Printf("   CA Fingerprint:   %s\n", info.CAFingerprint)
+		fmt.Printf("   Cert Fingerprint: %s\n", info.CertFingerprint)
+		fmt.Printf("   Subject:          %s\n", info.Subject)
+		fmt.Printf("   Valid From:       %s\n", info.ValidFrom.Format("2006-01-02 15:04:05 MST"))
+		fmt.Printf("   Valid Until:      %s\n", info.ValidUntil.Format("2006-01-02 15:04:05 MST"))
+		fmt.Printf("\n")
+		fmt.Printf("Files created:\n")
+		fmt.Printf("   %s/ca.crt       - CA certificate\n", *outputDir)
+		fmt.Printf("   %s/agent.crt    - Agent certificate\n", *outputDir)
+		fmt.Printf("   %s/agent.key    - Agent private key\n", *outputDir)
+		fmt.Printf("\n")
+		fmt.Printf("⚠️  These are self-signed certificates for autonomous operation.\n")
+		fmt.Printf("   To connect to a control server, you'll need CA-signed certificates.\n")
+		fmt.Printf("\n")
+		fmt.Printf("💡 Tip: Update your config.yaml to use these certificates:\n")
+		fmt.Printf("   tls:\n")
+		fmt.Printf("     enabled: true\n")
+		fmt.Printf("     auto_generate: false  # Disable auto-gen since certs exist\n")
+		fmt.Printf("     cert_file: %s/agent.crt\n", *outputDir)
+		fmt.Printf("     key_file: %s/agent.key\n", *outputDir)
+		fmt.Printf("     ca_file: %s/ca.crt\n", *outputDir)
+		fmt.Printf("\n")
+	}
 }

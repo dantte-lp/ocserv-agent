@@ -67,23 +67,36 @@ func validateTLS(tls *TLSConfig) error {
 
 	var errs []error
 
-	// Certificate files must exist
+	// Paths must be specified
 	if tls.CertFile == "" {
 		errs = append(errs, errors.New("cert_file is required when TLS is enabled"))
-	} else if _, err := os.Stat(tls.CertFile); err != nil {
-		errs = append(errs, fmt.Errorf("cert_file not found: %s", tls.CertFile))
 	}
-
 	if tls.KeyFile == "" {
 		errs = append(errs, errors.New("key_file is required when TLS is enabled"))
-	} else if _, err := os.Stat(tls.KeyFile); err != nil {
-		errs = append(errs, fmt.Errorf("key_file not found: %s", tls.KeyFile))
 	}
-
 	if tls.CAFile == "" {
 		errs = append(errs, errors.New("ca_file is required when TLS is enabled"))
-	} else if _, err := os.Stat(tls.CAFile); err != nil {
-		errs = append(errs, fmt.Errorf("ca_file not found: %s", tls.CAFile))
+	}
+
+	// If auto_generate is disabled, certificate files must exist
+	if !tls.AutoGenerate {
+		if tls.CertFile != "" {
+			if _, err := os.Stat(tls.CertFile); err != nil {
+				errs = append(errs, fmt.Errorf("cert_file not found: %s", tls.CertFile))
+			}
+		}
+
+		if tls.KeyFile != "" {
+			if _, err := os.Stat(tls.KeyFile); err != nil {
+				errs = append(errs, fmt.Errorf("key_file not found: %s", tls.KeyFile))
+			}
+		}
+
+		if tls.CAFile != "" {
+			if _, err := os.Stat(tls.CAFile); err != nil {
+				errs = append(errs, fmt.Errorf("ca_file not found: %s", tls.CAFile))
+			}
+		}
 	}
 
 	// Validate TLS version

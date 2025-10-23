@@ -17,6 +17,12 @@ control_server:
 # TLS configuration
 tls:
   enabled: true
+
+  # Auto-generate self-signed certificates if they don't exist
+  # Useful for bootstrap/autonomous mode
+  # Set to false for production with real CA certificates
+  auto_generate: true
+
   cert_file: "/etc/ocserv-agent/certs/agent.crt"
   key_file: "/etc/ocserv-agent/certs/agent.key"
   ca_file: "/etc/ocserv-agent/certs/ca.crt"

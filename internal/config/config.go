@@ -3,8 +3,10 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/dantte-lp/ocserv-agent/internal/cert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,12 +47,13 @@ type CircuitBreakerConfig struct {
 
 // TLSConfig defines mTLS configuration
 type TLSConfig struct {
-	Enabled    bool   `yaml:"enabled"`
-	CertFile   string `yaml:"cert_file"`
-	KeyFile    string `yaml:"key_file"`
-	CAFile     string `yaml:"ca_file"`
-	ServerName string `yaml:"server_name"`
-	MinVersion string `yaml:"min_version"`
+	Enabled      bool   `yaml:"enabled"`
+	AutoGenerate bool   `yaml:"auto_generate"` // Auto-generate self-signed certs if missing
+	CertFile     string `yaml:"cert_file"`
+	KeyFile      string `yaml:"key_file"`
+	CAFile       string `yaml:"ca_file"`
+	ServerName   string `yaml:"server_name"`
+	MinVersion   string `yaml:"min_version"`
 }
 
 // OcservConfig defines ocserv paths and settings
@@ -128,6 +131,11 @@ func Load(path string) (*Config, error) {
 	// Validate
 	if err := Validate(&cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	// Bootstrap certificates if auto_generate is enabled and certs don't exist
+	if err := bootstrapCertificates(&cfg); err != nil {
+		return nil, fmt.Errorf("certificate bootstrap failed: %w", err)
 	}
 
 	return &cfg, nil
@@ -211,4 +219,47 @@ func setDefaults(cfg *Config) {
 	if cfg.Ocserv.SystemdService == "" {
 		cfg.Ocserv.SystemdService = "ocserv"
 	}
+}
+
+// bootstrapCertificates generates self-signed certificates if auto_generate is enabled
+// and certificate files don't exist
+func bootstrapCertificates(cfg *Config) error {
+	// Skip if TLS is disabled
+	if !cfg.TLS.Enabled {
+		return nil
+	}
+
+	// Skip if auto_generate is disabled
+	if !cfg.TLS.AutoGenerate {
+		return nil
+	}
+
+	// Check if certificates already exist
+	if cert.CertsExist(cfg.TLS.CertFile, cfg.TLS.KeyFile, cfg.TLS.CAFile) {
+		return nil
+	}
+
+	// Determine output directory from cert file path
+	outputDir := filepath.Dir(cfg.TLS.CertFile)
+
+	// Generate self-signed certificates
+	info, err := cert.GenerateSelfSignedCerts(outputDir, cfg.Hostname)
+	if err != nil {
+		return fmt.Errorf("failed to generate certificates: %w", err)
+	}
+
+	// Log certificate information (using fmt.Printf for now, will be replaced with logger)
+	fmt.Printf("🔐 Generated self-signed certificates for bootstrap mode\n")
+	fmt.Printf("   CA Fingerprint:   %s\n", info.CAFingerprint)
+	fmt.Printf("   Cert Fingerprint: %s\n", info.CertFingerprint)
+	fmt.Printf("   Subject:          %s\n", info.Subject)
+	fmt.Printf("   Valid:            %s - %s\n", info.ValidFrom.Format("2006-01-02"), info.ValidUntil.Format("2006-01-02"))
+	fmt.Printf("   Location:         %s\n", outputDir)
+	fmt.Printf("\n")
+	fmt.Printf("⚠️  These are self-signed certificates for autonomous operation.\n")
+	fmt.Printf("   To connect to a control server, replace with CA-signed certificates:\n")
+	fmt.Printf("   - Use: ocserv-agent gencert --ca /path/to/server-ca.crt\n")
+	fmt.Printf("\n")
+
+	return nil
 }
