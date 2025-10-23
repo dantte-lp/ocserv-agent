@@ -217,8 +217,11 @@ See [agent.proto](pkg/proto/agent/v1/agent.proto) for full API specification.
 # Download latest release
 wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.3.0/ocserv-agent-v0.3.0-linux-amd64.tar.gz
 tar -xzf ocserv-agent-v0.3.0-linux-amd64.tar.gz
-chmod +x ocserv-agent
-sudo mv ocserv-agent /usr/local/bin/
+
+# Install to /etc/ocserv-agent
+sudo mkdir -p /etc/ocserv-agent
+sudo mv ocserv-agent /etc/ocserv-agent/
+sudo chmod +x /etc/ocserv-agent/ocserv-agent
 
 # Install systemd service
 sudo cp deploy/systemd/ocserv-agent.service /etc/systemd/system/

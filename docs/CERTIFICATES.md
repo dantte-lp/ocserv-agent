@@ -353,7 +353,9 @@ sudo systemctl restart ocserv-agent
 
 ```bash
 # 1. Install agent
-sudo cp ocserv-agent /usr/local/bin/
+sudo mkdir -p /etc/ocserv-agent
+sudo cp ocserv-agent /etc/ocserv-agent/
+sudo chmod +x /etc/ocserv-agent/ocserv-agent
 
 # 2. Create config with auto-generation
 cat > /etc/ocserv-agent/config.yaml <<EOF
@@ -377,7 +379,9 @@ sudo ocserv-agent -config /etc/ocserv-agent/config.yaml
 
 ```bash
 # 1. Install agent
-sudo cp ocserv-agent /usr/local/bin/
+sudo mkdir -p /etc/ocserv-agent
+sudo cp ocserv-agent /etc/ocserv-agent/
+sudo chmod +x /etc/ocserv-agent/ocserv-agent
 
 # 2. Generate certificates
 sudo ocserv-agent gencert -output /etc/ocserv-agent/certs

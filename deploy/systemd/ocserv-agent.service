@@ -10,7 +10,7 @@ User=ocserv-agent
 Group=ocserv-agent
 
 # Binary
-ExecStart=/usr/local/bin/ocserv-agent --config /etc/ocserv-agent/config.yaml
+ExecStart=/etc/ocserv-agent/ocserv-agent --config /etc/ocserv-agent/config.yaml
 
 # Restart policy
 Restart=always

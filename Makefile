@@ -133,8 +133,9 @@ lint:
 	golangci-lint run ./...
 
 install: build
-	sudo cp bin/ocserv-agent /usr/local/bin/
 	sudo mkdir -p /etc/ocserv-agent/certs
+	sudo cp bin/ocserv-agent /etc/ocserv-agent/ocserv-agent
+	sudo chmod +x /etc/ocserv-agent/ocserv-agent
 	sudo cp config.yaml.example /etc/ocserv-agent/config.yaml
 	sudo cp deploy/systemd/ocserv-agent.service /etc/systemd/system/
 	sudo systemctl daemon-reload
