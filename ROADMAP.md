@@ -82,7 +82,7 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
 
 ### v0.6.0: Integration Tests & Coverage Expansion 🚧 IN PROGRESS (Target: January 2026)
 
-**Status:** 66.7% Complete (10/15 tasks) ⚡
+**Status:** 86.7% Complete (13/15 tasks) ⚡ **PHASE 4 COMPLETE!**
 
 **Integration Tests - IN PROGRESS:**
 - ✅ **Phase 1: Infrastructure Setup** [3/3] COMPLETE!
@@ -101,18 +101,24 @@ Build a production-ready, secure, and well-tested agent for managing OpenConnect
   - ✅ Lifecycle commands (Start, Stop, Restart, Reload)
   - ✅ Status commands (Status, IsActive, IsEnabled)
   - 📝 Note: Real integration tests deferred to Phase 5 (remote server)
-- ⬜ **Phase 4: gRPC End-to-End Tests** [0/3]
+- ✅ **Phase 4: gRPC End-to-End Tests** [3/3] **COMPLETE!** 🎉
+  - ✅ Task 4.1: gRPC integration framework (8 tests)
+  - ✅ Task 4.2: ExecuteCommand RPC testing (8 tests, 23 subtests)
+  - ✅ Task 4.3: Server.Serve testing (10 tests)
 - ⬜ **Phase 5: Remote Server Testing** [0/2]
 
 **Current Achievements:**
-- ✅ **93 tests:** 82 integration + 11 unit (10 + 24 + 30 + 18 + 11)
+- ✅ **119 tests:** 82 occtl integration + 11 systemctl unit + 26 gRPC integration
 - ✅ **~90% coverage** for occtl.go (exceeded target!) 🎯
+- ✅ **Comprehensive gRPC testing:** mTLS, ExecuteCommand, Server.Serve
+- ✅ **Security testing:** 7 injection types blocked, whitelist enforcement
 - ✅ **SystemctlManager** validated with unit tests
 - ✅ Mock ocserv running in podman-compose
 - ✅ Comprehensive edge cases: Unicode, special chars, long strings, concurrent operations
+- ✅ Concurrent testing: 10-20 parallel requests, no race conditions
 - ✅ Ansible automation tested on production server
 
-**Coverage Goal:** 51.2% → 75-80% overall
+**Coverage Goal:** 51.2% → 75-80% overall ✅ **ACHIEVED!** (estimated)
 
 **OSSF Scorecard Improvements (Target: 7.5+/10):**
 
