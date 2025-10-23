@@ -54,13 +54,13 @@ type ServerStatus struct {
 
 // ServerStats represents ocserv statistics
 type ServerStats struct {
-	ActiveUsers     int
-	TotalSessions   int64
-	TotalBytesIn    uint64
-	TotalBytesOut   uint64
-	TLSDBSize       int
-	TLSDBEntries    int
-	IPLeaseDBSize   int
+	ActiveUsers      int
+	TotalSessions    int64
+	TotalBytesIn     uint64
+	TotalBytesOut    uint64
+	TLSDBSize        int
+	TLSDBEntries     int
+	IPLeaseDBSize    int
 	IPLeaseDBEntries int
 }
 

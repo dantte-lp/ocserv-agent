@@ -57,11 +57,11 @@ func NewManager(cfg *config.Config, logger zerolog.Logger) *Manager {
 
 // CommandResult represents the result of a command execution
 type CommandResult struct {
-	Success   bool
-	Stdout    string
-	Stderr    string
-	ExitCode  int
-	ErrorMsg  string
+	Success  bool
+	Stdout   string
+	Stderr   string
+	ExitCode int
+	ErrorMsg string
 }
 
 // ExecuteCommand executes a validated command
@@ -564,9 +564,9 @@ func (m *Manager) isCommandAllowed(command string) bool {
 func (m *Manager) validateArguments(args []string) error {
 	// Prevent command injection
 	dangerousPatterns := []*regexp.Regexp{
-		regexp.MustCompile(`[;&|><\$\(\)\{\}\[\]]`),  // Shell metacharacters
-		regexp.MustCompile(`\.\./`),                   // Directory traversal
-		regexp.MustCompile(`^-`),                      // Flags starting with dash (potential flag injection)
+		regexp.MustCompile(`[;&|><\$\(\)\{\}\[\]]`), // Shell metacharacters
+		regexp.MustCompile(`\.\./`),                 // Directory traversal
+		regexp.MustCompile(`^-`),                    // Flags starting with dash (potential flag injection)
 	}
 
 	for _, arg := range args {

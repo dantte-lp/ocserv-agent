@@ -24,9 +24,9 @@ type Config struct {
 
 // ControlServerConfig defines connection settings to control server
 type ControlServerConfig struct {
-	Address        string                `yaml:"address"`
-	Reconnect      ReconnectConfig       `yaml:"reconnect"`
-	CircuitBreaker CircuitBreakerConfig  `yaml:"circuit_breaker"`
+	Address        string               `yaml:"address"`
+	Reconnect      ReconnectConfig      `yaml:"reconnect"`
+	CircuitBreaker CircuitBreakerConfig `yaml:"circuit_breaker"`
 }
 
 // ReconnectConfig defines reconnection behavior
@@ -55,19 +55,19 @@ type TLSConfig struct {
 
 // OcservConfig defines ocserv paths and settings
 type OcservConfig struct {
-	ConfigPath         string `yaml:"config_path"`
-	ConfigPerUserDir   string `yaml:"config_per_user_dir"`
-	ConfigPerGroupDir  string `yaml:"config_per_group_dir"`
-	CtlSocket          string `yaml:"ctl_socket"`
-	SystemdService     string `yaml:"systemd_service"`
-	BackupDir          string `yaml:"backup_dir"`
+	ConfigPath        string `yaml:"config_path"`
+	ConfigPerUserDir  string `yaml:"config_per_user_dir"`
+	ConfigPerGroupDir string `yaml:"config_per_group_dir"`
+	CtlSocket         string `yaml:"ctl_socket"`
+	SystemdService    string `yaml:"systemd_service"`
+	BackupDir         string `yaml:"backup_dir"`
 }
 
 // HealthConfig defines health check intervals
 type HealthConfig struct {
-	HeartbeatInterval  time.Duration `yaml:"heartbeat_interval"`
-	DeepCheckInterval  time.Duration `yaml:"deep_check_interval"`
-	MetricsInterval    time.Duration `yaml:"metrics_interval"`
+	HeartbeatInterval time.Duration `yaml:"heartbeat_interval"`
+	DeepCheckInterval time.Duration `yaml:"deep_check_interval"`
+	MetricsInterval   time.Duration `yaml:"metrics_interval"`
 }
 
 // TelemetryConfig defines OpenTelemetry settings
@@ -81,13 +81,13 @@ type TelemetryConfig struct {
 
 // LoggingConfig defines logging behavior
 type LoggingConfig struct {
-	Level       string `yaml:"level"`
-	Format      string `yaml:"format"`
-	Output      string `yaml:"output"`
-	FilePath    string `yaml:"file_path"`
-	MaxSizeMB   int    `yaml:"max_size_mb"`
-	MaxBackups  int    `yaml:"max_backups"`
-	MaxAgeDays  int    `yaml:"max_age_days"`
+	Level      string `yaml:"level"`
+	Format     string `yaml:"format"`
+	Output     string `yaml:"output"`
+	FilePath   string `yaml:"file_path"`
+	MaxSizeMB  int    `yaml:"max_size_mb"`
+	MaxBackups int    `yaml:"max_backups"`
+	MaxAgeDays int    `yaml:"max_age_days"`
 }
 
 // SecurityConfig defines security constraints
