@@ -209,9 +209,24 @@ Some occtl commands return invalid JSON. These are **upstream bugs in occtl 1.3.
 
 ---
 
-**Tested on:** Production server with 3 active VPN users (ocserv 1.3.0)
+**Tested on:** Production server with 3 active VPN users (ocserv 1.3.0, occtl 1.3.0)
 **Date:** 2025-10-23
-**Workaround:** For `show iroutes`, use text mode output. For `show sessions`, some lenient JSON parsers may work.
+
+**Related Upstream Issues:**
+- [GitLab #220](https://gitlab.com/openconnect/ocserv/-/issues/220) - Invalid JSON structure with trailing commas
+- [GitLab #517](https://gitlab.com/openconnect/ocserv/-/issues/517) - occtl generates invalid JSON with `--debug` parameter
+- [GitLab #20](https://gitlab.com/openconnect/ocserv/-/issues/20) - occtl: show iroutes command
+
+**Previous Fixes (but still broken in 1.3.0):**
+- v1.2.1 - Fixed duplicate key in `occtl --json show users` output
+- v1.2.0 - Fixed JSON output with `--debug` flag (#517)
+- v0.10.7 - Fixed several cases of invalid JSON output
+
+**Note:** Despite previous fixes in v1.2.x, JSON bugs persist in ocserv/occtl 1.3.0. These appear to be regressions or new issues.
+
+**Workaround:** For `show iroutes`, use text mode output (without `-j` flag). For `show sessions`, some lenient JSON parsers may work, but strict parsers will fail on trailing commas.
+
+**Recommendation:** Consider reporting these issues to the [ocserv GitLab issue tracker](https://gitlab.com/openconnect/ocserv/-/issues).
 
 ## Command Validation
 
