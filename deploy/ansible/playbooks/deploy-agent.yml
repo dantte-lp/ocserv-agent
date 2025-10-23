@@ -1,0 +1,297 @@
+---
+# Playbook: Deploy ocserv-agent to production server
+# Purpose: Safely deploy new agent version with backup and rollback capability
+# Safety: CRITICAL - Preserves existing VPN service and agent
+
+- name: Deploy ocserv-agent with safety measures
+  hosts: ocserv-production
+  become: true
+  gather_facts: true
+
+  vars:
+    # Local agent binary path (built with make compose-build)
+    local_agent_binary: "{{ playbook_dir }}/../../bin/ocserv-agent-linux-amd64"
+    local_agent_config: "{{ playbook_dir }}/../../../config.yaml.example"
+
+    # Version info
+    new_agent_version: "{{ lookup('pipe', 'git describe --tags --always --dirty 2>/dev/null || echo dev') }}"
+
+    # Timestamp for backups
+    deploy_timestamp: "{{ ansible_date_time.epoch }}"
+    backup_suffix: "{{ deploy_timestamp }}.{{ current_agent_version | default('unknown') }}"
+
+  vars_prompt:
+    - name: confirm_deploy
+      prompt: |
+
+        ⚠️  PRODUCTION DEPLOYMENT - SAFETY CHECK ⚠️
+
+        This will deploy ocserv-agent to PRODUCTION server:
+
+        Server: {{ ansible_host | default('not configured') }}
+        Current version: {{ current_agent_version | default('unknown') }}
+        New version: {{ new_agent_version | default('dev') }}
+
+        ACTIVE VPN USERS: May be connected!
+        EXISTING SERVICE: Will be restarted!
+
+        Safety measures:
+        ✓ Backup current binary
+        ✓ Backup current config
+        ✓ Verify ocserv running before/after
+        ✓ Rollback available if needed
+
+        Continue with deployment? (yes/no)
+      private: false
+
+  pre_tasks:
+    - name: Verify confirmation
+      fail:
+        msg: "Deployment cancelled by user"
+      when: confirm_deploy | lower != 'yes'
+
+    - name: Verify local agent binary exists
+      stat:
+        path: "{{ local_agent_binary }}"
+      delegate_to: localhost
+      register: local_binary
+      become: false
+
+    - name: Fail if local binary not found
+      fail:
+        msg: |
+          Agent binary not found: {{ local_agent_binary }}
+          Please build it first: make compose-build
+      when: not local_binary.stat.exists
+
+    - name: Display deployment information
+      debug:
+        msg:
+          - "═══════════════════════════════════════"
+          - "Deployment Information"
+          - "═══════════════════════════════════════"
+          - "Target: {{ ansible_host }}"
+          - "Current version: {{ current_agent_version | default('unknown') }}"
+          - "New version: {{ new_agent_version }}"
+          - "Binary source: {{ local_agent_binary }}"
+          - "Backup location: {{ backup_dir }}"
+          - "Timestamp: {{ deploy_timestamp }}"
+
+    - name: Check ocserv status BEFORE deployment
+      systemd:
+        name: ocserv
+      register: ocserv_before
+      ignore_errors: true
+
+    - name: Verify ocserv is running
+      assert:
+        that:
+          - ocserv_before.status.ActiveState == "active"
+        fail_msg: "CRITICAL: ocserv is not running! Aborting deployment."
+        success_msg: "✓ ocserv is running (verified)"
+
+    - name: Get VPN users count before deployment
+      command: occtl -j show users
+      register: users_before
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display VPN status before deployment
+      debug:
+        msg: "VPN users connected: {{ (users_before.stdout | from_json) | length }}"
+      when: users_before.rc == 0
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      tags: [ deploy, backup ]
+
+    - name: Backup current agent binary
+      copy:
+        src: "{{ agent_binary_path }}"
+        dest: "{{ backup_dir }}/ocserv-agent.{{ backup_suffix }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      when: current_agent.stat.exists | default(false)
+      register: binary_backup
+      tags: [ deploy, backup ]
+
+    - name: Backup current agent configuration
+      copy:
+        src: "{{ agent_config_path }}"
+        dest: "{{ backup_dir }}/config.yaml.{{ backup_suffix }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0644'
+      ignore_errors: true
+      register: config_backup
+      tags: [ deploy, backup ]
+
+    - name: Display backup information
+      debug:
+        msg:
+          - "✓ Backups created:"
+          - "  Binary: {{ backup_dir }}/ocserv-agent.{{ backup_suffix }}"
+          - "  Config: {{ backup_dir }}/config.yaml.{{ backup_suffix }}"
+      when: binary_backup is changed or config_backup is changed
+      tags: [ deploy, backup ]
+
+    - name: Stop agent service (if running)
+      systemd:
+        name: ocserv-agent
+        state: stopped
+      ignore_errors: true
+      register: agent_stop
+      tags: [ deploy, service ]
+
+    - name: Copy new agent binary to server
+      copy:
+        src: "{{ local_agent_binary }}"
+        dest: "{{ agent_binary_path }}"
+        owner: root
+        group: root
+        mode: '0755'
+      tags: [ deploy, binary ]
+
+    - name: Verify new binary version
+      command: "{{ agent_binary_path }} -version"
+      register: deployed_version
+      changed_when: false
+      tags: [ deploy, verify ]
+
+    - name: Display deployed version
+      debug:
+        msg: "Deployed agent version: {{ deployed_version.stdout }}"
+      tags: [ deploy, verify ]
+
+    - name: Start agent service
+      systemd:
+        name: ocserv-agent
+        state: started
+        enabled: true
+        daemon_reload: true
+      register: agent_start
+      tags: [ deploy, service ]
+
+    - name: Wait for agent to start (5 seconds)
+      pause:
+        seconds: 5
+      tags: [ deploy, service ]
+
+    - name: Check agent service status
+      systemd:
+        name: ocserv-agent
+      register: agent_status
+      tags: [ deploy, verify ]
+
+    - name: Verify agent is running
+      assert:
+        that:
+          - agent_status.status.ActiveState == "active"
+        fail_msg: "CRITICAL: Agent failed to start! Check journalctl -u ocserv-agent"
+        success_msg: "✓ Agent started successfully"
+      tags: [ deploy, verify ]
+
+  post_tasks:
+    - name: Check ocserv status AFTER deployment
+      systemd:
+        name: ocserv
+      register: ocserv_after
+
+    - name: Verify ocserv still running
+      assert:
+        that:
+          - ocserv_after.status.ActiveState == "active"
+        fail_msg: |
+          CRITICAL: ocserv is no longer running!
+          Was: {{ ocserv_before.status.ActiveState }}
+          Now: {{ ocserv_after.status.ActiveState }}
+          ROLLBACK RECOMMENDED!
+        success_msg: "✓ ocserv still running (no impact)"
+
+    - name: Get VPN users count after deployment
+      command: occtl -j show users
+      register: users_after
+      changed_when: false
+      ignore_errors: true
+
+    - name: Compare VPN users before/after
+      debug:
+        msg:
+          - "VPN users before: {{ (users_before.stdout | from_json) | length }}"
+          - "VPN users after: {{ (users_after.stdout | from_json) | length }}"
+          - "Status: {{ 'OK' if (users_before.stdout | from_json | length) == (users_after.stdout | from_json | length) else 'CHANGED' }}"
+      when:
+        - users_before.rc == 0
+        - users_after.rc == 0
+
+    - name: Create rollback script
+      copy:
+        dest: "{{ backup_dir }}/rollback-{{ backup_suffix }}.sh"
+        content: |
+          #!/bin/bash
+          # Rollback script for deployment {{ backup_suffix }}
+          # Generated: {{ ansible_date_time.iso8601 }}
+
+          echo "Rolling back to {{ current_agent_version | default('previous version') }}..."
+
+          # Stop current agent
+          systemctl stop ocserv-agent
+
+          # Restore binary
+          cp {{ backup_dir }}/ocserv-agent.{{ backup_suffix }} {{ agent_binary_path }}
+          chmod +x {{ agent_binary_path }}
+
+          # Restore config (if exists)
+          if [ -f {{ backup_dir }}/config.yaml.{{ backup_suffix }} ]; then
+            cp {{ backup_dir }}/config.yaml.{{ backup_suffix }} {{ agent_config_path }}
+          fi
+
+          # Restart agent
+          systemctl start ocserv-agent
+
+          echo "✓ Rollback complete"
+          echo "Verify: systemctl status ocserv-agent"
+        owner: root
+        group: root
+        mode: '0755'
+      tags: [ deploy, rollback ]
+
+    - name: Display deployment summary
+      debug:
+        msg:
+          - ""
+          - "═══════════════════════════════════════"
+          - "✓ Deployment completed successfully!"
+          - "═══════════════════════════════════════"
+          - ""
+          - "Server: {{ ansible_host }}"
+          - "Previous version: {{ current_agent_version | default('unknown') }}"
+          - "Deployed version: {{ deployed_version.stdout }}"
+          - ""
+          - "Status checks:"
+          - "  ✓ Agent service: {{ agent_status.status.ActiveState }}"
+          - "  ✓ ocserv service: {{ ocserv_after.status.ActiveState }}"
+          - "  ✓ VPN users: {{ (users_after.stdout | from_json) | length if users_after.rc == 0 else 'unknown' }}"
+          - ""
+          - "Backups:"
+          - "  - {{ backup_dir }}/ocserv-agent.{{ backup_suffix }}"
+          - "  - {{ backup_dir }}/config.yaml.{{ backup_suffix }}"
+          - ""
+          - "Rollback (if needed):"
+          - "  sudo {{ backup_dir }}/rollback-{{ backup_suffix }}.sh"
+          - ""
+          - "Next steps:"
+          - "  1. Test agent: systemctl status ocserv-agent"
+          - "  2. Check logs: journalctl -u ocserv-agent -f"
+          - "  3. Verify VPN: occtl show users"
+          - ""
+      tags: [ deploy, summary ]

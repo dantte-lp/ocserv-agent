@@ -1,0 +1,17 @@
+---
+# Default variables for test-user role
+
+test_user_name: "ocserv-deploy"
+test_user_home: "/home/{{ test_user_name }}"
+test_user_shell: "/bin/bash"
+test_user_groups:
+  - sudo
+
+# SSH key configuration
+ssh_key_type: "ed25519"
+ssh_key_bits: 4096
+ssh_key_comment: "ocserv-agent deployment key"
+
+# Sudo configuration
+test_user_sudo_nopasswd: true
+test_user_sudo_commands: "ALL"

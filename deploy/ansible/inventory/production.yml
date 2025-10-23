@@ -1,0 +1,36 @@
+---
+# Production inventory for ocserv-agent deployment
+# Server details configured via environment variables (see .env file)
+
+all:
+  hosts:
+    ocserv-production:
+      ansible_host: "{{ lookup('env', 'REMOTE_HOST') | default('192.0.2.1') }}"
+      ansible_user: "{{ lookup('env', 'REMOTE_USER') | default('root') }}"
+      ansible_password: "{{ lookup('env', 'REMOTE_PASSWORD') | default('') }}"
+      ansible_port: 22
+      ansible_python_interpreter: /usr/bin/python3
+
+      # Server details
+      ocserv_version: "1.3.0"
+      current_agent_version: "v0.3.0-24-groutes"
+
+      # Paths
+      agent_install_dir: "/etc/ocserv-agent"
+      agent_binary_path: "/etc/ocserv-agent/ocserv-agent"
+      agent_config_path: "/etc/ocserv-agent/config.yaml"
+      ocserv_config_path: "/etc/ocserv/ocserv.conf"
+
+      # Test user (will be created by setup-test-user.yml)
+      test_user_name: "ocserv-deploy"
+      test_user_home: "/home/ocserv-deploy"
+      test_user_shell: "/bin/bash"
+
+      # Safety settings
+      backup_dir: "/var/backups/ocserv-agent"
+      create_backup: true
+
+  vars:
+    # Common variables for all hosts
+    ansible_connection: ssh
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

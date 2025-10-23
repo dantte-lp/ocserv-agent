@@ -1,0 +1,97 @@
+---
+# Tasks for creating deployment user with SSH certificate authentication
+
+- name: Ensure deployment user exists
+  user:
+    name: "{{ test_user_name }}"
+    home: "{{ test_user_home }}"
+    shell: "{{ test_user_shell }}"
+    groups: "{{ test_user_groups }}"
+    append: true
+    create_home: true
+    state: present
+  tags:
+    - user
+    - security
+
+- name: Create .ssh directory for deployment user
+  file:
+    path: "{{ test_user_home }}/.ssh"
+    state: directory
+    owner: "{{ test_user_name }}"
+    group: "{{ test_user_name }}"
+    mode: '0700'
+  tags:
+    - user
+    - ssh
+
+- name: Generate SSH key pair for deployment user (if not exists)
+  openssh_keypair:
+    path: "{{ test_user_home }}/.ssh/id_{{ ssh_key_type }}"
+    type: "{{ ssh_key_type }}"
+    size: "{{ ssh_key_bits }}"
+    owner: "{{ test_user_name }}"
+    group: "{{ test_user_name }}"
+    mode: '0600'
+    comment: "{{ ssh_key_comment }}"
+    state: present
+  register: ssh_key_generated
+  tags:
+    - user
+    - ssh
+    - keys
+
+- name: Add deployment user's public key to authorized_keys
+  authorized_key:
+    user: "{{ test_user_name }}"
+    key: "{{ lookup('file', test_user_home + '/.ssh/id_' + ssh_key_type + '.pub') }}"
+    state: present
+    exclusive: false
+  tags:
+    - user
+    - ssh
+    - keys
+
+- name: Configure sudo access for deployment user
+  template:
+    src: sudoers.j2
+    dest: "/etc/sudoers.d/{{ test_user_name }}"
+    owner: root
+    group: root
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  tags:
+    - user
+    - sudo
+    - security
+
+- name: Display SSH public key for manual configuration (if needed)
+  debug:
+    msg: |
+      SSH public key for {{ test_user_name }}:
+      {{ lookup('file', test_user_home + '/.ssh/id_' + ssh_key_type + '.pub') }}
+
+      To use this key from your local machine, add it to ~/.ssh/authorized_keys
+      or configure SSH config to use the generated private key.
+  when: ssh_key_generated.changed
+  tags:
+    - user
+    - ssh
+    - info
+
+- name: Verify deployment user can sudo
+  command: sudo -l -U {{ test_user_name }}
+  changed_when: false
+  register: sudo_check
+  tags:
+    - user
+    - sudo
+    - verify
+
+- name: Display sudo privileges
+  debug:
+    msg: "{{ test_user_name }} sudo privileges: {{ sudo_check.stdout_lines }}"
+  tags:
+    - user
+    - sudo
+    - verify

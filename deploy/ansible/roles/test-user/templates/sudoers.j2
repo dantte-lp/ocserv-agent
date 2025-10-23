@@ -1,0 +1,16 @@
+# Sudoers configuration for {{ test_user_name }}
+# Managed by Ansible - do not edit manually
+# Generated: {{ ansible_date_time.iso8601 }}
+
+{% if test_user_sudo_nopasswd %}
+{{ test_user_name }} ALL=(ALL) NOPASSWD: {{ test_user_sudo_commands }}
+{% else %}
+{{ test_user_name }} ALL=(ALL) {{ test_user_sudo_commands }}
+{% endif %}
+
+# Allow deployment user to manage ocserv-agent service
+{{ test_user_name }} ALL=(ALL) NOPASSWD: /bin/systemctl start ocserv-agent
+{{ test_user_name }} ALL=(ALL) NOPASSWD: /bin/systemctl stop ocserv-agent
+{{ test_user_name }} ALL=(ALL) NOPASSWD: /bin/systemctl restart ocserv-agent
+{{ test_user_name }} ALL=(ALL) NOPASSWD: /bin/systemctl status ocserv-agent
+{{ test_user_name }} ALL=(ALL) NOPASSWD: /bin/systemctl reload ocserv-agent

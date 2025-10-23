@@ -1,0 +1,170 @@
+---
+# Playbook: Verify ocserv installation and configuration
+# Purpose: Check that ocserv is properly installed and running
+# Safety: Read-only operations, no modifications
+
+- name: Verify ocserv installation
+  hosts: ocserv-production
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check if ocserv package is installed
+      package_facts:
+        manager: auto
+      tags: [ verify, packages ]
+
+    - name: Verify ocserv package
+      assert:
+        that:
+          - "'ocserv' in ansible_facts.packages"
+        fail_msg: "ocserv package is not installed!"
+        success_msg: "✓ ocserv package is installed"
+      tags: [ verify, packages ]
+
+    - name: Display ocserv version
+      debug:
+        msg: "ocserv version: {{ ansible_facts.packages.ocserv[0].version | default('unknown') }}"
+      when: "'ocserv' in ansible_facts.packages"
+      tags: [ verify, packages ]
+
+    - name: Check ocserv service status
+      systemd:
+        name: ocserv
+      register: ocserv_service
+      tags: [ verify, service ]
+
+    - name: Verify ocserv is running
+      assert:
+        that:
+          - ocserv_service.status.ActiveState == "active"
+          - ocserv_service.status.SubState == "running"
+        fail_msg: "ocserv is not running! State: {{ ocserv_service.status.ActiveState }}"
+        success_msg: "✓ ocserv is running"
+      tags: [ verify, service ]
+
+    - name: Display ocserv service details
+      debug:
+        msg:
+          - "Service: {{ ocserv_service.status.Id }}"
+          - "State: {{ ocserv_service.status.ActiveState }}"
+          - "SubState: {{ ocserv_service.status.SubState }}"
+          - "PID: {{ ocserv_service.status.MainPID }}"
+          - "Memory: {{ ocserv_service.status.MemoryCurrent | default('unknown') }}"
+          - "Uptime: {{ ocserv_service.status.ActiveEnterTimestamp | default('unknown') }}"
+      tags: [ verify, service ]
+
+    - name: Check ocserv configuration file
+      stat:
+        path: "{{ ocserv_config_path }}"
+      register: ocserv_config
+      tags: [ verify, config ]
+
+    - name: Verify ocserv config exists
+      assert:
+        that:
+          - ocserv_config.stat.exists
+          - ocserv_config.stat.isreg
+        fail_msg: "ocserv config not found at {{ ocserv_config_path }}"
+        success_msg: "✓ ocserv config file exists"
+      tags: [ verify, config ]
+
+    - name: Check if occtl is available
+      command: which occtl
+      register: occtl_path
+      changed_when: false
+      ignore_errors: true
+      tags: [ verify, occtl ]
+
+    - name: Verify occtl is installed
+      assert:
+        that:
+          - occtl_path.rc == 0
+        fail_msg: "occtl command not found"
+        success_msg: "✓ occtl is available at {{ occtl_path.stdout }}"
+      tags: [ verify, occtl ]
+
+    - name: Get connected VPN users (if any)
+      command: occtl -j show users
+      register: vpn_users
+      become: true
+      changed_when: false
+      ignore_errors: true
+      tags: [ verify, users ]
+
+    - name: Display VPN users count
+      debug:
+        msg: "Connected VPN users: {{ (vpn_users.stdout | from_json) | length }}"
+      when: vpn_users.rc == 0
+      tags: [ verify, users ]
+
+    - name: Check current agent installation
+      stat:
+        path: "{{ agent_binary_path }}"
+      register: current_agent
+      tags: [ verify, agent ]
+
+    - name: Display current agent status
+      debug:
+        msg:
+          - "Agent binary: {{ 'Installed' if current_agent.stat.exists else 'Not found' }}"
+          - "Path: {{ agent_binary_path }}"
+          - "Expected version: {{ current_agent_version }}"
+      tags: [ verify, agent ]
+
+    - name: Check agent version (if installed)
+      command: "{{ agent_binary_path }} -version"
+      register: agent_version_output
+      changed_when: false
+      when: current_agent.stat.exists
+      ignore_errors: true
+      tags: [ verify, agent ]
+
+    - name: Display agent version
+      debug:
+        msg: "Current agent: {{ agent_version_output.stdout | default('unknown') }}"
+      when:
+        - current_agent.stat.exists
+        - agent_version_output is defined
+      tags: [ verify, agent ]
+
+    - name: Check agent service status (if exists)
+      systemd:
+        name: ocserv-agent
+      register: agent_service
+      ignore_errors: true
+      tags: [ verify, agent, service ]
+
+    - name: Display agent service status
+      debug:
+        msg: "Agent service: {{ agent_service.status.ActiveState | default('not found') }}"
+      when: agent_service is defined
+      tags: [ verify, agent, service ]
+
+    - name: Summary report
+      debug:
+        msg:
+          - ""
+          - "═══════════════════════════════════════"
+          - "✓ Verification completed"
+          - "═══════════════════════════════════════"
+          - ""
+          - "Server: {{ ansible_host }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Kernel: {{ ansible_kernel }}"
+          - ""
+          - "ocserv:"
+          - "  - Package: installed"
+          - "  - Version: {{ ansible_facts.packages.ocserv[0].version | default('unknown') }}"
+          - "  - Service: {{ ocserv_service.status.ActiveState }}"
+          - "  - Config: {{ ocserv_config_path }}"
+          - "  - VPN users: {{ (vpn_users.stdout | from_json) | length if vpn_users.rc == 0 else 'unknown' }}"
+          - ""
+          - "ocserv-agent:"
+          - "  - Binary: {{ 'installed' if current_agent.stat.exists else 'not found' }}"
+          - "  - Version: {{ agent_version_output.stdout | default('not installed') if current_agent.stat.exists else 'N/A' }}"
+          - "  - Service: {{ agent_service.status.ActiveState | default('not found') if agent_service is defined else 'not found' }}"
+          - ""
+          - "Ready for deployment: {{ 'Yes' if (ocserv_service.status.ActiveState == 'active') else 'No - check ocserv status' }}"
+          - ""
+      tags: [ verify, summary ]

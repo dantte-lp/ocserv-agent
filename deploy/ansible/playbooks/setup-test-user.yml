@@ -1,0 +1,118 @@
+---
+# Playbook: Setup test/deployment user with SSH certificate authentication
+# Purpose: Create secure deployment user for ocserv-agent management
+# Safety: Does NOT modify existing ocserv or VPN connections
+
+- name: Setup deployment user for ocserv-agent
+  hosts: ocserv-production
+  become: true
+  gather_facts: true
+
+  vars_prompt:
+    - name: confirm_setup
+      prompt: |
+
+        ⚠️  SAFETY CHECK ⚠️
+
+        This playbook will:
+        1. Create deployment user '{{ test_user_name | default('ocserv-deploy') }}'
+        2. Configure SSH key authentication
+        3. Grant sudo privileges for ocserv-agent management
+
+        Server: {{ ansible_host | default('not configured') }}
+        Current user: {{ ansible_user | default('root') }}
+
+        This will NOT affect:
+        - Existing VPN users
+        - Running ocserv service
+        - Current agent ({{ current_agent_version | default('unknown') }})
+
+        Continue? (yes/no)
+      private: false
+
+  pre_tasks:
+    - name: Verify confirmation
+      fail:
+        msg: "Setup cancelled by user"
+      when: confirm_setup | lower != 'yes'
+
+    - name: Display server information
+      debug:
+        msg:
+          - "Target server: {{ ansible_host }}"
+          - "Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Python: {{ ansible_python_version }}"
+          - "Current user: {{ ansible_user }}"
+          - "Test user will be: {{ test_user_name }}"
+
+    - name: Check if ocserv is running
+      systemd:
+        name: ocserv
+      register: ocserv_status
+      ignore_errors: true
+
+    - name: Display ocserv status
+      debug:
+        msg: "ocserv service status: {{ ocserv_status.status.ActiveState | default('unknown') }}"
+      when: ocserv_status is defined
+
+    - name: Verify ocserv is running (safety check)
+      assert:
+        that:
+          - ocserv_status is defined
+          - ocserv_status.status.ActiveState == "active"
+        fail_msg: "CRITICAL: ocserv is not running! Aborting to prevent issues."
+        success_msg: "✓ ocserv is running (active)"
+
+  roles:
+    - test-user
+
+  post_tasks:
+    - name: Verify deployment user was created
+      getent:
+        database: passwd
+        key: "{{ test_user_name }}"
+      register: user_info
+
+    - name: Display deployment user details
+      debug:
+        msg:
+          - "✓ Deployment user created successfully"
+          - "Username: {{ test_user_name }}"
+          - "Home: {{ test_user_home }}"
+          - "UID: {{ user_info.ansible_facts.getent_passwd[test_user_name][1] }}"
+          - "GID: {{ user_info.ansible_facts.getent_passwd[test_user_name][2] }}"
+          - "Shell: {{ test_user_shell }}"
+
+    - name: Verify ocserv still running after changes
+      systemd:
+        name: ocserv
+      register: ocserv_final
+
+    - name: Final safety check
+      assert:
+        that:
+          - ocserv_final.status.ActiveState == "active"
+        fail_msg: "WARNING: ocserv status changed! Was active, now {{ ocserv_final.status.ActiveState }}"
+        success_msg: "✓ ocserv still running (no impact from user creation)"
+
+    - name: Display next steps
+      debug:
+        msg:
+          - ""
+          - "═══════════════════════════════════════"
+          - "✓ Setup completed successfully!"
+          - "═══════════════════════════════════════"
+          - ""
+          - "Next steps:"
+          - "1. Test SSH login as {{ test_user_name }}"
+          - "2. Verify sudo access: sudo -l"
+          - "3. Run verify-ocserv.yml to check installation"
+          - ""
+          - "SSH command:"
+          - "  ssh {{ test_user_name }}@{{ ansible_host }}"
+          - ""
+          - "To use SSH key from server:"
+          - "  scp {{ ansible_user }}@{{ ansible_host }}:{{ test_user_home }}/.ssh/id_{{ ssh_key_type | default('ed25519') }} ~/.ssh/ocserv-deploy-key"
+          - "  ssh -i ~/.ssh/ocserv-deploy-key {{ test_user_name }}@{{ ansible_host }}"
+          - ""

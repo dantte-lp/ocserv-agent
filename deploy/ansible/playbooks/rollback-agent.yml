@@ -1,0 +1,105 @@
+---
+# Playbook: Rollback ocserv-agent to previous version
+# Purpose: Restore previous agent version from backup
+# Usage: When deployment fails or causes issues
+
+- name: Rollback ocserv-agent to previous version
+  hosts: ocserv-production
+  become: true
+  gather_facts: true
+
+  vars_prompt:
+    - name: backup_timestamp
+      prompt: "Enter backup timestamp to restore (e.g., 1729700000.v0.3.0-24-groutes)"
+      private: false
+
+    - name: confirm_rollback
+      prompt: |
+
+        ⚠️  ROLLBACK CONFIRMATION ⚠️
+
+        This will restore ocserv-agent from backup:
+        Backup: {{ backup_timestamp }}
+
+        Server: {{ ansible_host | default('not configured') }}
+
+        Continue with rollback? (yes/no)
+      private: false
+
+  pre_tasks:
+    - name: Verify confirmation
+      fail:
+        msg: "Rollback cancelled by user"
+      when: confirm_rollback | lower != 'yes'
+
+    - name: Check if backup exists
+      stat:
+        path: "{{ backup_dir }}/ocserv-agent.{{ backup_timestamp }}"
+      register: backup_binary
+
+    - name: Fail if backup not found
+      fail:
+        msg: "Backup not found: {{ backup_dir }}/ocserv-agent.{{ backup_timestamp }}"
+      when: not backup_binary.stat.exists
+
+    - name: Display rollback information
+      debug:
+        msg:
+          - "Rollback source: {{ backup_dir }}/ocserv-agent.{{ backup_timestamp }}"
+          - "Target: {{ agent_binary_path }}"
+
+  tasks:
+    - name: Stop agent service
+      systemd:
+        name: ocserv-agent
+        state: stopped
+      ignore_errors: true
+
+    - name: Restore agent binary from backup
+      copy:
+        src: "{{ backup_dir }}/ocserv-agent.{{ backup_timestamp }}"
+        dest: "{{ agent_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Restore configuration from backup (if exists)
+      copy:
+        src: "{{ backup_dir }}/config.yaml.{{ backup_timestamp }}"
+        dest: "{{ agent_config_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0644'
+      ignore_errors: true
+
+    - name: Start agent service
+      systemd:
+        name: ocserv-agent
+        state: started
+        enabled: true
+
+    - name: Verify agent version
+      command: "{{ agent_binary_path }} -version"
+      register: restored_version
+      changed_when: false
+
+  post_tasks:
+    - name: Check agent service status
+      systemd:
+        name: ocserv-agent
+      register: agent_status
+
+    - name: Verify ocserv still running
+      systemd:
+        name: ocserv
+      register: ocserv_status
+
+    - name: Display rollback summary
+      debug:
+        msg:
+          - "✓ Rollback completed"
+          - "Restored version: {{ restored_version.stdout }}"
+          - "Agent status: {{ agent_status.status.ActiveState }}"
+          - "ocserv status: {{ ocserv_status.status.ActiveState }}"

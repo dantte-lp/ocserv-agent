@@ -56,15 +56,35 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub root@${REMOTE_HOST}
 
 ### Run Playbooks
 
+**Before deployment, verify ocserv status:**
+
+```bash
+# Verify ocserv installation and status
+podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/verify-ocserv.yml
+```
+
+**Setup deployment user (one-time):**
+
 ```bash
 # Setup test user with certificate authentication
 podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/setup-test-user.yml
+```
 
-# Verify ocserv installation
-podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/verify-ocserv.yml
+**Deploy new agent version:**
 
-# Deploy agent
+```bash
+# Build agent first
+make compose-build
+
+# Deploy to production
 podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/deploy-agent.yml
+```
+
+**Rollback if needed:**
+
+```bash
+# Rollback to previous version
+podman exec ocserv-agent-ansible poetry run ansible-playbook playbooks/rollback-agent.yml
 ```
 
 ### Interactive Shell
