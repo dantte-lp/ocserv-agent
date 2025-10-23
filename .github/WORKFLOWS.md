@@ -10,7 +10,7 @@ This directory contains automated CI/CD workflows for ocserv-agent.
 
 **Features:**
 - **SLSA Level 3** provenance generation for secure builds
-- Multi-architecture binary builds (Linux and FreeBSD: amd64, arm64)
+- Multi-architecture binary builds (Linux and FreeBSD: amd64/x86_64, arm64/aarch64)
 - Automated GitHub Release creation with release notes
 - Container image build and push to GitHub Container Registry
 - SHA256 checksums for all artifacts
@@ -23,9 +23,9 @@ git push origin v0.3.0
 
 **Artifacts:**
 - `ocserv-agent-linux-amd64` - Linux x86_64 binary
-- `ocserv-agent-linux-arm64` - Linux ARM64 binary
+- `ocserv-agent-linux-arm64` - Linux ARM64/aarch64 binary
 - `ocserv-agent-freebsd-amd64` - FreeBSD x86_64 binary
-- `ocserv-agent-freebsd-arm64` - FreeBSD ARM64 binary
+- `ocserv-agent-freebsd-arm64` - FreeBSD ARM64/aarch64 binary
 - `*.sha256` - SHA256 checksums
 - `*.intoto.jsonl` - SLSA provenance
 
@@ -54,8 +54,8 @@ slsa-verifier verify-artifact \
    - Dependency verification
 
 2. **Build** - Build for multiple platforms
-   - Linux (amd64, arm64)
-   - FreeBSD (amd64, arm64)
+   - Linux (amd64/x86_64, arm64/aarch64)
+   - FreeBSD (amd64/x86_64, arm64/aarch64)
 
 3. **Integration** - Integration tests (when available)
 
