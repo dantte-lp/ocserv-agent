@@ -54,6 +54,9 @@ services:
         # Create bin directory
         mkdir -p bin
 
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-linux-amd64
+
         # Archive name with version
         ARCHIVE=\"ocserv-agent-$$VERSION-linux-amd64.tar.gz\"
 
@@ -63,8 +66,7 @@ services:
         # Create checksum
         sha256sum \"bin/$$ARCHIVE\" > \"bin/$$ARCHIVE.sha256\"
 
-        # Keep raw binary for testing (compatibility)
-        cp ocserv-agent bin/ocserv-agent-linux-amd64
+        # Clean up source binary
         rm ocserv-agent
 
         echo '✅ Created:'
@@ -99,6 +101,9 @@ services:
         # Create bin directory
         mkdir -p bin
 
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-linux-arm64
+
         # Archive name with version
         ARCHIVE=\"ocserv-agent-$$VERSION-linux-arm64.tar.gz\"
 
@@ -108,8 +113,7 @@ services:
         # Create checksum
         sha256sum \"bin/$$ARCHIVE\" > \"bin/$$ARCHIVE.sha256\"
 
-        # Keep raw binary for testing (compatibility)
-        cp ocserv-agent bin/ocserv-agent-linux-arm64
+        # Clean up source binary
         rm ocserv-agent
 
         echo '✅ Created:'
@@ -144,6 +148,9 @@ services:
         # Create bin directory
         mkdir -p bin
 
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-freebsd-amd64
+
         # Archive name with version
         ARCHIVE=\"ocserv-agent-$$VERSION-freebsd-amd64.tar.gz\"
 
@@ -153,8 +160,7 @@ services:
         # Create checksum
         sha256sum \"bin/$$ARCHIVE\" > \"bin/$$ARCHIVE.sha256\"
 
-        # Keep raw binary for testing (compatibility)
-        cp ocserv-agent bin/ocserv-agent-freebsd-amd64
+        # Clean up source binary
         rm ocserv-agent
 
         echo '✅ Created:'
@@ -189,6 +195,9 @@ services:
         # Create bin directory
         mkdir -p bin
 
+        # Keep raw binary for testing (compatibility)
+        cp ocserv-agent bin/ocserv-agent-freebsd-arm64
+
         # Archive name with version
         ARCHIVE=\"ocserv-agent-$$VERSION-freebsd-arm64.tar.gz\"
 
@@ -198,8 +207,7 @@ services:
         # Create checksum
         sha256sum \"bin/$$ARCHIVE\" > \"bin/$$ARCHIVE.sha256\"
 
-        # Keep raw binary for testing (compatibility)
-        cp ocserv-agent bin/ocserv-agent-freebsd-arm64
+        # Clean up source binary
         rm ocserv-agent
 
         echo '✅ Created:'
