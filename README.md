@@ -122,6 +122,7 @@ make compose-build
 - [Configuration Guide](config.yaml.example) - All configuration options
 - [Certificate Management](docs/CERTIFICATES.md) - TLS/mTLS setup guide
 - [gRPC Testing Guide](docs/GRPC_TESTING.md) - Test gRPC API with grpcurl
+- [occtl Commands Support](docs/OCCTL_COMMANDS.md) - Supported occtl/systemctl commands
 - [Local Testing Guide](docs/LOCAL_TESTING.md) - Development and CI testing
 
 ## 🔧 Configuration
