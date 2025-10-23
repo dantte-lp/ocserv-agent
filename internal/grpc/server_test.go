@@ -3,8 +3,11 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/dantte-lp/ocserv-agent/internal/cert"
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
@@ -100,9 +103,139 @@ func TestNew(t *testing.T) {
 
 // TestNewWithTLS tests server creation with TLS credentials
 func TestNewWithTLS(t *testing.T) {
-	// Skip this test for now - requires valid TLS certificates
-	// Will be covered by integration tests
-	t.Skip("Skipping TLS test - requires valid certificates (covered by integration tests)")
+	t.Run("valid TLS configuration", func(t *testing.T) {
+		certFile, keyFile, caFile, cleanup := createTestCerts(t)
+		defer cleanup()
+
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled:    true,
+				CertFile:   certFile,
+				KeyFile:    keyFile,
+				CAFile:     caFile,
+				MinVersion: "TLS1.3",
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() with TLS failed: %v", err)
+		}
+
+		if server == nil {
+			t.Fatal("New() returned nil server")
+		}
+
+		if server.server == nil {
+			t.Error("New() gRPC server not initialized with TLS")
+		}
+
+		if server.config != cfg {
+			t.Error("New() server.config not set correctly")
+		}
+	})
+
+	t.Run("invalid CA file", func(t *testing.T) {
+		certFile, keyFile, _, cleanup := createTestCerts(t)
+		defer cleanup()
+
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled:    true,
+				CertFile:   certFile,
+				KeyFile:    keyFile,
+				CAFile:     "/nonexistent/ca.crt",
+				MinVersion: "TLS1.3",
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		_, err := New(cfg, logger)
+		if err == nil {
+			t.Error("New() expected error for invalid CA file, got nil")
+		}
+	})
+
+	t.Run("invalid cert/key pair", func(t *testing.T) {
+		_, _, caFile, cleanup := createTestCerts(t)
+		defer cleanup()
+
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled:    true,
+				CertFile:   "/nonexistent/cert.crt",
+				KeyFile:    "/nonexistent/key.key",
+				CAFile:     caFile,
+				MinVersion: "TLS1.3",
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		_, err := New(cfg, logger)
+		if err == nil {
+			t.Error("New() expected error for invalid cert/key, got nil")
+		}
+	})
+
+	t.Run("invalid CA certificate format", func(t *testing.T) {
+		certFile, keyFile, _, cleanup := createTestCerts(t)
+		defer cleanup()
+
+		// Create a file with invalid PEM content
+		tempDir := t.TempDir()
+		invalidCAFile := filepath.Join(tempDir, "invalid_ca.crt")
+		if err := os.WriteFile(invalidCAFile, []byte("invalid PEM content"), 0600); err != nil {
+			t.Fatalf("Failed to create invalid CA file: %v", err)
+		}
+
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled:    true,
+				CertFile:   certFile,
+				KeyFile:    keyFile,
+				CAFile:     invalidCAFile,
+				MinVersion: "TLS1.3",
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		_, err := New(cfg, logger)
+		if err == nil {
+			t.Error("New() expected error for invalid CA format, got nil")
+		}
+		if err != nil && !contains(err.Error(), "failed to append CA certificate") {
+			t.Errorf("New() error = %v, want error containing 'failed to append CA certificate'", err)
+		}
+	})
 }
 
 // TestGetTLSVersion tests TLS version parsing
@@ -431,6 +564,44 @@ func TestStreamLoggingInterceptor(t *testing.T) {
 			t.Errorf("streamLoggingInterceptor() unexpected error = %v", err)
 		}
 	})
+}
+
+// createTestCerts generates test certificates for TLS testing
+// Returns paths to cert, key, and CA files in a temporary directory
+func createTestCerts(t *testing.T) (certFile, keyFile, caFile string, cleanup func()) {
+	t.Helper()
+
+	// Create temporary directory for test certificates
+	tempDir := t.TempDir()
+
+	// Generate self-signed certificates using internal/cert
+	certInfo, err := cert.GenerateSelfSignedCerts(tempDir, "localhost")
+	if err != nil {
+		t.Fatalf("Failed to generate test certificates: %v", err)
+	}
+
+	certFile = filepath.Join(tempDir, "agent.crt")
+	keyFile = filepath.Join(tempDir, "agent.key")
+	caFile = filepath.Join(tempDir, "ca.crt")
+
+	// Verify files exist
+	for _, file := range []string{certFile, keyFile, caFile} {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			t.Fatalf("Expected certificate file not created: %s", file)
+		}
+	}
+
+	// Cleanup function (t.TempDir() handles cleanup automatically, but we provide this for consistency)
+	cleanup = func() {
+		// t.TempDir() automatically cleans up, so this is a no-op
+	}
+
+	t.Logf("Test certificates created in %s", tempDir)
+	t.Logf("  CA cert: %s (fingerprint: %s)", caFile, certInfo.CAFingerprint)
+	t.Logf("  Agent cert: %s (fingerprint: %s)", certFile, certInfo.CertFingerprint)
+	t.Logf("  Agent key: %s", keyFile)
+
+	return certFile, keyFile, caFile, cleanup
 }
 
 // Helper function
