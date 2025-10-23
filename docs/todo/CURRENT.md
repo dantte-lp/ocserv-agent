@@ -1,7 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** d577619 - feat(ocserv): implement all 11 missing occtl commands (Phase 3)
+**Last Commit:** b11bb9e - fix(ocserv): correct JSON parsing - single array per command
+**Preparing:** v0.2.0 BETA release
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -15,16 +16,16 @@ All critical Phase 2 tasks done ✅
 - ✅ Command validation and security (whitelist, sanitization, injection protection)
 - ✅ ExecuteCommand RPC fully functional
 
-## 🎉 Phase 3: Advanced occtl - IN PROGRESS!
+## 🎉 Phase 3: occtl Commands - COMPLETED!
 
-**Completed:**
-- ✅ Complete type definitions (occtl_types.go)
-- ✅ All 11 missing occtl commands implemented
-- ✅ JSON parsing with production-tested types
-- ✅ Full occtl compatibility (16/16 commands)
+**All 16/16 occtl commands implemented:**
+- ✅ Complete type definitions (occtl_types.go - 179 lines)
+- ✅ All 16 occtl commands with JSON parsing
+- ✅ Production-tested types (DTLS, compression, multiple sessions)
+- ✅ Full occtl compatibility (100%)
 
-**Remaining:**
-- [ ] ShowEvents() streaming support
+**For v0.3.0+:**
+- [ ] ShowEvents() streaming support (requires ServerStream RPC)
 - [ ] ocpasswd wrapper
 - [ ] UpdateConfig RPC
 - [ ] Unit tests (>80% coverage)
@@ -200,33 +201,23 @@ None yet
 
 - **Commits:**
   - cc69c82: Initial setup
-  - 1a97fe9: TODO update
   - a899a75: Config package
   - 110d823: gRPC server + HealthCheck + main
-  - f6b7436: Phase 1 completion docs
-  - 678b766: Exclude .claude
-  - 55bac55: Release notes update
   - 56da3c5: Phase 2 ocserv integration ✅
-  - 4c640d0: Phase 2 TODO update
-  - cd338e6: Phase 2 release notes update
   - cf0a6b2: Config file reading ✅
-  - 4777464: Docs update with commit hash
-  - 2be3eaf: ocserv 1.3.0 reference config
   - 6f2a59a: Compatibility analysis roadmap ✅
-  - 7af7cee: Config consolidation
   - 9c4dcd6: Production occtl examples ✅
   - 0ab84c6: v0.1.0 ALPHA release ✅
   - d577619: All 11 missing occtl commands ✅
+  - 66600a3: Phase 3 progress docs
+  - 9c6942a: New fields and multiple sessions
+  - b11bb9e: JSON parsing fix ✅
 
-- **Tests:** 0% coverage (tests pending Phase 3.5)
-- **Documentation:** 90% complete
-- **Release notes:** v0.1.0 ALPHA released ✅
+- **Tests:** 0% coverage (tests planned for v0.3.0+)
+- **Documentation:** 95% complete
+- **Release notes:** v0.2.0 BETA preparing
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
-- **Phase 3:** IN PROGRESS (60%)
-  - ✅ occtl commands (16/16)
-  - ⏳ ShowEvents streaming
-  - ⏳ ocpasswd wrapper
-  - ⏳ UpdateConfig RPC
-  - ⏳ Unit tests
-- **Next Milestone:** v0.2.0 BETA (Phase 3 completion)
+- **Phase 3:** COMPLETED (100%) ✅ - All occtl commands
+- **Current:** Preparing v0.2.0 BETA release
+- **Next Phase:** Phase 4 - Streaming, ocpasswd, UpdateConfig (v0.3.0)
