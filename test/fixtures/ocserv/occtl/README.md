@@ -5,8 +5,8 @@
 **Purpose:** Reference examples for parsing occtl command output
 
 > **Note:** These are real production outputs with **sanitized data** for testing purposes.
-> IP addresses, usernames, and hostnames have been kept for realistic parsing tests
-> but should be considered as example data only.
+> All sensitive data has been replaced with RFC 5737 test addresses (203.0.113.x) and
+> example usernames. The structure and field names are authentic from ocserv 1.3.0.
 
 This directory contains real output from a production ocserv deployment, useful for:
 - Testing occtl output parsing in OcctlManager

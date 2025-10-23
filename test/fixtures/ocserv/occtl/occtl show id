@@ -3,8 +3,8 @@
         State: connected
         vhost: default
         Device: vpns0   MTU: 1402
-        Remote IP: 90.156.164.225   Location: unknown
-        Local Device IP: 195.238.126.25
+        Remote IP: 203.0.113.100   Location: unknown
+        Local Device IP: 203.0.113.10
         IPv4: 10.0.16.23   P-t-P IPv4: 10.0.16.1
         IPv6: fc00::1:8651   P-t-P IPv6: fc00::1:8601
         User-Agent: AnyConnect AppleSSLVPN_Darwin_ARM (iPhone) 5.1.11.347
