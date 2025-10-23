@@ -2,7 +2,12 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Development Status](https://img.shields.io/badge/status-alpha-orange.svg)](docs/releases/v0.1.0.md)
+[![Release](https://img.shields.io/github/v/release/dantte-lp/ocserv-agent?include_prereleases)](https://github.com/dantte-lp/ocserv-agent/releases)
+
+[![CI](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml)
+[![Lint](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml)
+[![Security](https://github.com/dantte-lp/ocserv-agent/actions/workflows/security.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/security.yml)
+[![OSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/dantte-lp/ocserv-agent/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dantte-lp/ocserv-agent)
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
