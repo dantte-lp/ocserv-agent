@@ -1,6 +1,8 @@
 module github.com/dantte-lp/ocserv-agent
 
-go 1.25
+go 1.25.0
+
+toolchain go1.25.3
 
 require (
 	github.com/rs/zerolog v1.33.0
