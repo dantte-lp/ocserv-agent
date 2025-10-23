@@ -2,6 +2,7 @@
 .PHONY: compose-dev compose-test compose-build compose-down compose-logs compose-clean
 .PHONY: local-build local-test local-proto setup-compose
 .PHONY: security-check security-gosec security-govulncheck security-trivy
+.PHONY: build-all build-all-security build-all-test build-all-build
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -X main.version=$(VERSION) -s -w
@@ -12,6 +13,12 @@ LDFLAGS := -X main.version=$(VERSION) -s -w
 
 help:
 	@echo "ocserv-agent Makefile"
+	@echo ""
+	@echo "🚀 Full Pipeline:"
+	@echo "  make build-all           - Run security + tests + build (all platforms)"
+	@echo "  make build-all-security  - Run security scans only"
+	@echo "  make build-all-test      - Run tests only"
+	@echo "  make build-all-build     - Run build only"
 	@echo ""
 	@echo "📦 Recommended (Podman Compose):"
 	@echo "  make compose-dev     - Start development with hot reload"
@@ -163,3 +170,23 @@ security-govulncheck:
 security-trivy:
 	@echo "🔒 Running Trivy scanner..."
 	@./scripts/security-check.sh trivy
+
+# ═══════════════════════════════════════════════
+# Full Build Pipeline (Security + Tests + Build)
+# ═══════════════════════════════════════════════
+
+build-all:
+	@echo "🚀 Running full build pipeline (security + tests + build)..."
+	@./scripts/build-all.sh all
+
+build-all-security:
+	@echo "🔒 Running security scans..."
+	@./scripts/build-all.sh security
+
+build-all-test:
+	@echo "🧪 Running tests..."
+	@./scripts/build-all.sh test
+
+build-all-build:
+	@echo "🔨 Running multi-platform build..."
+	@./scripts/build-all.sh build

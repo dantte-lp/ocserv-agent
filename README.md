@@ -59,7 +59,25 @@ make compose-dev
 
 ### Running Tests
 
-#### 🚀 Quick Local Check (Before Commit)
+#### 🚀 Full Build Pipeline (Recommended)
+
+```bash
+# Run everything: security + tests + multi-platform build
+make build-all
+
+# Or run specific stages:
+make build-all-security  # Security scans only
+make build-all-test      # Tests only
+make build-all-build     # Multi-platform build only
+```
+
+This runs the complete CI/CD pipeline locally:
+- Security scans (gosec, govulncheck, trivy)
+- Unit tests with coverage
+- Linting (golangci-lint)
+- Multi-platform builds (Linux/FreeBSD, amd64/arm64)
+
+#### 🏃 Quick Local Check (Before Commit)
 
 ```bash
 # Fast checks in 2-3 seconds
