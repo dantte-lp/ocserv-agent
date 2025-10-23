@@ -1,7 +1,7 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** cf0a6b2 - feat(ocserv): implement config file reading
+**Last Commit:** d577619 - feat(ocserv): implement all 11 missing occtl commands (Phase 3)
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -15,19 +15,34 @@ All critical Phase 2 tasks done ✅
 - ✅ Command validation and security (whitelist, sanitization, injection protection)
 - ✅ ExecuteCommand RPC fully functional
 
-## 🔴 Critical (Next Steps - Phase 3)
+## 🎉 Phase 3: Advanced occtl - IN PROGRESS!
+
+**Completed:**
+- ✅ Complete type definitions (occtl_types.go)
+- ✅ All 11 missing occtl commands implemented
+- ✅ JSON parsing with production-tested types
+- ✅ Full occtl compatibility (16/16 commands)
+
+**Remaining:**
+- [ ] ShowEvents() streaming support
+- [ ] ocpasswd wrapper
+- [ ] UpdateConfig RPC
+- [ ] Unit tests (>80% coverage)
+
+## 🔴 Critical (Next Steps - Phase 3 Continued)
 
 ### Based on ocserv 1.3.0 Compatibility Analysis
 
 See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
 
 **High Priority:**
-- [ ] **[FEATURE]** Complete missing occtl commands
-  - show user [NAME], show id [ID]
-  - show sessions (all/valid), show session [SID]
-  - show ip bans, show ip ban points, unban ip
-  - show iroutes
-  - show events (real-time streaming)
+- [x] **[FEATURE]** Complete missing occtl commands (16/16 done!)
+  - ✅ show user [NAME], show id [ID]
+  - ✅ show sessions (all/valid), show session [SID]
+  - ✅ show ip bans, show ip ban points, unban ip
+  - ✅ show iroutes
+  - ✅ reload
+  - [ ] show events (real-time streaming) - needs special implementation
 
 - [ ] **[FEATURE]** Implement ocpasswd wrapper
   - User management (add, delete, lock, unlock)
@@ -192,10 +207,26 @@ None yet
   - 678b766: Exclude .claude
   - 55bac55: Release notes update
   - 56da3c5: Phase 2 ocserv integration ✅
+  - 4c640d0: Phase 2 TODO update
+  - cd338e6: Phase 2 release notes update
+  - cf0a6b2: Config file reading ✅
+  - 4777464: Docs update with commit hash
+  - 2be3eaf: ocserv 1.3.0 reference config
+  - 6f2a59a: Compatibility analysis roadmap ✅
+  - 7af7cee: Config consolidation
+  - 9c4dcd6: Production occtl examples ✅
+  - 0ab84c6: v0.1.0 ALPHA release ✅
+  - d577619: All 11 missing occtl commands ✅
 
-- **Tests:** 0% coverage (tests pending)
-- **Documentation:** 85% complete
-- **Release notes:** v0.1.0 updated ✅
+- **Tests:** 0% coverage (tests pending Phase 3.5)
+- **Documentation:** 90% complete
+- **Release notes:** v0.1.0 ALPHA released ✅
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
-- **Next Phase:** Phase 3 - Streaming & Advanced Features
+- **Phase 3:** IN PROGRESS (60%)
+  - ✅ occtl commands (16/16)
+  - ⏳ ShowEvents streaming
+  - ⏳ ocpasswd wrapper
+  - ⏳ UpdateConfig RPC
+  - ⏳ Unit tests
+- **Next Milestone:** v0.2.0 BETA (Phase 3 completion)
