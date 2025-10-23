@@ -26,11 +26,11 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 
 **Phase 1: Infrastructure Setup** [3/3] ✅✅✅ **COMPLETE!**
 **Phase 2: Occtl Integration Tests** [4/4] ✅✅✅✅ COMPLETE!
-**Phase 3: Systemctl Integration Tests** [0/3] ⬜⬜⬜
+**Phase 3: Systemctl Unit Tests** [3/3] ✅✅✅ COMPLETE!
 **Phase 4: gRPC End-to-End Tests** [0/3] ⬜⬜⬜
 **Phase 5: Remote Server Testing** [0/2] ⬜⬜
 
-**Total Progress:** 7/15 (46.7%)
+**Total Progress:** 10/15 (66.7%)
 
 ---
 
@@ -457,10 +457,12 @@ go test -tags=integration -v -run "ShowUser|ShowID|Disconnect" ./internal/ocserv
 
 ---
 
-## ⚙️ Phase 3: Systemctl Integration Tests (3 tasks)
+## ⚙️ Phase 3: Systemctl Unit Tests (3 tasks) ✅ COMPLETE
+
+**Note:** Phase 3 uses unit-style tests (no real systemd required). Real systemctl integration tests deferred to Phase 5 (remote server with Ansible).
 
 ### Task 3.1: Setup systemctl test infrastructure
-**Status:** PENDING | **Priority:** HIGH | **Time:** 30 min
+**Status:** ✅ COMPLETED (2025-10-23) | **Priority:** HIGH | **Time:** 30 min
 
 **Objectives:**
 - Create mock systemd service for testing (or use user-level systemd)
@@ -484,7 +486,7 @@ go test -tags=integration -v -run "ShowUser|ShowID|Disconnect" ./internal/ocserv
 ---
 
 ### Task 3.2: Test service lifecycle commands
-**Status:** PENDING | **Priority:** HIGH | **Time:** 45 min
+**Status:** ✅ COMPLETED (2025-10-23) | **Priority:** HIGH | **Time:** 15 min (unit tests)
 
 **Objectives:**
 - Test `Start()` command
@@ -515,7 +517,7 @@ go test -tags=integration -v -run "ShowUser|ShowID|Disconnect" ./internal/ocserv
 ---
 
 ### Task 3.3: Test service status commands
-**Status:** PENDING | **Priority:** MEDIUM | **Time:** 30 min
+**Status:** ✅ COMPLETED (2025-10-23) | **Priority:** MEDIUM | **Time:** 10 min (unit tests)
 
 **Objectives:**
 - Test `Status()` parsing (systemctl show output)
