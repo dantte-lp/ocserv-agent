@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/reflection"
 )
 
 // Server represents the gRPC server
@@ -46,6 +47,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 
 	// Register service
 	pb.RegisterAgentServiceServer(s.server, s)
+
+	// Register reflection service (for grpcurl and other tools)
+	reflection.Register(s.server)
 
 	return s, nil
 }
