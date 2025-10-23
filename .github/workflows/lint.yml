@@ -15,6 +15,9 @@ jobs:
   golangci:
     name: golangci-lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' &&
@@ -71,6 +74,8 @@ jobs:
   markdown:
     name: Markdown lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -96,6 +101,8 @@ jobs:
   yaml:
     name: YAML lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -122,6 +129,8 @@ jobs:
   dockerfile:
     name: Dockerfile lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code

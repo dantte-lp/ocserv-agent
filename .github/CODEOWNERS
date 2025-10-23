@@ -1,0 +1,28 @@
+# Code Owners for ocserv-agent
+#
+# These owners will be automatically requested for review when someone
+# opens a pull request that modifies code in the specified paths.
+#
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @dantte-lp
+
+# Security-sensitive files require extra scrutiny
+/SECURITY.md @dantte-lp
+/.github/workflows/ @dantte-lp
+/deploy/ @dantte-lp
+
+# Core application code
+/cmd/ @dantte-lp
+/internal/ @dantte-lp
+/pkg/ @dantte-lp
+
+# Configuration and deployment
+/config.yaml.example @dantte-lp
+/Dockerfile @dantte-lp
+/docker-compose*.yml @dantte-lp
+
+# Documentation
+/docs/ @dantte-lp
+/*.md @dantte-lp

@@ -5,14 +5,14 @@ on:
     tags:
       - 'v*.*.*'
 
-permissions:
-  contents: write
-  id-token: write
-  packages: write
+permissions: {}  # No default permissions - each job declares its own
 
 jobs:
   build-artifacts:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # For artifact upload
     outputs:
       hashes: ${{ steps.hash.outputs.hashes }}
 
@@ -127,6 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read  # For artifact download
 
     steps:
       - name: Checkout code
