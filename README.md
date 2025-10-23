@@ -3,8 +3,9 @@
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dantte-lp/ocserv-agent?include_prereleases)](https://github.com/dantte-lp/ocserv-agent/releases)
-[![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.4.0)
-[![Test Coverage](https://img.shields.io/badge/coverage-85%25%20(3_packages)-brightgreen)](https://github.com/dantte-lp/ocserv-agent/blob/main/docs/releases/v0.4.0.md)
+[![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.5.0)
+[![Test Coverage](https://img.shields.io/badge/coverage-51.2%25%20(all_internal)-green)](https://github.com/dantte-lp/ocserv-agent/blob/main/docs/releases/v0.5.0.md)
+[![grpc Coverage](https://img.shields.io/badge/grpc-87.6%25-brightgreen)](https://github.com/dantte-lp/ocserv-agent/blob/main/docs/releases/v0.5.0.md)
 
 [![CI](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml)
 [![Lint](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml)
@@ -13,18 +14,18 @@
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
-> **Status:** BETA (v0.4.0) - Production-tested with real VPN users. Core features complete, test coverage established (85%+ for critical packages), DevOps workflow optimized. See [ROADMAP.md](ROADMAP.md) for future plans.
+> **Status:** BETA (v0.5.0) - Production-tested with real VPN users. Core features complete, test coverage expanded (51.2% overall, 87.6% grpc), critical security vulnerabilities fixed. See [ROADMAP.md](ROADMAP.md) for future plans.
 
 ## 📋 Overview
 
 ocserv-agent is a **production-tested BETA** agent that runs on each ocserv instance and provides secure remote management capabilities through a gRPC API. It enables centralized control of distributed VPN infrastructure.
 
-**Current Release:** [v0.4.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.4.0) (October 2025)
-- ✅ Test foundation: 97.1% config, 77.6% cert, 82-100% ocserv/config
-- ✅ DevOps improvements: automatic formatting, git hooks, CI optimizations
-- ✅ 2,225 lines of test code across 4 test files
-- ✅ Test infrastructure with fixtures and compose setup
-- ✅ OSSF Scorecard: 5.9/10 (Phase 1 security improvements)
+**Current Release:** [v0.5.0 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.5.0) (October 2025)
+- ✅ **CRITICAL security fixes:** Fixed 4 command injection vulnerabilities (29 test cases)
+- ✅ **Test coverage expansion:** internal/grpc 0% → 87.6%, overall 40% → 51.2%
+- ✅ 1,600+ new lines of test code (total: 3,800+ lines)
+- ✅ Test infrastructure: TLS certificate helpers, security validation tests
+- ✅ Security-first testing: validateArguments 100% coverage
 
 **Previous Release:** [v0.3.1 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1) (October 2025)
 - Production-tested with 3 active VPN users
@@ -54,7 +55,7 @@ ocserv daemon
 - **✅ Test Coverage**: 97.1% config, 77.6% cert, 82-100% ocserv/config (2,225 lines of tests)
 - **⚙️ DevOps**: Automatic formatting, git hooks, CI optimizations
 
-### What's Working (v0.4.0)
+### What's Working (v0.5.0)
 
 ✅ **Core Features:**
 - gRPC server with mTLS authentication
@@ -182,8 +183,8 @@ make compose-build
 ## 📖 Documentation
 
 ### User Guides
-- **[Release Notes v0.4.0](docs/releases/v0.4.0.md)** - Latest release: Test foundation & DevOps
-- **[Project Roadmap](ROADMAP.md)** - Development roadmap and timeline (NEW!)
+- **[Release Notes v0.5.0](docs/releases/v0.5.0.md)** - Latest release: Test coverage & security fixes
+- **[Project Roadmap](ROADMAP.md)** - Development roadmap and timeline
 - **[occtl Commands Reference](docs/OCCTL_COMMANDS.md)** - Complete command guide with examples
 - **[gRPC Testing Guide](docs/GRPC_TESTING.md)** - Test API with grpcurl
 - **[Certificate Management](docs/CERTIFICATES.md)** - TLS/mTLS setup (bootstrap + production)
@@ -201,7 +202,8 @@ make compose-build
 - [ocserv Compatibility](docs/todo/OCSERV_COMPATIBILITY.md) - Feature coverage analysis
 
 ### Releases
-- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) - Test foundation & DevOps (Oct 2025) ✅
+- [v0.5.0 Release Notes](docs/releases/v0.5.0.md) - Test coverage expansion & security fixes (Oct 2025) ✅
+- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) - Test foundation & DevOps (Oct 2025)
 - [v0.3.1 Release Notes](docs/releases/v0.3.1.md) - Critical bugfixes + documentation (Oct 2025)
 - [All Releases](https://github.com/dantte-lp/ocserv-agent/releases) - Full release history
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) - Certificate auto-generation (Oct 2025)
@@ -288,8 +290,10 @@ ocserv-agent/
 - **OSSF Scorecard**: 5.9/10 (improving to 7.5+/10)
 - **Vulnerability Disclosure**: [SECURITY.md](SECURITY.md) with 48h response time
 
-### Recent Security Improvements (v0.3.1 - v0.4.0)
+### Recent Security Improvements (v0.3.1 - v0.5.0)
 
+- ✅ **v0.5.0: CRITICAL command injection fixes** (backtick, escaped chars, newlines, control chars)
+- ✅ **v0.5.0: Security validation 100% coverage** (29 injection test cases)
 - ✅ SECURITY.md vulnerability disclosure policy created
 - ✅ Removed hardcoded credentials from repository
 - ✅ Sanitized all deployment scripts
@@ -331,8 +335,8 @@ See [agent.proto](pkg/proto/agent/v1/agent.proto) for full API specification.
 
 ```bash
 # Download latest release
-wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.4.0/ocserv-agent-v0.4.0-linux-amd64.tar.gz
-tar -xzf ocserv-agent-v0.4.0-linux-amd64.tar.gz
+wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.5.0/ocserv-agent-v0.5.0-linux-amd64.tar.gz
+tar -xzf ocserv-agent-v0.5.0-linux-amd64.tar.gz
 
 # Install to /etc/ocserv-agent
 sudo mkdir -p /etc/ocserv-agent
@@ -462,15 +466,26 @@ We actively contribute bug reports and fixes to the ocserv project:
 - ✅ Admin bypass for hotfixes
 - ✅ OSSF Scorecard: 5.9/10
 
-### 🔮 Next: v0.5.0 (Complete Test Coverage)
+### ✅ v0.5.0 BETA (Completed - October 2025)
 
-**Target:** December 2025
+**Test Coverage Expansion & Security Fixes:**
+- ✅ **CRITICAL:** Fixed 4 command injection vulnerabilities (29 test cases)
+- ✅ internal/grpc: 0% → 87.6% coverage (exceeded >80% target!)
+- ✅ internal/ocserv: 15.8% → 23.1% coverage
+- ✅ Overall internal: ~40% → 51.2% (+11.2%)
+- ✅ 1,600+ new lines of test code
+- ✅ Test infrastructure: TLS certificate helpers, security validation
+- ✅ validateArguments: 100% coverage (security-first testing)
+
+### 🔮 Next: v0.6.0 (Security Hardening & Integration Tests)
+
+**Target:** January 2026
 
 **Goals:**
-- Achieve >80% overall test coverage
-- Unit tests for internal/grpc (server, handlers)
-- Unit tests for internal/ocserv (manager, occtl, systemctl)
+- OSSF Scorecard: 7.5+/10 (GPG signing, dependency pinning, token permissions)
 - Integration tests with mock ocserv
+- Rate limiting for gRPC API
+- Security scanning in CI (gosec, trivy)
 
 ### 🔜 Future (v0.6.0+)
 
