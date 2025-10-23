@@ -1,0 +1,58 @@
+agent_id: test-agent-001
+hostname: test-host
+
+control_server:
+  address: control.example.com:9090
+  reconnect:
+    initial_delay: 1s
+    max_delay: 60s
+    multiplier: 2.0
+    max_attempts: 5
+  circuit_breaker:
+    failure_threshold: 5
+    timeout: 30s
+
+tls:
+  enabled: true
+  auto_generate: true
+  cert_file: /tmp/test-certs/agent.crt
+  key_file: /tmp/test-certs/agent.key
+  ca_file: /tmp/test-certs/ca.crt
+  server_name: control.example.com
+  min_version: TLS1.3
+
+ocserv:
+  config_path: /etc/ocserv/ocserv.conf
+  config_per_user_dir: /etc/ocserv/config-per-user
+  config_per_group_dir: /etc/ocserv/config-per-group
+  ctl_socket: /run/ocserv/occtl.socket
+  systemd_service: ocserv
+  backup_dir: /var/lib/ocserv-agent/backups
+
+health:
+  heartbeat_interval: 15s
+  deep_check_interval: 2m
+  metrics_interval: 30s
+
+telemetry:
+  enabled: false
+  endpoint: http://otel-collector:4318
+  service_name: ocserv-agent
+  service_version: 0.3.1
+  sample_rate: 1.0
+
+logging:
+  level: info
+  format: json
+  output: stdout
+  file_path: /var/log/ocserv-agent/agent.log
+  max_size_mb: 100
+  max_backups: 10
+  max_age_days: 30
+
+security:
+  allowed_commands:
+    - occtl
+    - systemctl
+  sudo_user: ocserv-agent
+  max_command_timeout: 300s
