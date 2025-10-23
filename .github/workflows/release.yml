@@ -11,17 +11,6 @@ permissions:
   packages: write
 
 jobs:
-  # Generate SLSA provenance for secure builds
-  build:
-    permissions:
-      id-token: write
-      contents: write
-      actions: read
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
-    with:
-      base64-subjects: "${{ needs.build-artifacts.outputs.hashes }}"
-      upload-assets: true
-
   build-artifacts:
     runs-on: ubuntu-latest
     outputs:
@@ -120,6 +109,18 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # Generate SLSA provenance for secure builds
+  build:
+    needs: [build-artifacts]
+    permissions:
+      id-token: write
+      contents: write
+      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: "${{ needs.build-artifacts.outputs.hashes }}"
+      upload-assets: true
+
   # Create GitHub Release
   release:
     needs: [build-artifacts, build]
@@ -161,12 +162,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist/*
-            ${{ needs.build.outputs.provenance-name }}
+          files: dist/*
           body_path: release_notes.md
           draft: false
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

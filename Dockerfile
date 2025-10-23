@@ -20,7 +20,7 @@ RUN go mod download
 COPY . .
 
 # Generate protobuf code
-RUN protoc --go_out=. --go-grpc_out=. \
+RUN protoc -I. -I/usr/include --go_out=. --go-grpc_out=. \
     --go_opt=paths=source_relative \
     --go-grpc_opt=paths=source_relative \
     pkg/proto/agent/v1/agent.proto
