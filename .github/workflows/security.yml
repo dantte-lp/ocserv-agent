@@ -3,8 +3,22 @@ name: Security
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
+      - '**.yaml'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docs/**'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
+      - '**.yaml'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docs/**'
   schedule:
     # Run weekly on Monday at 00:00 UTC
     - cron: '0 0 * * 1'
