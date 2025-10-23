@@ -11,6 +11,9 @@ services:
     volumes:
       - ../../:/workspace:z
       - go-test-cache:/go/pkg
+      # Share mock socket volume for integration tests
+      - mock-socket:/var/run:z
+      - ../../test/fixtures:/fixtures:ro,z
     environment:
       - CGO_ENABLED=0
       - GOCOVERDIR=/workspace/coverage
@@ -27,17 +30,33 @@ services:
         go tool cover -func=coverage.out
         go tool cover -html=coverage.out -o coverage.html
 
+        # Wait for mock socket to be ready
+        echo "▶ Waiting for mock socket..."
+        timeout=30
+        while [ ! -S /var/run/occtl.socket ] && [ $timeout -gt 0 ]; do
+          echo "  Waiting for socket... ($timeout)"
+          sleep 1
+          timeout=$((timeout-1))
+        done
+
+        if [ ! -S /var/run/occtl.socket ]; then
+          echo "❌ Mock socket not ready after 30 seconds"
+          exit 1
+        fi
+
+        echo "✅ Mock socket ready"
+
         # Integration tests
-        echo "▶ Integration tests"
-        go test -v -tags=integration ./test/integration/... || echo "No integration tests yet"
+        echo "▶ Integration tests (occtl)"
+        go test -v -tags=integration -count=1 ./internal/ocserv/... || exit 1
 
         echo "✅ All tests passed!"
       '
     networks:
       - test-net
     depends_on:
-      - mock-control-server
-      - mock-ocserv
+      mock-ocserv:
+        condition: service_healthy
 
   # ═══════════════════════════════════════════════
   # Lint & Static Analysis
@@ -90,15 +109,30 @@ services:
     networks:
       - test-net
 
+  # Mock ocserv Unix socket server for integration tests
   mock-ocserv:
-    image: debian:trixie-slim
+    build:
+      context: ../../
+      dockerfile: test/mock-ocserv/Dockerfile
+    container_name: ocserv-agent-mock-ocserv
+    image: ocserv-agent-mock-ocserv:latest
     volumes:
-      - ../../test/mock-ocserv:/opt/mock:z
-    command: sh -c 'apt-get update && apt-get install -y iproute2 && /opt/mock/run-mock.sh || sleep infinity'
+      - ../../test/fixtures:/fixtures:ro,z
+      # Share socket with test container
+      - mock-socket:/var/run:z
+    environment:
+      - SOCKET_PATH=/var/run/occtl.socket
+      - FIXTURES_PATH=/fixtures/ocserv/occtl
+    command: ["-socket", "/var/run/occtl.socket", "-fixtures", "/fixtures/ocserv/occtl", "-verbose"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/occtl.socket"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     networks:
       - test-net
-    cap_add:
-      - NET_ADMIN
 
 networks:
   test-net:
@@ -107,3 +141,5 @@ networks:
 volumes:
   go-test-cache:
   golangci-cache:
+  mock-socket:
+    driver: local

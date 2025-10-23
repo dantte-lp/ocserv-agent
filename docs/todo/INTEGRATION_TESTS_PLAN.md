@@ -25,12 +25,12 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 ## 📊 Progress Tracking
 
 **Phase 1: Infrastructure Setup** [3/3] ✅✅✅ **COMPLETE!**
-**Phase 2: Occtl Integration Tests** [0/4] ⬜⬜⬜⬜
+**Phase 2: Occtl Integration Tests** [1/4] ✅⬜⬜⬜
 **Phase 3: Systemctl Integration Tests** [0/3] ⬜⬜⬜
 **Phase 4: gRPC End-to-End Tests** [0/3] ⬜⬜⬜
 **Phase 5: Remote Server Testing** [0/2] ⬜⬜
 
-**Total Progress:** 3/15 (20.0%)
+**Total Progress:** 4/15 (26.7%)
 
 ---
 
@@ -195,8 +195,8 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 
 ## 🧪 Phase 2: Occtl Integration Tests (4 tasks)
 
-### Task 2.1: Setup test infrastructure for occtl
-**Status:** PENDING | **Priority:** HIGH | **Time:** 30 min
+### ✅ Task 2.1: Setup test infrastructure for occtl
+**Status:** ✅ COMPLETED (2025-10-23) | **Priority:** HIGH | **Time:** 30 min
 
 **Objectives:**
 - Create test helpers for starting/stopping mock socket
@@ -204,18 +204,41 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 - Cleanup functions for resources
 - Test utilities for common operations
 
-**Files to create:**
-- `internal/ocserv/occtl_integration_test.go`
-- `internal/ocserv/testutil/socket_helper.go`
-- `internal/ocserv/testutil/fixtures.go`
+**Files created:**
+- ✅ `internal/ocserv/occtl_integration_test.go` - Integration tests with build tag `//go:build integration`
+- ✅ `internal/ocserv/testutil/mock.go` - Mock socket server helper with compose and local modes
+- ✅ `internal/ocserv/testutil/fixtures.go` - Fixture loading, validation, and utilities
+- ✅ `internal/ocserv/testutil/helpers.go` - Common test helpers (logger, context, assertions)
+
+**Compose integration:**
+- ✅ Updated `deploy/compose/docker-compose.test.yml` to use mock-ocserv
+- ✅ Shared volume `mock-socket` for Unix socket communication
+- ✅ Health check dependency: test waits for mock socket to be ready
+- ✅ Integration tests run with: `make compose-test`
 
 **Acceptance criteria:**
-- ✅ Can start mock socket in tests
+- ✅ Can start mock socket in tests (via compose)
 - ✅ Automatic cleanup after tests
-- ✅ Test fixtures load correctly
-- ✅ Parallel test support
+- ✅ Test fixtures load correctly (14 fixtures validated)
+- ✅ Parallel test support (concurrent request test included)
 
-**Dependencies:** Task 1.3
+**Test coverage created:**
+- ✅ `TestFixturesValidation` - Validates all 14 fixtures
+- ✅ `TestMockSocketConnection` - Basic socket connectivity
+- ✅ `TestShowUsers` - ShowUsers command with validation
+- ✅ `TestShowUsersDetailed` - Detailed user information
+- ✅ `TestShowStatusDetailed` - Server status command
+- ✅ `TestShowSessions` - Session management (all/valid)
+- ✅ `TestShowIRoutes` - User routes
+- ✅ `TestShowIPBanPoints` - IP ban points
+- ✅ `TestContextTimeout` - Timeout handling
+- ✅ `TestConcurrentRequests` - Concurrent access (10 parallel requests)
+
+**Dependencies:** Task 1.3 ✅
+
+**Next steps:**
+- Run integration tests: `make compose-test`
+- Expand test coverage in Task 2.2-2.4
 
 ---
 
