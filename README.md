@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dantte-lp/ocserv-agent?include_prereleases)](https://github.com/dantte-lp/ocserv-agent/releases)
 [![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1)
+[![Test Coverage](https://img.shields.io/badge/coverage-97.1%25%20(config)-brightgreen)](https://github.com/dantte-lp/ocserv-agent/pull/14)
 
 [![CI](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml)
 [![Lint](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml)
@@ -23,6 +24,11 @@ ocserv-agent is a **production-tested BETA** agent that runs on each ocserv inst
 - ✅ 13/16 occtl commands working (3 broken due to upstream ocserv bugs)
 - ✅ Security hardening: mTLS, command validation, audit logging
 - ✅ OSSF Scorecard: 5.9/10 (improving to 7.5+/10 in v0.4.0)
+
+**In Development:** [v0.4.0](docs/releases/v0.4.0.md) - Unit Tests & Test Infrastructure
+- 🚧 Unit tests for internal/config: 97.1% coverage ✅ ([PR #14](https://github.com/dantte-lp/ocserv-agent/pull/14))
+- 🎯 Target: >80% overall test coverage
+- 📋 Next: Unit tests for cert, grpc, ocserv packages
 
 ### Architecture
 
@@ -166,6 +172,7 @@ make compose-build
 - [ocserv Compatibility](docs/todo/OCSERV_COMPATIBILITY.md) - Feature coverage analysis
 
 ### Releases
+- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) - Unit tests & test infrastructure (In Development)
 - [v0.3.1 Release Notes](docs/releases/v0.3.1.md) - Critical bugfixes + documentation (Oct 2025)
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) - Certificate auto-generation (Oct 2025)
 
@@ -424,7 +431,16 @@ We actively contribute bug reports and fixes to the ocserv project:
 - ✅ [Issue #661](https://gitlab.com/openconnect/ocserv/-/issues/661#note_2839397707) - Root cause analysis for `show iroutes` bug
 - ✅ [Issue #669](https://gitlab.com/openconnect/ocserv/-/issues/669) - Reported regression of #220
 
-### 🚧 v0.4.0 Planning (Next Release)
+### 🚧 v0.4.0 In Development (Unit Tests & Test Infrastructure)
+
+**Unit Tests (Target: >80% overall coverage):**
+- ✅ internal/config: 97.1% coverage ([PR #14](https://github.com/dantte-lp/ocserv-agent/pull/14))
+  - Config loading, validation, env overrides
+  - TLS settings, security validation
+  - Test fixtures infrastructure
+- [ ] internal/cert: Certificate generation and management
+- [ ] internal/grpc: gRPC server and handlers
+- [ ] internal/ocserv: ocserv integration and command execution
 
 **OSSF Scorecard Improvements (Target: 7.5+/10):**
 - [ ] Setup branch protection rules (require PR, code review)
@@ -433,15 +449,9 @@ We actively contribute bug reports and fixes to the ocserv project:
 - [ ] Pin GitHub Actions to SHA hashes (22 dependencies)
 - [ ] Pin Docker base images to digests
 
-**Core Features:**
-- [ ] StreamLogs RPC implementation
-- [ ] ocpasswd wrapper for user management
-- [ ] UpdateConfig RPC with backup/rollback
-- [ ] Unit tests (>80% coverage)
-
-**Documentation:**
-- [ ] Integration tests with mock ocserv
-- [ ] Performance testing guide
+**Progress:**
+- Tests: 97.1% for config package, targeting >80% overall
+- Status: [v0.4.0 Release Notes](docs/releases/v0.4.0.md) (in development)
 
 ### 🔮 Future (v0.5.0+)
 
