@@ -10,6 +10,13 @@ This directory contains real output from a production ocserv deployment, useful 
 - Reference for implementing missing commands
 - Validation of data types and field names
 
+**IMPORTANT:** Some example files contain multiple command outputs copied together
+for convenience. Each individual `occtl` command returns a single JSON array.
+For example:
+- `occtl -j show user test` returns one array: `[{...}]`
+- `occtl -j show user lpa` returns one array: `[{...}]`
+- The example file may contain both outputs separated by blank lines
+
 ---
 
 ## Available Examples
@@ -142,24 +149,30 @@ This directory contains real output from a production ocserv deployment, useful 
 ---
 
 ### occtl -j show user
-**Format:** Multiple JSON arrays (one per session)
+**Format:** Single JSON array
 **Description:** Detailed information about specific user
 
-**IMPORTANT:** When a user has multiple active sessions, occtl returns multiple
-JSON arrays separated by empty lines. Each array contains one element representing
-one session.
+**IMPORTANT:** Returns one JSON array. If a user has multiple active sessions,
+the array will contain multiple elements (one per session).
 
-**Example structure:**
-```
-[{...user session 1...}]
-
-[{...user session 2...}]
+**Example structure for single session:**
+```json
+[{...user session...}]
 ```
 
-**Example:** File contains two separate arrays - one for user "lpa" (ID 835312)
-and one for user "test" (ID 836625).
+**Example structure for multiple sessions:**
+```json
+[
+  {...user session 1...},
+  {...user session 2...}
+]
+```
 
-**Implementation note:** Parse by splitting on `\n\n` and unmarshaling each part separately.
+**Example file contents:** Contains two separate command outputs:
+- Lines 1-44: `occtl -j show user test` output (one session)
+- Lines 46-90: `occtl -j show user lpa` output (one session)
+
+**Implementation note:** Simply parse the JSON array directly with `json.Unmarshal()`.
 
 ---
 
@@ -167,7 +180,11 @@ and one for user "test" (ID 836625).
 **Format:** Single JSON array with one element
 **Description:** Detailed information about specific connection ID
 
-**Example:** File contains two separate examples - ID 836625 (test) and ID 836769 (lpa)
+**Example file contents:** Contains two separate command outputs:
+- Lines 1-44: `occtl -j show id 836625` (test user)
+- Lines 46-90: `occtl -j show id 836769` (lpa user)
+
+**Real output:** Single array with one element: `[{...connection details...}]`
 
 **Also available:** `occtl show id` (plain text format)
 
@@ -203,6 +220,20 @@ and one for user "test" (ID 836625).
 **Description:** Sessions valid for reconnection (cookie-based)
 
 **Structure:** Same as "show sessions all" but filtered
+
+---
+
+### occtl -j show session
+**Format:** Single JSON array with one element
+**Description:** Details for a specific session ID
+
+**Example file contents:** Contains two separate command outputs:
+- Lines 1-17: `occtl -j show session DN4npe` (lpa user)
+- Lines 19-35: `occtl -j show session Y662UR` (test user)
+
+**Real output:** Single array with one element: `[{...session details...}]`
+
+**Structure:** Same fields as "show sessions all" but for one specific session
 
 ---
 
@@ -327,31 +358,18 @@ func (m *OcctlManager) ShowUser(ctx context.Context, username string) ([]UserDet
         return nil, err
     }
 
-    var allUsers []UserDetailed
-
-    // Split by empty lines to separate multiple JSON arrays
-    parts := strings.Split(output, "\n\n")
-    for _, part := range parts {
-        part = strings.TrimSpace(part)
-        if part == "" {
-            continue
-        }
-
-        var users []UserDetailed
-        if err := json.Unmarshal([]byte(part), &users); err != nil {
-            m.logger.Warn().Err(err).Msg("Failed to parse user array")
-            continue
-        }
-
-        allUsers = append(allUsers, users...)
+    // Parse JSON array (can contain multiple sessions for same user)
+    var users []UserDetailed
+    if err := json.Unmarshal([]byte(output), &users); err != nil {
+        return nil, fmt.Errorf("failed to parse user details: %w", err)
     }
 
-    return allUsers, nil
+    return users, nil
 }
 ```
 
 3. **Handle edge cases:**
-   - **Multiple sessions per user:** `show user` can return multiple arrays
+   - **Multiple sessions per user:** Array can contain multiple elements
    - **Optional fields:** Hostname, DTLS cipher, CSTP/DTLS compression
    - **Empty arrays vs null:** Handle both cases
    - **Routes field:** Can be string ("defaultroute") or []string

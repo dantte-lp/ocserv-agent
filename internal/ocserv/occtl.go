@@ -151,7 +151,7 @@ func (m *OcctlManager) DisconnectID(ctx context.Context, id string) error {
 }
 
 // ShowUser retrieves detailed information about a specific user
-// Note: Can return multiple results if user has multiple active sessions
+// Note: Returns array - multiple elements if user has multiple active sessions
 func (m *OcctlManager) ShowUser(ctx context.Context, username string) ([]UserDetailed, error) {
 	m.logger.Debug().Str("username", username).Msg("Getting user details")
 
@@ -160,33 +160,18 @@ func (m *OcctlManager) ShowUser(ctx context.Context, username string) ([]UserDet
 		return nil, fmt.Errorf("failed to get user %s: %w (stderr: %s)", username, err, stderr)
 	}
 
-	// Output may contain multiple JSON arrays separated by newlines
-	// Split and parse each array
-	var allUsers []UserDetailed
-
-	// Split by empty lines to separate multiple JSON arrays
-	parts := strings.Split(stdout, "\n\n")
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		var users []UserDetailed
-		if err := json.Unmarshal([]byte(part), &users); err != nil {
-			m.logger.Warn().Err(err).Str("part", part).Msg("Failed to parse user array")
-			continue
-		}
-
-		allUsers = append(allUsers, users...)
+	// Parse JSON array (can contain multiple sessions for same user)
+	var users []UserDetailed
+	if err := json.Unmarshal([]byte(stdout), &users); err != nil {
+		return nil, fmt.Errorf("failed to parse user details: %w", err)
 	}
 
 	m.logger.Debug().
 		Str("username", username).
-		Int("count", len(allUsers)).
+		Int("count", len(users)).
 		Msg("Retrieved user details")
 
-	return allUsers, nil
+	return users, nil
 }
 
 // ShowID retrieves detailed information about a specific connection ID
