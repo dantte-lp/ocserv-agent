@@ -120,6 +120,9 @@ make compose-build
 - [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
 - [Release Notes](docs/releases/v0.3.0.md) - Version history and changes
 - [Configuration Guide](config.yaml.example) - All configuration options
+- [Certificate Management](docs/CERTIFICATES.md) - TLS/mTLS setup guide
+- [gRPC Testing Guide](docs/GRPC_TESTING.md) - Test gRPC API with grpcurl
+- [Local Testing Guide](docs/LOCAL_TESTING.md) - Development and CI testing
 
 ## 🔧 Configuration
 

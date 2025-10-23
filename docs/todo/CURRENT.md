@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 783984f - docs: update DONE.md and BACKLOG.md with v0.3.0 achievements
-**Status:** v0.3.0 BETA - All documentation updated, ready for production testing
+**Last Commit:** cb1f848 - feat(grpc): add gRPC reflection support for grpcurl testing
+**Status:** v0.3.0 BETA - gRPC reflection enabled, production testing in progress
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -119,6 +119,9 @@ All critical Phase 2 tasks done ✅
 - ✅ Documentation updates for unified pipeline (8500b69)
 - ✅ Fix VERSION variable expansion in docker-compose (4a83924)
 - ✅ Fix command order for RAW binaries (0161ffc)
+- ✅ gRPC reflection support for grpcurl testing (cb1f848)
+- ✅ Production deployment and testing scripts (deploy-and-test.sh, test-grpc.sh)
+- ✅ gRPC testing documentation (GRPC_TESTING.md)
 
 ## 🔴 Critical (Next Steps - v0.4.0)
 
