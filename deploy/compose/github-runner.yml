@@ -29,8 +29,8 @@ services:
       # Mount Docker socket for Docker-in-Docker (if needed)
       # - /var/run/docker.sock:/var/run/docker.sock
 
-      # Persistent runner work directory
-      - runner-work:/home/runner/_work
+      # Note: _work directory uses container storage (no persistent volume needed)
+      # GitHub Actions clones repos fresh for each job
 
     # Privileged mode for podman-in-podman (if needed)
     privileged: false
@@ -42,10 +42,6 @@ services:
     # Network
     networks:
       - runner-net
-
-volumes:
-  runner-work:
-    driver: local
 
 networks:
   runner-net:
