@@ -40,8 +40,8 @@
 **Coverage goal:** 51.2% → 75-80%
 
 **Remote Server:**
-- Host: 195.238.126.25 (ocserv 1.3 + active VPN users)
-- Current agent: v0.3.0-24-groutes
+- Configuration: Use `.env` file (see `.env.example` for RFC 5737 template)
+- Current setup: ocserv 1.3 + agent v0.3.0-24-groutes + active VPN users
 - **CRITICAL:** Do NOT break existing VPN service
 
 ### OSSF Scorecard Improvements (HIGH PRIORITY)

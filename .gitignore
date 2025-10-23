@@ -72,3 +72,4 @@ deploy/compose/security-results/
 
 # Build cache
 .cache/
+.env

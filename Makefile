@@ -1,5 +1,6 @@
 .PHONY: all build test proto clean install help
 .PHONY: compose-dev compose-test compose-build compose-down compose-logs compose-clean
+.PHONY: compose-ansible ansible-shell
 .PHONY: local-build local-test local-proto setup-compose
 .PHONY: security-check security-gosec security-govulncheck security-trivy
 .PHONY: build-all build-all-security build-all-test build-all-build
@@ -27,6 +28,10 @@ help:
 	@echo "  make compose-down    - Stop all services"
 	@echo "  make compose-logs    - View logs"
 	@echo "  make compose-clean   - Clean volumes"
+	@echo ""
+	@echo "🤖 Ansible Deployment:"
+	@echo "  make compose-ansible - Start Ansible environment"
+	@echo "  make ansible-shell   - Enter Ansible container shell"
 	@echo ""
 	@echo "🔒 Security Testing (Podman Compose):"
 	@echo "  make security-check       - Run all security scans"
@@ -95,6 +100,17 @@ compose-logs:
 compose-clean:
 	@echo "🧹 Cleaning compose volumes..."
 	podman volume rm ocserv-agent_go-cache ocserv-agent_go-build-cache ocserv-agent_go-test-cache || true
+
+compose-ansible:
+	@echo "🤖 Starting Ansible environment..."
+	@echo "⚠️  Make sure to configure .env file first (see .env.example)"
+	cd deploy/compose && podman-compose -f ansible.yml up -d
+	@echo "✅ Ansible environment ready!"
+	@echo "Run: make ansible-shell to enter container"
+
+ansible-shell:
+	@echo "🐚 Entering Ansible container..."
+	podman exec -it ocserv-agent-ansible bash
 
 # ═══════════════════════════════════════════════
 # Setup

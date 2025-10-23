@@ -73,15 +73,16 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 - Setup logging for test runs
 
 **Files to create:**
-- `deploy/ansible/inventory/production.yml` (195.238.126.25)
+- `deploy/ansible/inventory/production.yml` (uses ${REMOTE_HOST} from .env)
 - `deploy/ansible/playbooks/setup-test-user.yml`
 - `deploy/ansible/playbooks/verify-ocserv.yml`
 - `deploy/ansible/playbooks/deploy-agent.yml`
 - `deploy/ansible/roles/test-user/tasks/main.yml`
+- `.env.example` (RFC 5737 example: 192.0.2.1)
 
 **Server details:**
-- Host: 195.238.126.25
-- User: root (initial), will create test user
+- Host: Configured via `.env` file (REMOTE_HOST, see `.env.example`)
+- User: Configured via `.env` file (REMOTE_USER, REMOTE_PASSWORD)
 - Current: ocserv 1.3, ocserv-agent v0.3.0-24-groutes
 - **CRITICAL:** Do NOT break existing setup!
 
@@ -429,7 +430,7 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 **Blocked by:** Task 1.1, Task 1.2
 
 **Objectives:**
-- Deploy new agent version to 195.238.126.25
+- Deploy new agent version to remote server (configured via .env)
 - Backup old agent (v0.3.0-24-groutes)
 - Update configuration
 - Restart agent service
@@ -547,6 +548,8 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 ## 📝 Notes
 
 ### Remote Server Safety
+- **Configuration:** Set REMOTE_HOST, REMOTE_USER, REMOTE_PASSWORD in `.env` file
+- **Example (RFC 5737):** See `.env.example` for template
 - **Existing setup:** ocserv 1.3 + old agent v0.3.0-24-groutes
 - **Active users:** Real VPN users connected
 - **CRITICAL:** Do NOT break existing VPN service

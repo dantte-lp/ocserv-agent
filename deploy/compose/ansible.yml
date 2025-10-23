@@ -1,0 +1,45 @@
+services:
+  ansible:
+    image: python:3.14-slim-trixie
+    container_name: ocserv-agent-ansible
+    working_dir: /workspace
+    volumes:
+      - ../ansible:/workspace:z
+      - ../../:/project:ro,z
+      - ~/.ssh:/root/.ssh:ro,z
+    environment:
+      - ANSIBLE_CONFIG=/workspace/ansible.cfg
+      - ANSIBLE_FORCE_COLOR=1
+      - PYTHONUNBUFFERED=1
+      # Remote server credentials (from .env file)
+      - REMOTE_HOST=${REMOTE_HOST:-192.0.2.1}
+      - REMOTE_USER=${REMOTE_USER:-root}
+      - REMOTE_PASSWORD=${REMOTE_PASSWORD}
+    env_file:
+      - ../../.env
+    command: >
+      bash -c "
+        set -e
+        echo '==> Installing Poetry 2.2...'
+        curl -sSL https://install.python-poetry.org | python3 - --version 2.2.0
+        export PATH=\"/root/.local/bin:\$PATH\"
+        poetry --version
+
+        echo '==> Installing Ansible and dependencies...'
+        poetry install --no-root
+
+        echo '==> Verifying Ansible installation...'
+        poetry run ansible --version
+
+        echo '==> Ansible environment ready!'
+        echo 'Run: podman-compose -f deploy/compose/ansible.yml run --rm ansible poetry run ansible-playbook ...'
+
+        # Keep container running for interactive use
+        tail -f /dev/null
+      "
+    networks:
+      - ocserv-agent-test
+
+networks:
+  ocserv-agent-test:
+    driver: bridge
