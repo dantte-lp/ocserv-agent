@@ -1,7 +1,8 @@
 # Dockerfile for mock-ocserv Unix socket server
 # Multi-stage build for minimal final image
+# Base images: golang:1.25-trixie (build), debian:trixie-slim (runtime)
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.25-trixie AS builder
 
 WORKDIR /build
 
@@ -15,13 +16,15 @@ RUN go mod download
 COPY test/mock-ocserv/*.go ./
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o mock-ocserv .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o mock-ocserv .
 
-# Final stage - minimal image
-FROM alpine:latest
+# Final stage - minimal Debian runtime
+FROM debian:trixie-slim
 
-# Install ca-certificates for HTTPS (if needed in future)
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates (standard for all project images)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

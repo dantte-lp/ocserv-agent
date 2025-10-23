@@ -184,7 +184,7 @@ Blockers are tasks that prevent other tasks from starting. They must be resolved
 - Test with real ocserv-agent OcctlManager
 
 **Compose Integration (added 2025-10-23):**
-- ✅ Dockerfile: Multi-stage build (golang:1.25-alpine → alpine)
+- ✅ Dockerfile: Multi-stage build (golang:1.25-trixie → debian:trixie-slim)
 - ✅ deploy/compose/mock-ocserv.yml with health checks
 - ✅ Makefile: `make compose-mock-ocserv` target
 - ✅ Shared volume for Unix socket
