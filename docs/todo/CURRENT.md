@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** b4ac820 - security fix golang.org/x/net (0.34.0 → 0.38.0)
-**Status:** v0.2.1 BETA prepared - CI/CD infrastructure complete
+**Last Commit:** 4b65e05 - fix(docker): add libprotobuf-dev for well-known proto types
+**Status:** v0.3.0 BETA published - All platforms released, container build fixed
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -24,7 +24,7 @@ All critical Phase 2 tasks done ✅
 - ✅ Production-tested types (DTLS, compression, multiple sessions)
 - ✅ Full occtl compatibility (100%)
 
-**For v0.3.0+:**
+**For v0.4.0+:**
 - [ ] ShowEvents() streaming support (requires ServerStream RPC)
 - [ ] ocpasswd wrapper
 - [ ] UpdateConfig RPC
@@ -63,7 +63,49 @@ All critical Phase 2 tasks done ✅
 - ✅ golang.org/x/net 0.34.0 → 0.38.0 (security fix)
 - ✅ Dependabot configuration (auto updates)
 
-## 🔴 Critical (Next Steps - Phase 3 Continued)
+## 🎉 v0.3.0: Certificate Auto-Generation - COMPLETED!
+
+**Certificate Management (internal/cert):**
+- ✅ Self-signed certificate generation (ECDSA P-256)
+- ✅ Auto-generate on first run (bootstrap mode)
+- ✅ CLI commands: gencert, help, version
+- ✅ SHA256 fingerprint calculation
+- ✅ Proper permissions (0644 certs, 0600 keys)
+
+**Config Auto-Generate:**
+- ✅ `auto_generate: true` option in TLS config
+- ✅ Bootstrap certificates on config load
+- ✅ Conditional validation (skip if auto_generate)
+- ✅ Informative console output with warnings
+
+**Build Improvements:**
+- ✅ Versioned tar.gz archives (ocserv-agent-{version}-{os}-{arch}.tar.gz)
+- ✅ FreeBSD support (amd64, arm64)
+- ✅ SHA256 checksums for all archives
+- ✅ SLSA Level 3 provenance
+
+**Documentation:**
+- ✅ docs/CERTIFICATES.md - Complete certificate guide
+- ✅ TESTING_PROD.md - Production testing guide
+- ✅ Sanitized sensitive data (RFC examples)
+
+**Bug Fixes:**
+- ✅ Go 1.24 covdata tool issue (toolchain directive)
+- ✅ CI test matrix (Go 1.25 only)
+
+**Status:** BETA - Published with all platforms (Linux + FreeBSD, amd64 + arm64)
+
+**Release Assets:**
+- ✅ 4 platform binaries with SHA256 checksums
+- ✅ SLSA Level 3 provenance attestation
+- ✅ Marked as pre-release (BETA status)
+- ✅ Complete release notes and documentation
+
+**Post-Release Fixes:**
+- ✅ SLSA workflow job dependency ordering
+- ✅ Container build protobuf include paths (libprotobuf-dev)
+
+## 🔴 Critical (Next Steps - v0.4.0)
 
 ### Based on ocserv 1.3.0 Compatibility Analysis
 
@@ -253,13 +295,22 @@ None yet
   - 612e212: Contributing guide ✅
   - 22f38cc: Platform updates ✅
   - b4ac820: Security fix (golang.org/x/net) ✅
+  - 07d02ed: v0.2.1 release notes ✅
+  - 208021b: Certificate auto-generation ✅
+  - 520a42b: Versioned archive packaging ✅
+  - 2d50a1c: Sanitize sensitive data ✅
+  - a710481: Fix Go toolchain issue ✅
+  - 084a0b5: v0.3.0 release notes ✅
+  - 68185df: Fix release workflow and Docker build ✅
+  - 4b65e05: Add libprotobuf-dev for proto types ✅
 
-- **Tests:** 0% coverage (tests planned for v0.3.0+)
+- **Tests:** 0% coverage (tests planned for v0.4.0+)
 - **Documentation:** 100% complete
-- **Release notes:** v0.2.1 BETA prepared
+- **Release notes:** v0.3.0 BETA released
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
 - **Phase 3:** COMPLETED (100%) ✅ - All occtl commands
 - **v0.2.1:** COMPLETED (100%) ✅ - CI/CD infrastructure
-- **Current:** Ready for v0.2.1 tag and release
-- **Next Phase:** Phase 4 - Streaming, ocpasswd, UpdateConfig (v0.3.0)
+- **v0.3.0:** COMPLETED (100%) ✅ - Certificate auto-generation
+- **Current:** v0.3.0 BETA published on GitHub - ready for production testing
+- **Next Phase:** v0.4.0 - Streaming, ocpasswd, UpdateConfig, Unit tests
