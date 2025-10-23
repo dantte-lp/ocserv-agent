@@ -1,97 +1,97 @@
 # Local Testing Guide
 
-Экономьте часы GitHub Actions, проводя тесты локально перед пушем!
+Save hours of GitHub Actions time by testing locally before pushing!
 
-## 🎯 Полный Pipeline (Рекомендуется)
+## 🎯 Full Pipeline (Recommended)
 
-**Новое!** Unified build script для запуска всего CI/CD pipeline локально:
+**New!** Unified build script to run the complete CI/CD pipeline locally:
 
 ```bash
-# Запустить всё: security + tests + build
+# Run everything: security + tests + build
 make build-all
 
-# Или по отдельности:
+# Or run individually:
 make build-all-security  # Security scans (gosec, govulncheck, trivy)
 make build-all-test      # Unit tests + linting
 make build-all-build     # Multi-platform builds (4 platforms)
 ```
 
-Что запускается:
+What gets executed:
 - ✅ **Security scans**: gosec (with SARIF fix), govulncheck, trivy
 - ✅ **Unit tests**: coverage report, race detector
 - ✅ **Linting**: golangci-lint (30+ linters)
 - ✅ **Multi-platform build**: Linux/FreeBSD × amd64/arm64
 - ✅ **Artifacts**: tar.gz archives + SHA256 checksums
 
-Результаты сохраняются в:
-- `deploy/compose/security-results/` - SARIF и JSON отчеты
-- `bin/` - бинарники и checksums
-- `coverage.out`, `coverage.html` - покрытие тестов
+Results are saved to:
+- `deploy/compose/security-results/` - SARIF and JSON reports
+- `bin/` - binaries and checksums
+- `coverage.out`, `coverage.html` - test coverage
 
-**Преимущества:**
-- 🚀 Один скрипт запускает всё
-- 🐳 Всё работает в контейнерах (изолировано)
-- 💰 Экономия минут GitHub Actions
-- 🔍 Раннее обнаружение проблем
+**Benefits:**
+- 🚀 One script runs everything
+- 🐳 Everything runs in containers (isolated)
+- 💰 Save GitHub Actions minutes
+- 🔍 Early problem detection
 
-## 🚀 Быстрая проверка (2-3 секунды)
+## 🚀 Quick Check (2-3 seconds)
 
-Для быстрой проверки перед коммитом:
+For a quick check before committing:
 
 ```bash
 ./scripts/quick-check.sh
 ```
 
-Проверяет:
-- ✅ Форматирование кода (gofmt)
+Checks:
+- ✅ Code formatting (gofmt)
 - ✅ go vet
-- ✅ Сборка проекта
-- ✅ Базовые тесты
+- ✅ Project build
+- ✅ Basic tests
 
-## 🔬 Полная проверка (как в CI)
+## 🔬 Full Check (Like CI)
 
-Для полной проверки перед пушем в GitHub:
+For a complete check before pushing to GitHub:
 
 ```bash
 ./scripts/test-local.sh
 ```
 
-Проверяет всё, что проверяет GitHub Actions:
-- ✅ Генерация protobuf кода
-- ✅ Проверка зависимостей (go mod verify)
-- ✅ Форматирование (gofmt)
+Checks everything that GitHub Actions checks:
+- ✅ Protobuf code generation
+- ✅ Dependency verification (go mod verify)
+- ✅ Formatting (gofmt)
 - ✅ go vet
 - ✅ go mod tidy
-- ✅ Тесты с race detector и coverage
-- ✅ Сборка для всех платформ (Linux/FreeBSD, amd64/arm64)
-- ✅ Линтеры (golangci-lint, markdownlint, yamllint)
-- ⚠️ Проверка безопасности (опционально, медленно)
+- ✅ Tests with race detector and coverage
+- ✅ Build for all platforms (Linux/FreeBSD, amd64/arm64)
+- ✅ Linters (golangci-lint, markdownlint, yamllint)
+- ⚠️ Security checks (optional, slow)
 
-## ⚙️ Настройка переменных
+## ⚙️ Environment Variables
 
 ```bash
-# Пропустить тесты
+# Skip tests
 RUN_TESTS=false ./scripts/test-local.sh
 
-# Пропустить линтеры
+# Skip linters
 RUN_LINT=false ./scripts/test-local.sh
 
-# Включить проверку безопасности (медленно)
+# Enable security checks (slow)
 RUN_SECURITY=true ./scripts/test-local.sh
 
-# Пропустить сборку бинарников
+# Skip binary builds
 RUN_BUILD=false ./scripts/test-local.sh
 
-# Пропустить генерацию protobuf
+# Skip protobuf generation
 SKIP_PROTO=true ./scripts/test-local.sh
 
-# Комбинация
+# Combination
 RUN_SECURITY=true RUN_BUILD=false ./scripts/test-local.sh
 ```
 
-## 📦 Установка инструментов
+## 📦 Tool Installation
 
-### Обязательные (для полной проверки)
+### Required (for full check)
 
 ```bash
 # Go tools
@@ -105,7 +105,7 @@ sudo apt-get install protobuf-compiler
 curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
 ```
 
-### Опциональные (для линтеров)
+### Optional (for linters)
 
 ```bash
 # Markdown lint
@@ -115,7 +115,7 @@ npm install -g markdownlint-cli
 pip install yamllint
 ```
 
-### Для проверки безопасности
+### For security checks
 
 ```bash
 # gosec (static security analyzer)
@@ -125,85 +125,85 @@ go install github.com/securego/gosec/v2/cmd/gosec@latest
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
-## 🎯 Рекомендуемый workflow
+## 🎯 Recommended Workflow
 
-### Перед каждым коммитом
+### Before each commit
 
 ```bash
 ./scripts/quick-check.sh
 ```
 
-### Перед пушем в GitHub
+### Before pushing to GitHub
 
 ```bash
 ./scripts/test-local.sh
 ```
 
-Если всё прошло успешно - можно смело пушить!
+If everything passes - you're good to push!
 
-### Перед релизом
+### Before a release
 
 ```bash
 RUN_SECURITY=true ./scripts/test-local.sh
 ```
 
-## 🔒 Security Testing (локально)
+## 🔒 Security Testing (Locally)
 
-Для запуска security сканирования локально используй Podman Compose:
+To run security scanning locally, use Podman Compose:
 
-### Все security тесты сразу
+### All security tests at once
 
 ```bash
 make security-check
-# или
+# or
 ./scripts/security-check.sh
 ```
 
-Запускает:
-- ✅ **Gosec** - статический анализ безопасности Go кода
-- ✅ **govulncheck** - проверка известных уязвимостей в зависимостях
-- ✅ **Trivy** - сканирование уязвимостей в коде и зависимостях
+Runs:
+- ✅ **Gosec** - Static security analysis for Go code
+- ✅ **govulncheck** - Check for known vulnerabilities in dependencies
+- ✅ **Trivy** - Vulnerability scanning for code and dependencies
 
-### Отдельные тесты
+### Individual tests
 
 ```bash
-# Только Gosec
+# Only Gosec
 make security-gosec
 
-# Только govulncheck
+# Only govulncheck
 make security-govulncheck
 
-# Только Trivy
+# Only Trivy
 make security-trivy
 ```
 
-### Результаты
+### Results
 
-Все результаты сохраняются в `deploy/compose/security-results/`:
+All results are saved to `deploy/compose/security-results/`:
 
 ```bash
-# Просмотр findings
+# View findings
 cat deploy/compose/security-results/gosec-fixed.sarif | jq '.runs[0].results[]'
 cat deploy/compose/security-results/trivy.sarif | jq '.runs[0].results[]'
 cat deploy/compose/security-results/govulncheck.json | jq
 
-# Количество issues
+# Count issues
 jq '.runs[0].results | length' deploy/compose/security-results/gosec-fixed.sarif
 jq '.runs[0].results | length' deploy/compose/security-results/trivy.sarif
 ```
 
-### Почему локально?
+### Why locally?
 
-1. **Быстрее** - результаты за 30-60 секунд vs 3-5 минут в GitHub Actions
-2. **Бесплатно** - не тратятся минуты GitHub Actions
-3. **До коммита** - находишь проблемы до пуша
-4. **GitHub-compatible** - те же SARIF файлы, что и в CI
+1. **Faster** - results in 30-60 seconds vs 3-5 minutes in GitHub Actions
+2. **Free** - doesn't consume GitHub Actions minutes
+3. **Pre-commit** - find issues before pushing
+4. **GitHub-compatible** - same SARIF files as CI
 
-**Важно:** SARIF файлы из `gosec-fixed.sarif` содержат автоматическое исправление проблемного формата Gosec и готовы к загрузке в GitHub Security.
+**Important:** SARIF files in `gosec-fixed.sarif` contain automatic fixes for Gosec's problematic format and are ready for upload to GitHub Security.
 
-## 🔧 Pre-commit Hook (опционально)
+## 🔧 Pre-commit Hook (Optional)
 
-Чтобы автоматически запускать quick-check перед каждым коммитом:
+To automatically run quick-check before each commit:
 
 ```bash
 cat > .git/hooks/pre-commit <<'EOF'
@@ -214,22 +214,22 @@ EOF
 chmod +x .git/hooks/pre-commit
 ```
 
-Отключить на время:
+Temporarily disable:
 ```bash
 git commit --no-verify
 ```
 
-## 📊 Экономия GitHub Actions
+## 📊 GitHub Actions Savings
 
-**Пример:**
-- 1 пуш = ~4-5 минут Actions (CI + Lint + Security)
-- 10 пушей в день = 40-50 минут
-- 30 дней = **1200-1500 минут в месяц**
+**Example:**
+- 1 push = ~4-5 minutes Actions (CI + Lint + Security)
+- 10 pushes per day = 40-50 minutes
+- 30 days = **1200-1500 minutes per month**
 
-С локальными тестами:
-- Локальная проверка = 10-30 секунд
-- Пушить только когда всё работает
-- Экономия = **до 80% Actions minutes** 💰
+With local testing:
+- Local check = 10-30 seconds
+- Push only when everything works
+- Savings = **up to 80% Actions minutes** 💰
 
 ## 🐛 Troubleshooting
 
@@ -247,17 +247,17 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 
 ### "Tests fail locally but pass in CI"
 
-Проверьте версию Go:
+Check Go version:
 ```bash
-go version  # должно быть 1.25+
+go version  # should be 1.25+
 ```
 
 ### "Build fails for FreeBSD"
 
-Это нормально, если вы не на FreeBSD. CI соберёт правильно.
-Можно пропустить: `RUN_BUILD=false ./scripts/test-local.sh`
+This is normal if you're not on FreeBSD. CI will build it correctly.
+You can skip: `RUN_BUILD=false ./scripts/test-local.sh`
 
-## 📝 Что проверяется в CI
+## 📝 What Gets Checked in CI
 
 ### CI Workflow (.github/workflows/ci.yml)
 - ✅ Tests (race detector, coverage)
@@ -286,18 +286,18 @@ go version  # должно быть 1.25+
 
 ## 🎓 Best Practices
 
-1. **Перед коммитом**: `./scripts/quick-check.sh` (быстро)
-2. **Перед пушем**: `./scripts/test-local.sh` (полностью)
-3. **Перед релизом**: `RUN_SECURITY=true ./scripts/test-local.sh` (всё + безопасность)
-4. **В CI**: Автоматически при каждом пуше/PR
+1. **Before committing**: `./scripts/quick-check.sh` (fast)
+2. **Before pushing**: `./scripts/test-local.sh` (complete)
+3. **Before release**: `RUN_SECURITY=true ./scripts/test-local.sh` (everything + security)
+4. **In CI**: Automatically on every push/PR
 
-Это позволяет:
-- 🚀 Быстрее разрабатывать (находить ошибки локально)
-- 💰 Экономить GitHub Actions minutes
-- ✅ Увереннее пушить (знаешь, что CI пройдёт)
-- 🔒 Поддерживать качество кода
+This enables:
+- 🚀 Faster development (find errors locally)
+- 💰 Save GitHub Actions minutes
+- ✅ Confident pushing (you know CI will pass)
+- 🔒 Maintain code quality
 
-## 🔗 Связанные документы
+## 🔗 Related Documents
 
 - [Contributing Guide](../.github/CONTRIBUTING.md)
 - [Workflows Documentation](../.github/WORKFLOWS.md)

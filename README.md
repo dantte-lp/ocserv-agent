@@ -3,6 +3,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/dantte-lp/ocserv-agent?include_prereleases)](https://github.com/dantte-lp/ocserv-agent/releases)
+[![Status](https://img.shields.io/badge/status-BETA-yellow.svg)](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1)
 
 [![CI](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/ci.yml)
 [![Lint](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml/badge.svg)](https://github.com/dantte-lp/ocserv-agent/actions/workflows/lint.yml)
@@ -11,9 +12,17 @@
 
 **ocserv-agent** - A lightweight Go agent for remote management of OpenConnect VPN servers (ocserv) via gRPC with mTLS authentication.
 
+> **Status:** BETA (v0.3.1) - Production-tested with real VPN users. Core features complete, documentation comprehensive. See [roadmap](#-roadmap) for upcoming features.
+
 ## 📋 Overview
 
-ocserv-agent is a production-ready agent that runs on each ocserv instance and provides secure remote management capabilities through a gRPC API. It enables centralized control of distributed VPN infrastructure.
+ocserv-agent is a **production-tested BETA** agent that runs on each ocserv instance and provides secure remote management capabilities through a gRPC API. It enables centralized control of distributed VPN infrastructure.
+
+**Current Release:** [v0.3.1 BETA](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.3.1) (October 2025)
+- ✅ Production-tested with 3 active VPN users
+- ✅ 13/16 occtl commands working (3 broken due to upstream ocserv bugs)
+- ✅ Security hardening: mTLS, command validation, audit logging
+- ✅ OSSF Scorecard: 5.9/10 (improving to 7.5+/10 in v0.4.0)
 
 ### Architecture
 
@@ -27,13 +36,35 @@ ocserv daemon
 
 ### Key Features
 
-- **🔐 Secure Communication**: mTLS authentication, TLS 1.3 minimum
-- **📊 Real-time Monitoring**: Heartbeat, metrics streaming, log streaming
-- **⚙️ Configuration Management**: Remote config updates with backup/rollback
-- **👥 User Management**: ocpasswd wrapper, user lifecycle management
-- **🔄 High Availability**: Exponential backoff, circuit breaker, graceful degradation
-- **📈 Observability**: OpenTelemetry traces, Prometheus metrics, structured logging
+- **🔐 Secure Communication**: mTLS authentication, TLS 1.3 minimum, client certificate verification
+- **📊 ocserv Control**: Execute occtl/systemctl commands remotely (13/16 working, 3 upstream bugs)
+- **⚙️ Configuration Management**: Read ocserv configs (main, per-user, per-group)
+- **🔒 Security Hardening**: Command whitelist, input validation, command injection protection
+- **📝 Comprehensive Docs**: 800+ lines of documentation (5 new guides in v0.3.1)
+- **🏗️ Production Ready**: Certificate auto-generation, systemd service, multi-platform builds
 - **🐳 Container-First**: Podman Compose based development and testing
+- **🤝 Open Source**: MIT license, OSSF security best practices, upstream contributions
+
+### What's Working (v0.3.1)
+
+✅ **Core Features:**
+- gRPC server with mTLS authentication
+- ExecuteCommand RPC (occtl/systemctl commands)
+- HealthCheck RPC (Tier 1 - heartbeat)
+- Config file reading (main, per-user, per-group)
+- Command validation and security
+- Certificate auto-generation (bootstrap mode)
+
+✅ **occtl Commands (13/16):**
+- `show users`, `show user [NAME]`, `show id [ID]`
+- `show status`, `show stats`
+- `show ip bans`, `show ip ban points`, `unban ip [IP]`
+- `disconnect user [NAME]`, `disconnect id [ID]`
+- `reload`
+
+⚠️ **Known Issues (3/16 - upstream ocserv bugs):**
+- `show iroutes` - invalid JSON (we [contributed fix](https://gitlab.com/openconnect/ocserv/-/issues/661#note_2839397707) upstream)
+- `show sessions all/valid` - trailing commas (we [reported regression](https://gitlab.com/openconnect/ocserv/-/issues/669))
 
 ## 🚀 Quick Start
 
@@ -116,14 +147,27 @@ make compose-build
 
 ## 📖 Documentation
 
-- [GitHub Actions Workflows](.github/WORKFLOWS.md) - CI/CD pipeline documentation
-- [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
-- [Release Notes](docs/releases/v0.3.0.md) - Version history and changes
+### User Guides
+- **[Release Notes v0.3.1](docs/releases/v0.3.1.md)** - Latest release with bugfixes and docs
+- **[occtl Commands Reference](docs/OCCTL_COMMANDS.md)** - Complete command guide with examples
+- **[gRPC Testing Guide](docs/GRPC_TESTING.md)** - Test API with grpcurl
+- **[Certificate Management](docs/CERTIFICATES.md)** - TLS/mTLS setup (bootstrap + production)
 - [Configuration Guide](config.yaml.example) - All configuration options
-- [Certificate Management](docs/CERTIFICATES.md) - TLS/mTLS setup guide
-- [gRPC Testing Guide](docs/GRPC_TESTING.md) - Test gRPC API with grpcurl
-- [occtl Commands Support](docs/OCCTL_COMMANDS.md) - Supported occtl/systemctl commands
+
+### Developer Guides
 - [Local Testing Guide](docs/LOCAL_TESTING.md) - Development and CI testing
+- [GitHub Actions Workflows](.github/WORKFLOWS.md) - CI/CD pipeline
+- [Contributing Guide](.github/CONTRIBUTING.md) - Development workflow
+- [TODO Management](docs/todo/CURRENT.md) - Current tasks and progress
+
+### Security
+- **[Security Policy](SECURITY.md)** - Vulnerability disclosure process
+- **[OSSF Scorecard Improvements](docs/OSSF_SCORECARD_IMPROVEMENTS.md)** - Security roadmap (4.9 → 7.5+/10)
+- [ocserv Compatibility](docs/todo/OCSERV_COMPATIBILITY.md) - Feature coverage analysis
+
+### Releases
+- [v0.3.1 Release Notes](docs/releases/v0.3.1.md) - Critical bugfixes + documentation (Oct 2025)
+- [v0.3.0 Release Notes](docs/releases/v0.3.0.md) - Certificate auto-generation (Oct 2025)
 
 ## 🔧 Configuration
 
@@ -198,11 +242,22 @@ ocserv-agent/
 
 ## 🔒 Security
 
-- **mTLS**: Client certificate authentication required
+- **mTLS**: Client certificate authentication required (TLS 1.3 minimum)
 - **Command Whitelist**: Only approved commands (occtl, systemctl)
-- **Input Validation**: Protection against command injection
-- **Audit Logging**: All commands logged with context
+- **Input Validation**: Protection against command injection, shell metacharacters, path traversal
+- **Audit Logging**: All commands logged with context (user, timestamp, result)
 - **Capability-Based**: Runs with minimal privileges (CAP_NET_ADMIN only)
+- **Security Scanning**: gosec, govulncheck, trivy, CodeQL
+- **OSSF Scorecard**: 5.9/10 (improving to 7.5+/10)
+- **Vulnerability Disclosure**: [SECURITY.md](SECURITY.md) with 48h response time
+
+### Recent Security Improvements (v0.3.1)
+
+- ✅ SECURITY.md vulnerability disclosure policy created
+- ✅ Removed hardcoded credentials from repository
+- ✅ Sanitized all deployment scripts
+- ✅ OSSF Scorecard improved from 4.9/10 to 5.9/10
+- 📋 Roadmap to 7.5+/10 in v0.4.0 (branch protection, GPG signing, dependency pinning)
 
 ## 📊 Monitoring
 
@@ -237,8 +292,8 @@ See [agent.proto](pkg/proto/agent/v1/agent.proto) for full API specification.
 
 ```bash
 # Download latest release
-wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.3.0/ocserv-agent-v0.3.0-linux-amd64.tar.gz
-tar -xzf ocserv-agent-v0.3.0-linux-amd64.tar.gz
+wget https://github.com/dantte-lp/ocserv-agent/releases/download/v0.3.1/ocserv-agent-v0.3.1-linux-amd64.tar.gz
+tar -xzf ocserv-agent-v0.3.1-linux-amd64.tar.gz
 
 # Install to /etc/ocserv-agent
 sudo mkdir -p /etc/ocserv-agent
@@ -327,6 +382,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [gRPC](https://grpc.io/) - High-performance RPC framework
 - [zerolog](https://github.com/rs/zerolog) - Zero allocation JSON logger
 
+### Upstream Contributions
+
+We actively contribute bug reports and fixes to the ocserv project:
+
+- **[Issue #661](https://gitlab.com/openconnect/ocserv/-/issues/661#note_2839397707)** - Root cause analysis for `show iroutes` invalid JSON
+  - Identified 3 bugs in `src/occtl/unix.c:1018-1045`
+  - Provided proposed fix with code examples
+
+- **[Issue #669](https://gitlab.com/openconnect/ocserv/-/issues/669)** - Reported regression of #220 in ocserv 1.3.0
+  - Trailing commas in `show sessions` commands
+  - Production-tested and documented
+
 ## 📬 Contact
 
 - GitHub: [@dantte-lp](https://github.com/dantte-lp)
@@ -334,31 +401,55 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-### Phase 1: Core (Week 1) - In Progress
-- [x] Project structure and setup
-- [x] Proto definitions
-- [x] Podman Compose configuration
-- [ ] Config loading
-- [ ] gRPC server with mTLS
-- [ ] Basic health check
+### ✅ v0.3.1 BETA (Completed - October 2025)
 
-### Phase 2: ocserv Integration (Week 2)
-- [ ] systemctl wrapper
-- [ ] occtl command execution
-- [ ] Config file management
-- [ ] Command validation
+**Critical Bugfixes:**
+- ✅ Fixed occtl JSON parsing (user count was showing 0)
+- ✅ Switched to `occtl -j` mode with 40+ fields per user
+- ✅ Production-tested with 3 real VPN users
 
-### Phase 3: Streaming (Week 3)
-- [ ] Bidirectional streaming
-- [ ] Heartbeat implementation
-- [ ] Log streaming
-- [ ] Reconnection logic
+**Security Improvements:**
+- ✅ SECURITY.md vulnerability disclosure policy
+- ✅ Removed hardcoded credentials
+- ✅ OSSF Scorecard: 4.9/10 → 5.9/10 (+1.0)
 
-### Phase 4: Production Ready (Week 4)
-- [ ] OpenTelemetry integration
-- [ ] Error handling & retry
+**Documentation (5 new guides):**
+- ✅ docs/OCCTL_COMMANDS.md - Complete command reference
+- ✅ docs/GRPC_TESTING.md - gRPC testing procedures
+- ✅ docs/OSSF_SCORECARD_IMPROVEMENTS.md - Security roadmap
+- ✅ SECURITY.md - Vulnerability disclosure
+- ✅ Updated compatibility status with production results
+
+**Upstream Contributions:**
+- ✅ [Issue #661](https://gitlab.com/openconnect/ocserv/-/issues/661#note_2839397707) - Root cause analysis for `show iroutes` bug
+- ✅ [Issue #669](https://gitlab.com/openconnect/ocserv/-/issues/669) - Reported regression of #220
+
+### 🚧 v0.4.0 Planning (Next Release)
+
+**OSSF Scorecard Improvements (Target: 7.5+/10):**
+- [ ] Setup branch protection rules (require PR, code review)
+- [ ] Restrict GitHub workflow token permissions
+- [ ] Setup GPG commit signing
+- [ ] Pin GitHub Actions to SHA hashes (22 dependencies)
+- [ ] Pin Docker base images to digests
+
+**Core Features:**
+- [ ] StreamLogs RPC implementation
+- [ ] ocpasswd wrapper for user management
+- [ ] UpdateConfig RPC with backup/rollback
 - [ ] Unit tests (>80% coverage)
-- [ ] Integration tests
-- [ ] Documentation
 
-See [TODO](docs/todo/CURRENT.md) for detailed task list.
+**Documentation:**
+- [ ] Integration tests with mock ocserv
+- [ ] Performance testing guide
+
+### 🔮 Future (v0.5.0+)
+
+- [ ] Bidirectional streaming (AgentStream RPC)
+- [ ] Enhanced metrics (Prometheus exporter)
+- [ ] Heartbeat with exponential backoff
+- [ ] ocserv-fw firewall integration
+- [ ] Virtual hosts support
+- [ ] RADIUS/Kerberos monitoring
+
+See [CURRENT.md](docs/todo/CURRENT.md) for detailed task tracking and [BACKLOG.md](docs/todo/BACKLOG.md) for long-term features.
