@@ -36,14 +36,16 @@
 
 **Current Blockers:**
 - None! All blockers resolved ✅
-- ✅ **BLOCKER #1:** Ansible environment - RESOLVED (Task 1.1 completed)
+- ✅ **BLOCKER #1:** Ansible environment - RESOLVED (Tasks 1.1 & 1.2 completed, tested on production)
 
 **Coverage goal:** 51.2% → 75-80%
 
-**Remote Server:**
+**Remote Server (195.238.126.25):**
 - Configuration: Use `.env` file (see `.env.example` for RFC 5737 template)
-- Current setup: ocserv 1.3 + agent v0.3.0-24-groutes + active VPN users
+- Current setup: OracleLinux 9.6 + ocserv 1.3 (active) + 3 active VPN users
+- Agent: v0.3.0-24-groutes (installed, service inactive)
 - **CRITICAL:** Do NOT break existing VPN service
+- **Status:** ✅ Verified via Ansible playbook (2025-10-23)
 
 ### OSSF Scorecard Improvements (HIGH PRIORITY)
 
