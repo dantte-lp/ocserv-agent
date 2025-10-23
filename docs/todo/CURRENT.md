@@ -1,8 +1,54 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 9ee265d - devops: add automatic gofmt to local development workflow
-**Status:** v0.4.0 IN PROGRESS - Unit tests (97.1% config) + DevOps improvements (automatic formatting)
+**Last Commit:** d23dcb6 - release: v0.4.0 - Test Foundation & DevOps Improvements
+**Status:** v0.4.0 COMPLETED ✅ | v0.5.0 IN PROGRESS - Complete test coverage (>80% target)
+
+## 🚀 v0.5.0: Complete Test Coverage - IN PROGRESS!
+
+**Target:** December 2025 | **Goal:** Achieve >80% overall test coverage
+
+**Remaining Tests:**
+- [ ] Unit tests for internal/grpc (server, handlers)
+  - gRPC server initialization and lifecycle
+  - Request/response handling
+  - Interceptors and middleware
+  - Error handling
+- [ ] Unit tests for internal/ocserv (manager, occtl, systemctl)
+  - manager.go: Command execution and validation
+  - occtl.go: All occtl command wrappers
+  - systemctl.go: Service management
+- [ ] Integration tests with mock ocserv
+- [ ] End-to-end API tests
+
+**Progress:**
+- Current overall coverage: ~40-50%
+- Target: >80%
+
+See [ROADMAP.md](../../ROADMAP.md) for detailed plan.
+
+---
+
+## 🎉 v0.4.0: Test Foundation & DevOps - COMPLETED ✅
+
+**Released:** 2025-10-23 | **Tag:** [v0.4.0](https://github.com/dantte-lp/ocserv-agent/releases/tag/v0.4.0)
+
+**Test Coverage Achieved:**
+- ✅ internal/config: 97.1% coverage (exceeds >80% target)
+- ✅ internal/cert: 77.6% coverage (close to 80% target)
+- ✅ internal/ocserv/config.go: 82-100% coverage (per function)
+- ✅ Total: 2,225 lines of test code across 4 test files
+
+**DevOps Improvements:**
+- ✅ Automatic code formatting (scripts/quick-check.sh)
+- ✅ Git hooks for pre-commit and pre-push (scripts/install-hooks.sh)
+- ✅ CI path filtering (skip expensive jobs for docs-only changes)
+- ✅ Branch protection with required reviews + admin bypass
+
+**Documentation:**
+- ✅ Created ROADMAP.md - Project roadmap and timeline
+- ✅ Updated README.md with v0.4.0 and git hooks section
+- ✅ Comprehensive release notes (docs/releases/v0.4.0.md)
 
 ## 🎉 v0.4.0: DevOps Improvements - COMPLETED!
 
@@ -22,7 +68,7 @@
 - Fast local checks (2-3 seconds)
 - Optional (can skip with --no-verify)
 
-## 🎉 v0.4.0: Unit Tests - IN PROGRESS!
+## 🎉 v0.4.0: Unit Tests - COMPLETED!
 
 **Test Coverage Achieved:**
 - ✅ internal/config: 97.1% coverage (exceeds >80% target)
@@ -200,19 +246,44 @@ All critical Phase 2 tasks done ✅
 
 **Status:** BETA - Ready for production with full documentation
 
-## 🔴 Critical (Next Steps - v0.4.0)
+## 🔴 Critical (Next Steps)
 
-### OSSF Scorecard Improvements (HIGH PRIORITY)
+### v0.5.0 - Complete Test Coverage (Target: December 2025)
+
+**Unit Tests (HIGH PRIORITY):**
+- [ ] **[TEST]** Unit tests for internal/grpc package
+  - gRPC server initialization and lifecycle
+  - Request/response handling
+  - Interceptors and middleware
+  - Error handling
+  - **Target:** >80% coverage
+
+- [ ] **[TEST]** Unit tests for internal/ocserv package
+  - manager.go: Command execution and validation
+  - occtl.go: All occtl command wrappers
+  - systemctl.go: Service management
+  - **Target:** >80% coverage
+
+- [ ] **[TEST]** Integration tests
+  - Mock ocserv for testing
+  - End-to-end API tests
+  - Error scenario testing
+
+**Goal:** Achieve >80% overall test coverage
+
+### v0.6.0 - Security Hardening (Target: January 2026)
+
+**OSSF Scorecard Improvements (HIGH PRIORITY):**
 
 See: `docs/OSSF_SCORECARD_IMPROVEMENTS.md` for complete plan
 
-**Phase 1 - Quick Wins (Target: 6.5/10):**
-- [ ] **[SECURITY]** Setup branch protection rules
+**Phase 1 - Quick Wins:**
+- [x] **[SECURITY]** Setup branch protection rules ✅ (v0.4.0)
   - Require pull requests for all changes
   - Require 1 approval before merge
   - Dismiss stale reviews
-  - Linear history enforcement
-  - **Impact:** Code-Review: 0 → 10 (+1.0 point)
+  - Admin bypass for hotfixes
+  - **Impact:** Code-Review improved
 
 - [ ] **[SECURITY]** Restrict GitHub workflow token permissions
   - Set minimal permissions per workflow
