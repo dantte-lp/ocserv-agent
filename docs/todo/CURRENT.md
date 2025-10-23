@@ -1,7 +1,7 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 83e3f05 - test: add comprehensive unit tests for internal/config (97.1% coverage)
+**Last Commit:** 36b4678 - test: add unit tests for internal/ocserv/config.go (82-100% coverage)
 **Status:** v0.4.0 IN PROGRESS - Unit tests implementation, targeting >80% coverage
 
 ## 🎉 Phase 1: Core - COMPLETED!
@@ -343,8 +343,20 @@ See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
   - Coverage: 97.1% (exceeds >80% target)
   - Files: config_test.go (347 lines), validation_test.go (579 lines)
   - Test fixtures: 4 YAML files (valid, minimal, invalid scenarios)
+- [x] **[TEST]** Add unit tests for cert package
+  - ✅ Completed: 2025-10-23
+  - Commit: a6dee4c
+  - Coverage: 77.6% (close to 80% target)
+  - Files: generator_test.go (678 lines)
+  - Certificate generation, PEM operations, fingerprints
+- [x] **[TEST]** Add unit tests for ocserv/config.go
+  - ✅ Completed: 2025-10-23
+  - Commit: 36b4678
+  - Coverage: 82-100% for all functions
+  - Files: config_test.go (621 lines)
+  - Test fixtures: 4 ocserv config files
 - [ ] **[TEST]** Add unit tests for gRPC handlers
-- [ ] **[TEST]** Add unit tests for ocserv manager
+- [ ] **[TEST]** Add unit tests for remaining ocserv files (manager, occtl, systemctl)
 - [ ] **[FEATURE]** Create certificate generation script (scripts/generate-certs.sh)
 - [ ] **[TEST]** Test the agent with compose-build
 - [ ] **[TEST]** Create test certificates for mTLS
@@ -434,10 +446,15 @@ None yet
   - 8837ee6: Add OCCTL_COMMANDS.md reference ✅
   - 37310dc: Update compatibility + add security docs ✅
   - 83e3f05: Add comprehensive unit tests for internal/config (97.1% coverage) ✅
+  - a6dee4c: Add unit tests for internal/cert (77.6% coverage) ✅
+  - 36b4678: Add unit tests for internal/ocserv/config.go (82-100% coverage) ✅
 
 - **Tests:**
   - internal/config: 97.1% coverage ✅
-  - Overall: Moving from 0% toward >80% target
+  - internal/cert: 77.6% coverage ✅
+  - internal/ocserv/config.go: 82-100% coverage ✅
+  - internal/ocserv (overall): 15.8% (other files pending)
+  - Overall project: Moving from 0% toward >80% target
   - Target for v0.4.0: >80% overall coverage
 - **Documentation:** 100% complete + 5 new comprehensive guides
 - **Release notes:** v0.3.1 BETA completed, v0.4.0 in progress
