@@ -152,9 +152,9 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "TLS enabled without cert_file",
 			tls: &TLSConfig{
-				Enabled:  true,
-				KeyFile:  keyFile,
-				CAFile:   caFile,
+				Enabled: true,
+				KeyFile: keyFile,
+				CAFile:  caFile,
 			},
 			wantErr: true,
 			errMsg:  "cert_file is required",
@@ -366,9 +366,9 @@ func TestValidateLogging(t *testing.T) {
 		{
 			name: "valid text format",
 			logging: &LoggingConfig{
-				Level:  "debug",
-				Format: "text",
-				Output: "file",
+				Level:    "debug",
+				Format:   "text",
+				Output:   "file",
 				FilePath: "/tmp/test.log",
 			},
 			wantErr: false,

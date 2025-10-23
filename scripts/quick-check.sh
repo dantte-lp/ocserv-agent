@@ -10,14 +10,18 @@ NC='\033[0m'
 
 echo "🔍 Quick local check..."
 
-# Format check
+# Format check and auto-fix
 echo -n "Formatting... "
-if [ -n "$(gofmt -s -l . | grep -v '^vendor/' | grep -v '.pb.go$')" ]; then
-    echo -e "${RED}FAIL${NC}"
-    echo "Run: gofmt -s -w ."
-    exit 1
+UNFORMATTED=$(gofmt -s -l . | grep -v '^vendor/' | grep -v '.pb.go$')
+if [ -n "$UNFORMATTED" ]; then
+    echo -e "${RED}FIXING${NC}"
+    echo "Auto-formatting files:"
+    echo "$UNFORMATTED"
+    gofmt -s -w . > /dev/null 2>&1
+    echo -e "${GREEN}FIXED${NC} (files formatted automatically)"
+else
+    echo -e "${GREEN}OK${NC}"
 fi
-echo -e "${GREEN}OK${NC}"
 
 # Vet check
 echo -n "go vet... "

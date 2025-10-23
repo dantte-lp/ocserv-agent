@@ -111,8 +111,33 @@ This runs the complete CI/CD pipeline locally:
 #### 🏃 Quick Local Check (Before Commit)
 
 ```bash
-# Fast checks in 2-3 seconds
+# Fast checks in 2-3 seconds (auto-formats code!)
 ./scripts/quick-check.sh
+```
+
+**Features:**
+- ✅ Auto-formats Go code with `gofmt -s -w`
+- ✅ Runs `go vet` for common mistakes
+- ✅ Builds the project
+- ✅ Runs all unit tests
+
+#### 🪝 Git Hooks (Automatic Formatting)
+
+Install git hooks to automatically format code before commits:
+
+```bash
+# One-time setup
+./scripts/install-hooks.sh
+```
+
+**Installed hooks:**
+- **pre-commit**: Auto-formats Go code with `gofmt` before each commit
+- **pre-push**: Runs `quick-check.sh` before each push
+
+**Skip hooks temporarily:**
+```bash
+git commit --no-verify  # Skip pre-commit hook
+git push --no-verify    # Skip pre-push hook
 ```
 
 #### 🔬 Full Local CI (Before Push)
