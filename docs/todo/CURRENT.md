@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** 09d3c50 - feat(build): add unified build pipeline script
-**Status:** v0.3.0 BETA - Production testing in progress, unified build pipeline ready
+**Last Commit:** 0161ffc - fix(build): fix command order to ensure RAW binaries are created
+**Status:** v0.3.0 BETA - Unified build pipeline working, all 12 artifacts created successfully
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -116,6 +116,9 @@ All critical Phase 2 tasks done ✅
 - ✅ Binary installation path fix - /etc/ocserv-agent (18fd5c8)
 - ✅ Configuration validation logging (f6f077d)
 - ✅ Unified build pipeline script (09d3c50)
+- ✅ Documentation updates for unified pipeline (8500b69)
+- ✅ Fix VERSION variable expansion in docker-compose (4a83924)
+- ✅ Fix command order for RAW binaries (0161ffc)
 
 ## 🔴 Critical (Next Steps - v0.4.0)
 
@@ -327,6 +330,9 @@ None yet
   - 18fd5c8: Binary installation path fix ✅
   - f6f077d: Configuration validation logging ✅
   - 09d3c50: Unified build pipeline script ✅
+  - 8500b69: Documentation updates for unified pipeline ✅
+  - 4a83924: Fix VERSION variable expansion ✅
+  - 0161ffc: Fix command order for RAW binaries ✅
 
 - **Tests:** 0% coverage (tests planned for v0.4.0+)
 - **Documentation:** 100% complete
