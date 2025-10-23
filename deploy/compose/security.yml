@@ -1,0 +1,169 @@
+version: '3.8'
+
+# Security Testing Suite for ocserv-agent
+# Run locally: podman-compose -f deploy/compose/security.yml up
+#
+# This compose file runs the same security checks as GitHub Actions:
+# - gosec: Go security static analysis
+# - govulncheck: Known vulnerability scanning
+# - trivy: Repository vulnerability scanning
+#
+# All results are saved to ./security-results/
+
+services:
+  # Gosec - Go Security Scanner
+  gosec:
+    image: docker.io/securego/gosec:latest
+    container_name: ocserv-agent-gosec
+    volumes:
+      - ../..:/src:z
+      - ./security-results:/results:z
+    working_dir: /src
+    command: >
+      sh -c "
+      echo '=== Running Gosec Security Scanner ===' &&
+      gosec -no-fail -fmt sarif -out /results/gosec.sarif /src/... &&
+      gosec -no-fail -fmt json -out /results/gosec.json /src/... &&
+      echo '' &&
+      echo 'Gosec scan completed!' &&
+      echo 'Results:' &&
+      echo '  - SARIF: security-results/gosec.sarif' &&
+      echo '  - JSON:  security-results/gosec.json' &&
+      echo '' &&
+      gosec -no-fail -fmt text /src/...
+      "
+
+  # govulncheck - Go Vulnerability Database Check
+  govulncheck:
+    image: golang:1.25-trixie
+    container_name: ocserv-agent-govulncheck
+    volumes:
+      - ../..:/src:z
+      - ./security-results:/results:z
+    working_dir: /src
+    command: >
+      sh -c "
+      echo '=== Installing govulncheck ===' &&
+      go install golang.org/x/vuln/cmd/govulncheck@latest &&
+      echo '' &&
+      echo '=== Running govulncheck ===' &&
+      govulncheck -json ./... > /results/govulncheck.json 2>&1 || true &&
+      echo '' &&
+      echo 'govulncheck scan completed!' &&
+      echo 'Results: security-results/govulncheck.json' &&
+      echo '' &&
+      govulncheck ./...
+      "
+
+  # Trivy - Comprehensive Vulnerability Scanner
+  trivy:
+    image: docker.io/aquasec/trivy:latest
+    container_name: ocserv-agent-trivy
+    volumes:
+      - ../..:/src:z
+      - ./security-results:/results:z
+      - trivy-cache:/root/.cache/trivy
+    working_dir: /src
+    command: >
+      sh -c "
+      echo '=== Running Trivy Vulnerability Scanner ===' &&
+      trivy fs --severity CRITICAL,HIGH --format sarif --output /results/trivy.sarif . &&
+      trivy fs --severity CRITICAL,HIGH --format json --output /results/trivy.json . &&
+      echo '' &&
+      echo 'Trivy scan completed!' &&
+      echo 'Results:' &&
+      echo '  - SARIF: security-results/trivy.sarif' &&
+      echo '  - JSON:  security-results/trivy.json' &&
+      echo '' &&
+      trivy fs --severity CRITICAL,HIGH .
+      "
+
+  # Gosec with SARIF fix (same as GitHub Actions)
+  gosec-fixed:
+    image: docker.io/securego/gosec:latest
+    container_name: ocserv-agent-gosec-fixed
+    volumes:
+      - ../..:/src:z
+      - ./security-results:/results:z
+    working_dir: /src
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo '=== Running Gosec with SARIF fix ===' &&
+      apk add --no-cache jq &&
+      gosec -no-fail -fmt sarif -out /tmp/results.sarif /src/... &&
+      echo 'Fixing SARIF format (removing invalid fixes field)...' &&
+      jq 'walk(if type == \"object\" then del(.fixes) else . end)' /tmp/results.sarif > /results/gosec-fixed.sarif &&
+      echo '' &&
+      echo 'Gosec with SARIF fix completed!' &&
+      echo 'Result: security-results/gosec-fixed.sarif' &&
+      echo '' &&
+      echo 'Validating SARIF format...' &&
+      jq empty /results/gosec-fixed.sarif && echo 'SARIF is valid JSON!' || echo 'SARIF validation failed!'
+      "
+
+  # Summary reporter
+  summary:
+    image: alpine:latest
+    container_name: ocserv-agent-security-summary
+    depends_on:
+      - gosec
+      - govulncheck
+      - trivy
+      - gosec-fixed
+    volumes:
+      - ./security-results:/results:z
+    command: >
+      sh -c "
+      echo '' &&
+      echo '=====================================' &&
+      echo 'Security Scan Summary' &&
+      echo '=====================================' &&
+      echo '' &&
+      echo 'All security scans completed!' &&
+      echo '' &&
+      echo 'Results saved to: ./security-results/' &&
+      echo '' &&
+      ls -lh /results/ &&
+      echo '' &&
+      echo 'To view results:' &&
+      echo '  - Gosec SARIF:        cat security-results/gosec.sarif' &&
+      echo '  - Gosec JSON:         cat security-results/gosec.json' &&
+      echo '  - Gosec Fixed SARIF:  cat security-results/gosec-fixed.sarif' &&
+      echo '  - govulncheck JSON:   cat security-results/govulncheck.json' &&
+      echo '  - Trivy SARIF:        cat security-results/trivy.sarif' &&
+      echo '  - Trivy JSON:         cat security-results/trivy.json' &&
+      echo '' &&
+      echo 'GitHub-compatible SARIF files:' &&
+      echo '  - security-results/gosec-fixed.sarif' &&
+      echo '  - security-results/trivy.sarif' &&
+      echo ''
+      "
+
+volumes:
+  trivy-cache:
+    driver: local
+
+# Usage:
+#
+# 1. Run all security tests:
+#    podman-compose -f deploy/compose/security.yml up
+#
+# 2. Run specific test:
+#    podman-compose -f deploy/compose/security.yml up gosec
+#    podman-compose -f deploy/compose/security.yml up govulncheck
+#    podman-compose -f deploy/compose/security.yml up trivy
+#
+# 3. Run with fixed SARIF (GitHub-compatible):
+#    podman-compose -f deploy/compose/security.yml up gosec-fixed
+#
+# 4. Clean up:
+#    podman-compose -f deploy/compose/security.yml down
+#    rm -rf security-results/
+#
+# 5. View results:
+#    cat security-results/gosec-fixed.sarif | jq '.runs[0].results[] | {ruleId, message, locations}'
+#    cat security-results/trivy.json | jq '.Results'
+#
+# Note: Create security-results directory before running:
+#    mkdir -p deploy/compose/security-results

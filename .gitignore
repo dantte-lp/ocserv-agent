@@ -30,6 +30,7 @@ build-errors.log
 
 # Claude Code (local only)
 .claude/
+CLAUDE_PROMPT.md
 
 # OS
 .DS_Store
@@ -62,6 +63,8 @@ logs/
 
 # Security reports
 security-report.json
+*.sarif
+deploy/compose/security-results/
 
 # Local development
 .env.local

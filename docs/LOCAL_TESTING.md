@@ -115,6 +115,60 @@ go install golang.org/x/vuln/cmd/govulncheck@latest
 RUN_SECURITY=true ./scripts/test-local.sh
 ```
 
+## 🔒 Security Testing (локально)
+
+Для запуска security сканирования локально используй Podman Compose:
+
+### Все security тесты сразу
+
+```bash
+make security-check
+# или
+./scripts/security-check.sh
+```
+
+Запускает:
+- ✅ **Gosec** - статический анализ безопасности Go кода
+- ✅ **govulncheck** - проверка известных уязвимостей в зависимостях
+- ✅ **Trivy** - сканирование уязвимостей в коде и зависимостях
+
+### Отдельные тесты
+
+```bash
+# Только Gosec
+make security-gosec
+
+# Только govulncheck
+make security-govulncheck
+
+# Только Trivy
+make security-trivy
+```
+
+### Результаты
+
+Все результаты сохраняются в `deploy/compose/security-results/`:
+
+```bash
+# Просмотр findings
+cat deploy/compose/security-results/gosec-fixed.sarif | jq '.runs[0].results[]'
+cat deploy/compose/security-results/trivy.sarif | jq '.runs[0].results[]'
+cat deploy/compose/security-results/govulncheck.json | jq
+
+# Количество issues
+jq '.runs[0].results | length' deploy/compose/security-results/gosec-fixed.sarif
+jq '.runs[0].results | length' deploy/compose/security-results/trivy.sarif
+```
+
+### Почему локально?
+
+1. **Быстрее** - результаты за 30-60 секунд vs 3-5 минут в GitHub Actions
+2. **Бесплатно** - не тратятся минуты GitHub Actions
+3. **До коммита** - находишь проблемы до пуша
+4. **GitHub-compatible** - те же SARIF файлы, что и в CI
+
+**Важно:** SARIF файлы из `gosec-fixed.sarif` содержат автоматическое исправление проблемного формата Gosec и готовы к загрузке в GitHub Security.
+
 ## 🔧 Pre-commit Hook (опционально)
 
 Чтобы автоматически запускать quick-check перед каждым коммитом:

@@ -1,6 +1,7 @@
 .PHONY: all build test proto clean install help
 .PHONY: compose-dev compose-test compose-build compose-down compose-logs compose-clean
 .PHONY: local-build local-test local-proto setup-compose
+.PHONY: security-check security-gosec security-govulncheck security-trivy
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -X main.version=$(VERSION) -s -w
@@ -19,6 +20,12 @@ help:
 	@echo "  make compose-down    - Stop all services"
 	@echo "  make compose-logs    - View logs"
 	@echo "  make compose-clean   - Clean volumes"
+	@echo ""
+	@echo "🔒 Security Testing (Podman Compose):"
+	@echo "  make security-check       - Run all security scans"
+	@echo "  make security-gosec       - Run Gosec only"
+	@echo "  make security-govulncheck - Run govulncheck only"
+	@echo "  make security-trivy       - Run Trivy only"
 	@echo ""
 	@echo "🔧 Setup:"
 	@echo "  make setup-compose   - Generate compose configuration"
@@ -135,3 +142,23 @@ install: build
 clean:
 	rm -rf bin/ coverage.out coverage.html tmp/
 	find . -name "*.pb.go" -delete
+
+# ═══════════════════════════════════════════════
+# Security Testing
+# ═══════════════════════════════════════════════
+
+security-check:
+	@echo "🔒 Running all security scans..."
+	@./scripts/security-check.sh
+
+security-gosec:
+	@echo "🔒 Running Gosec security scanner..."
+	@./scripts/security-check.sh gosec
+
+security-govulncheck:
+	@echo "🔒 Running govulncheck..."
+	@./scripts/security-check.sh govulncheck
+
+security-trivy:
+	@echo "🔒 Running Trivy scanner..."
+	@./scripts/security-check.sh trivy

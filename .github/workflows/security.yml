@@ -61,9 +61,15 @@ jobs:
         with:
           args: '-no-fail -fmt sarif -out results.sarif ./...'
 
+      - name: Fix Gosec SARIF format
+        run: |
+          # Remove problematic 'fixes' field from SARIF that causes upload errors
+          # Gosec generates invalid artifactChanges format in fixes field
+          jq 'walk(if type == "object" then del(.fixes) else . end)' results.sarif > results-fixed.sarif
+          mv results-fixed.sarif results.sarif
+
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
-        continue-on-error: true
         with:
           sarif_file: results.sarif
 
