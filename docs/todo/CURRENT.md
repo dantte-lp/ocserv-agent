@@ -1,8 +1,8 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** cb1f848 - feat(grpc): add gRPC reflection support for grpcurl testing
-**Status:** v0.3.0 BETA - gRPC reflection enabled, production testing in progress
+**Last Commit:** 37310dc - docs: update compatibility status and add security improvements
+**Status:** v0.3.1 BETA - JSON parsing fixed, production-tested with 3 users, comprehensive documentation
 
 ## 🎉 Phase 1: Core - COMPLETED!
 
@@ -123,20 +123,102 @@ All critical Phase 2 tasks done ✅
 - ✅ Production deployment and testing scripts (deploy-and-test.sh, test-grpc.sh)
 - ✅ gRPC testing documentation (GRPC_TESTING.md)
 
+## 🎉 v0.3.1: Critical Bugfixes + Documentation - COMPLETED!
+
+**Critical Bugfix - occtl JSON Parsing:**
+- ✅ **FIXED:** User count showing 0 when users connected
+- ✅ Switched from text parsing to JSON mode (`occtl -j`)
+- ✅ Added 40+ JSON fields per user (vs 6 in text mode)
+- ✅ Fixed Routes field polymorphism (string vs []string)
+- ✅ Production-tested with 3 real VPN users ✅
+- ✅ Commit: 4fd990f
+
+**Security Improvements:**
+- ✅ Removed hardcoded credentials from repository (3c2d96a)
+- ✅ Sanitized deployment scripts to use environment variables
+- ✅ Created SECURITY.md vulnerability disclosure policy (37310dc)
+- ✅ OSSF Scorecard: 4.9/10 → 5.9/10 (+1.0)
+
+**Documentation (5 new/updated documents):**
+- ✅ docs/OCCTL_COMMANDS.md - Complete command reference (8837ee6)
+  - 13/16 working commands with examples
+  - 40+ user data fields documentation
+  - Known issues with occtl 1.3.0 JSON bugs
+- ✅ docs/GRPC_TESTING.md - gRPC testing guide (801b32d)
+  - grpcurl testing instructions
+  - Production deployment procedures
+- ✅ docs/OSSF_SCORECARD_IMPROVEMENTS.md - Security roadmap (37310dc)
+  - Current: 4.9/10, target: 7.5+/10
+  - 4-phase improvement plan
+- ✅ docs/todo/OCSERV_COMPATIBILITY.md - Updated status (37310dc)
+  - Real production results: 13/16 working
+  - Documented occtl bugs
+  - Score: 40/100 → 36/100 (realistic)
+- ✅ SECURITY.md - Security policy (37310dc)
+  - Vulnerability disclosure process
+  - Response timeline (48h initial)
+
+**Testing Results:**
+- ✅ Tested 10+ occtl commands on production
+- ✅ Verified with 3 connected VPN users
+- ✅ Identified 3 upstream occtl bugs (iroutes, sessions)
+- ✅ All core commands working correctly
+
+**Status:** BETA - Ready for production with full documentation
+
 ## 🔴 Critical (Next Steps - v0.4.0)
 
-### Based on ocserv 1.3.0 Compatibility Analysis
+### OSSF Scorecard Improvements (HIGH PRIORITY)
+
+See: `docs/OSSF_SCORECARD_IMPROVEMENTS.md` for complete plan
+
+**Phase 1 - Quick Wins (Target: 6.5/10):**
+- [ ] **[SECURITY]** Setup branch protection rules
+  - Require pull requests for all changes
+  - Require 1 approval before merge
+  - Dismiss stale reviews
+  - Linear history enforcement
+  - **Impact:** Code-Review: 0 → 10 (+1.0 point)
+
+- [ ] **[SECURITY]** Restrict GitHub workflow token permissions
+  - Set minimal permissions per workflow
+  - Explicit permissions for each job
+  - Remove unnecessary write access
+  - **Impact:** Token-Permissions: 0 → 10 (+1.0 point)
+
+- [ ] **[SECURITY]** Setup GPG commit signing
+  - Generate GPG key
+  - Configure git signing
+  - Add key to GitHub
+  - Sign all commits going forward
+
+- [ ] **[SECURITY]** Create .github/CODEOWNERS
+  - Define code owners
+  - Automatic review requests
+
+**Phase 2 - Dependency Pinning (Target: 7.5/10):**
+- [ ] **[SECURITY]** Pin all GitHub Actions to SHA hashes (49+ dependencies)
+  - actions/checkout@v4 → @sha
+  - actions/setup-go@v5 → @sha
+  - golangci/golangci-lint-action@v4 → @sha
+  - ... (22 unique actions total)
+  - **Impact:** Pinned-Dependencies: 0 → 10 (+1.0 point)
+
+- [ ] **[SECURITY]** Pin Docker base images to digests
+  - golang:1.25-alpine → @sha256:...
+  - Update all compose files
+
+### ocserv Features (MEDIUM PRIORITY)
 
 See: `docs/todo/OCSERV_COMPATIBILITY.md` for complete roadmap
 
 **High Priority:**
-- [x] **[FEATURE]** Complete missing occtl commands (16/16 done!)
+- [x] **[FEATURE]** Complete missing occtl commands (13/16 working!)
   - ✅ show user [NAME], show id [ID]
-  - ✅ show sessions (all/valid), show session [SID]
-  - ✅ show ip bans, show ip ban points, unban ip
-  - ✅ show iroutes
-  - ✅ reload
-  - [ ] show events (real-time streaming) - needs special implementation
+  - ✅ show users, status, stats, ip bans
+  - ✅ disconnect, unban, reload
+  - ⚠️ show iroutes, sessions (occtl bugs)
+  - [ ] show events (real-time streaming) - needs ServerStream RPC
 
 - [ ] **[FEATURE]** Implement ocpasswd wrapper
   - User management (add, delete, lock, unlock)
@@ -338,14 +420,22 @@ None yet
   - 0161ffc: Fix command order for RAW binaries ✅
   - 7f0a18c: TODO updates ✅
   - 783984f: DONE.md and BACKLOG.md updates ✅
+  - c0efd50: CURRENT.md updates ✅
+  - cb1f848: gRPC reflection support ✅
+  - 801b32d: gRPC testing guide and deployment scripts ✅
+  - 3c2d96a: Remove hardcoded credentials ✅
+  - 4fd990f: **Fix occtl JSON parsing (CRITICAL)** ✅
+  - 8837ee6: Add OCCTL_COMMANDS.md reference ✅
+  - 37310dc: Update compatibility + add security docs ✅
 
 - **Tests:** 0% coverage (tests planned for v0.4.0+)
-- **Documentation:** 100% complete
-- **Release notes:** v0.3.0 BETA released
+- **Documentation:** 100% complete + 5 new comprehensive guides
+- **Release notes:** v0.3.1 BETA ready for release
 - **Phase 1:** COMPLETED (100%) ✅
 - **Phase 2:** COMPLETED (100%) ✅
-- **Phase 3:** COMPLETED (100%) ✅ - All occtl commands
+- **Phase 3:** COMPLETED (100%) ✅ - occtl commands working
 - **v0.2.1:** COMPLETED (100%) ✅ - CI/CD infrastructure
 - **v0.3.0:** COMPLETED (100%) ✅ - Certificate auto-generation
-- **Current:** v0.3.0 BETA published on GitHub - ready for production testing
-- **Next Phase:** v0.4.0 - Streaming, ocpasswd, UpdateConfig, Unit tests
+- **v0.3.1:** COMPLETED (100%) ✅ - Critical bugfixes + Documentation
+- **Current:** v0.3.1 BETA - production-tested, comprehensive docs, ready for release
+- **Next Phase:** v0.4.0 - OSSF Scorecard improvements, ocpasswd, UpdateConfig, Unit tests
