@@ -213,20 +213,37 @@ Some occtl commands return invalid JSON. These are **upstream bugs in occtl 1.3.
 **Date:** 2025-10-23
 
 **Related Upstream Issues:**
-- [GitLab #220](https://gitlab.com/openconnect/ocserv/-/issues/220) - Invalid JSON structure with trailing commas
-- [GitLab #517](https://gitlab.com/openconnect/ocserv/-/issues/517) - occtl generates invalid JSON with `--debug` parameter
-- [GitLab #20](https://gitlab.com/openconnect/ocserv/-/issues/20) - occtl: show iroutes command
 
-**Previous Fixes (but still broken in 1.3.0):**
-- v1.2.1 - Fixed duplicate key in `occtl --json show users` output
-- v1.2.0 - Fixed JSON output with `--debug` flag (#517)
-- v0.10.7 - Fixed several cases of invalid JSON output
+1. **[GitLab #661](https://gitlab.com/openconnect/ocserv/-/issues/661)** - ⚠️ **OPEN** (Sep 2025)
+   - **occtl iroutes outputs invalid JSON**
+   - Reported by @mmtaee
+   - **Exact same issue we found:** Duplicate keys, missing commas, no array wrapper
+   - Tested on ocserv 1.3.0 (same version!)
+   - Affects: Debian 12, Debian 13, Ubuntu 22.04
 
-**Note:** Despite previous fixes in v1.2.x, JSON bugs persist in ocserv/occtl 1.3.0. These appear to be regressions or new issues.
+2. **[GitLab #220](https://gitlab.com/openconnect/ocserv/-/issues/220)** - ✅ CLOSED (2019, milestone 0.12.5)
+   - **Invalid JSON structure with trailing commas**
+   - Fixed in v0.12.5 by @nmav
+   - **BUT REGRESSED IN 1.3.0** - trailing commas are back in `show sessions`
+
+3. **[GitLab #517](https://gitlab.com/openconnect/ocserv/-/issues/517)** - ✅ CLOSED (milestone 1.2.0)
+   - **occtl generates invalid JSON with `--debug` parameter**
+   - Fixed in v1.2.0
+   - Missing comma after "TLS DB entries" field
+
+4. **[GitLab #20](https://gitlab.com/openconnect/ocserv/-/issues/20)** - Feature request for iroutes command (2015)
+
+**Historical Fixes (REGRESSED in 1.3.0):**
+- **v1.2.1** - Fixed duplicate key in `occtl --json show users` output
+- **v1.2.0** - Fixed JSON output with `--debug` flag (#517)
+- **v0.12.5** - Fixed trailing commas (#220)
+- **v0.10.7** - Fixed several cases of invalid JSON output
+
+**⚠️ IMPORTANT:** Issues #220 and #517 were fixed in earlier versions but **have regressed in ocserv/occtl 1.3.0**. Issue #661 is currently **open and actively tracked** upstream.
 
 **Workaround:** For `show iroutes`, use text mode output (without `-j` flag). For `show sessions`, some lenient JSON parsers may work, but strict parsers will fail on trailing commas.
 
-**Recommendation:** Consider reporting these issues to the [ocserv GitLab issue tracker](https://gitlab.com/openconnect/ocserv/-/issues).
+**Upstream Status:** Issue #661 is **actively tracked** upstream. Monitor the [GitLab issue](https://gitlab.com/openconnect/ocserv/-/issues/661) for updates and potential fixes in future ocserv releases.
 
 ## Command Validation
 
