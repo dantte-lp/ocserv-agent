@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
@@ -185,26 +186,50 @@ func TestLoggingInterceptor(t *testing.T) {
 		FullMethod: "/test.Service/TestMethod",
 	}
 
-	// Test successful call
-	handlerCalled := false
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		handlerCalled = true
-		return "response", nil
-	}
+	t.Run("successful call", func(t *testing.T) {
+		handlerCalled := false
+		handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			handlerCalled = true
+			return "response", nil
+		}
 
-	resp, err := interceptor(ctx, req, info, handler)
+		resp, err := interceptor(ctx, req, info, handler)
 
-	if err != nil {
-		t.Errorf("loggingInterceptor() unexpected error = %v", err)
-	}
+		if err != nil {
+			t.Errorf("loggingInterceptor() unexpected error = %v", err)
+		}
 
-	if !handlerCalled {
-		t.Error("loggingInterceptor() did not call handler")
-	}
+		if !handlerCalled {
+			t.Error("loggingInterceptor() did not call handler")
+		}
 
-	if resp != "response" {
-		t.Errorf("loggingInterceptor() resp = %v, want %v", resp, "response")
-	}
+		if resp != "response" {
+			t.Errorf("loggingInterceptor() resp = %v, want %v", resp, "response")
+		}
+	})
+
+	t.Run("failed call", func(t *testing.T) {
+		handlerCalled := false
+		testErr := fmt.Errorf("test error")
+		handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+			handlerCalled = true
+			return nil, testErr
+		}
+
+		resp, err := interceptor(ctx, req, info, handler)
+
+		if err != testErr {
+			t.Errorf("loggingInterceptor() error = %v, want %v", err, testErr)
+		}
+
+		if !handlerCalled {
+			t.Error("loggingInterceptor() did not call handler")
+		}
+
+		if resp != nil {
+			t.Errorf("loggingInterceptor() resp = %v, want nil", resp)
+		}
+	})
 }
 
 // TestRecoveryInterceptor tests panic recovery
@@ -288,6 +313,124 @@ func TestGracefulStopAndStop(t *testing.T) {
 
 	// Test Stop (should not panic)
 	server2.Stop()
+}
+
+// mockServerStream is a mock implementation of grpc.ServerStream for testing
+type mockServerStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (m *mockServerStream) Context() context.Context {
+	if m.ctx != nil {
+		return m.ctx
+	}
+	return context.Background()
+}
+
+// TestStreamLoggingInterceptor tests the stream logging interceptor
+func TestStreamLoggingInterceptor(t *testing.T) {
+	cfg := &config.Config{
+		AgentID: "test-agent",
+		TLS: config.TLSConfig{
+			Enabled: false,
+		},
+		Ocserv: config.OcservConfig{
+			ConfigPath:     "/etc/ocserv/ocserv.conf",
+			CtlSocket:      "/run/ocserv/occtl.socket",
+			SystemdService: "ocserv",
+		},
+	}
+
+	logger := zerolog.New(zerolog.NewTestWriter(t))
+
+	s := &Server{
+		config: cfg,
+		logger: logger,
+	}
+
+	interceptor := s.streamLoggingInterceptor()
+
+	srv := struct{}{}
+	ss := &mockServerStream{ctx: context.Background()}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/test.Service/TestStream",
+		IsClientStream: true,
+		IsServerStream: true,
+	}
+
+	t.Run("successful stream", func(t *testing.T) {
+		handlerCalled := false
+		handler := func(srv interface{}, stream grpc.ServerStream) error {
+			handlerCalled = true
+			return nil
+		}
+
+		err := interceptor(srv, ss, info, handler)
+
+		if err != nil {
+			t.Errorf("streamLoggingInterceptor() unexpected error = %v", err)
+		}
+
+		if !handlerCalled {
+			t.Error("streamLoggingInterceptor() did not call handler")
+		}
+	})
+
+	t.Run("failed stream", func(t *testing.T) {
+		handlerCalled := false
+		testErr := fmt.Errorf("stream error")
+		handler := func(srv interface{}, stream grpc.ServerStream) error {
+			handlerCalled = true
+			return testErr
+		}
+
+		err := interceptor(srv, ss, info, handler)
+
+		if err != testErr {
+			t.Errorf("streamLoggingInterceptor() error = %v, want %v", err, testErr)
+		}
+
+		if !handlerCalled {
+			t.Error("streamLoggingInterceptor() did not call handler")
+		}
+	})
+
+	t.Run("server stream only", func(t *testing.T) {
+		serverStreamInfo := &grpc.StreamServerInfo{
+			FullMethod:     "/test.Service/ServerStream",
+			IsClientStream: false,
+			IsServerStream: true,
+		}
+
+		handler := func(srv interface{}, stream grpc.ServerStream) error {
+			return nil
+		}
+
+		err := interceptor(srv, ss, serverStreamInfo, handler)
+
+		if err != nil {
+			t.Errorf("streamLoggingInterceptor() unexpected error = %v", err)
+		}
+	})
+
+	t.Run("client stream only", func(t *testing.T) {
+		clientStreamInfo := &grpc.StreamServerInfo{
+			FullMethod:     "/test.Service/ClientStream",
+			IsClientStream: true,
+			IsServerStream: false,
+		}
+
+		handler := func(srv interface{}, stream grpc.ServerStream) error {
+			return nil
+		}
+
+		err := interceptor(srv, ss, clientStreamInfo, handler)
+
+		if err != nil {
+			t.Errorf("streamLoggingInterceptor() unexpected error = %v", err)
+		}
+	})
 }
 
 // Helper function

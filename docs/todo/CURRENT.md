@@ -1,29 +1,45 @@
 # Current TODO - ocserv-agent
 
 **Last Updated:** 2025-10-23
-**Last Commit:** d23dcb6 - release: v0.4.0 - Test Foundation & DevOps Improvements
-**Status:** v0.4.0 COMPLETED ✅ | v0.5.0 IN PROGRESS - Complete test coverage (>80% target)
+**Last Commit:** 240ff52 - security(ocserv): fix CRITICAL command injection vulnerabilities
+**Status:** v0.5.0 IN PROGRESS - Complete test coverage (>80% target)
 
-## 🚀 v0.5.0: Complete Test Coverage - IN PROGRESS!
+## 🚀 v0.5.0: Complete Test Coverage - IN PROGRESS! (Task 1/7 ✅)
 
 **Target:** December 2025 | **Goal:** Achieve >80% overall test coverage
 
-**Remaining Tests:**
-- [ ] Unit tests for internal/grpc (server, handlers)
-  - gRPC server initialization and lifecycle
-  - Request/response handling
-  - Interceptors and middleware
-  - Error handling
-- [ ] Unit tests for internal/ocserv (manager, occtl, systemctl)
-  - manager.go: Command execution and validation
-  - occtl.go: All occtl command wrappers
-  - systemctl.go: Service management
-- [ ] Integration tests with mock ocserv
-- [ ] End-to-end API tests
+**Recent Accomplishments (Today):**
+- ✅ **Security Fix:** Fixed CRITICAL command injection vulnerabilities (29 injection tests)
+  - Backtick command substitution (HIGH severity)
+  - Escaped metacharacter injection (MEDIUM severity)
+  - Newline injection (MEDIUM severity)
+  - Control character injection (LOW severity)
+- ✅ **Task 1/7:** Improved interceptor coverage (loggingInterceptor: 83.3% → 100%, streamLoggingInterceptor: 16.7% → 100%)
+- ✅ Created 1,250+ lines of new tests (grpc + manager)
+- ✅ internal/grpc: 0% → 67.6%
+- ✅ internal/ocserv/manager.go: validateArguments 100% coverage
 
-**Progress:**
-- Current overall coverage: ~40-50%
-- Target: >80%
+**Current Test Coverage:**
+- internal/cert: 77.6% ✅
+- internal/config: 97.1% ✅
+- internal/grpc: 67.6% 🟡 (was 0%)
+- internal/ocserv: 23.1% 🔴 (was 15.8%)
+- **Total (internal packages): ~48.4%** 🎯 Target: >80%
+
+**Remaining Tasks (6/7):**
+- [ ] **Task 2/7:** Create test certificate helper using internal/cert (~1 hour)
+- [ ] **Task 3/7:** Add TLS tests for loadTLSCredentials (27.3% → 100%) (~1 hour)
+- [ ] **Task 4/7:** Add TLS tests for createGRPCServer (80% → 100%) (~30 min)
+- [ ] **Task 5/7:** Add ExecuteCommand handler tests (~1-2 hours)
+- [ ] **Task 6/7:** Create integration test framework with mock ocserv (~2-3 hours)
+- [ ] **Task 7/7:** Add Serve integration tests (~1 hour)
+
+**Uncovered Functions (High Priority):**
+- internal/grpc/handlers.go:59 - ExecuteCommand (0%)
+- internal/grpc/server.go:88 - loadTLSCredentials (27.3%)
+- internal/grpc/server.go:134 - Serve (0%)
+- internal/ocserv/occtl.go - All functions (0%)
+- internal/ocserv/systemctl.go - All functions (0%)
 
 See [ROADMAP.md](../../ROADMAP.md) for detailed plan.
 
