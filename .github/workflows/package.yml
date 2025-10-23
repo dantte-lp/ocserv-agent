@@ -1,0 +1,438 @@
+name: Package Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:  # Manual trigger for testing
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  # Build RPM packages for RHEL/Oracle Linux/Rocky Linux
+  build-rpm:
+    name: Build RPM (${{ matrix.dist }})
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        dist:
+          - el8   # RHEL 8 / Oracle Linux 8
+          - el9   # RHEL 9 / Oracle Linux 9
+          - el10  # RHEL 10 / Oracle Linux 10
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "RPM_VERSION=${VERSION//-/_}" >> $GITHUB_OUTPUT
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Create RPM build environment
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          # Create source tarball
+          git archive --format=tar.gz \
+            --prefix=ocserv-agent-${{ steps.get_version.outputs.VERSION }}/ \
+            HEAD > ~/rpmbuild/SOURCES/ocserv-agent-${{ steps.get_version.outputs.VERSION }}.tar.gz
+
+      - name: Create RPM spec file
+        run: |
+          cat > ~/rpmbuild/SPECS/ocserv-agent.spec <<'EOF'
+          %global commit $(git rev-parse HEAD)
+          %global shortcommit %(c=%{commit}; echo ${c:0:7})
+
+          Name:           ocserv-agent
+          Version:        ${{ steps.get_version.outputs.RPM_VERSION }}
+          Release:        1%{?dist}
+          Summary:        gRPC management agent for OpenConnect VPN server (ocserv)
+
+          License:        MIT
+          URL:            https://github.com/dantte-lp/ocserv-agent
+          Source0:        ocserv-agent-${{ steps.get_version.outputs.VERSION }}.tar.gz
+
+          BuildRequires:  golang >= 1.25
+          BuildRequires:  protobuf-compiler
+          BuildRequires:  systemd-rpm-macros
+
+          Requires:       ocserv
+
+          %description
+          ocserv-agent is a gRPC-based management agent for OpenConnect VPN server (ocserv).
+          It provides remote management capabilities with mTLS authentication and comprehensive
+          monitoring features.
+
+          %prep
+          %autosetup -n ocserv-agent-${{ steps.get_version.outputs.VERSION }}
+
+          %build
+          # Generate protobuf code
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+          # Build binary
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=%{shortcommit} -X main.date=$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)" \
+            -o ocserv-agent ./cmd/agent
+
+          %install
+          # Install binary
+          install -D -m 0755 ocserv-agent %{buildroot}%{_sbindir}/ocserv-agent
+
+          # Install systemd service
+          install -D -m 0644 deploy/systemd/ocserv-agent.service %{buildroot}%{_unitdir}/ocserv-agent.service
+
+          # Install config directory
+          install -d %{buildroot}%{_sysconfdir}/ocserv-agent
+          install -d %{buildroot}%{_sysconfdir}/ocserv-agent/certs
+          install -D -m 0644 config.yaml.example %{buildroot}%{_sysconfdir}/ocserv-agent/config.yaml.example
+
+          %post
+          %systemd_post ocserv-agent.service
+
+          %preun
+          %systemd_preun ocserv-agent.service
+
+          %postun
+          %systemd_postun_with_restart ocserv-agent.service
+
+          %files
+          %license LICENSE
+          %doc README.md
+          %{_sbindir}/ocserv-agent
+          %{_unitdir}/ocserv-agent.service
+          %dir %{_sysconfdir}/ocserv-agent
+          %dir %{_sysconfdir}/ocserv-agent/certs
+          %config(noreplace) %{_sysconfdir}/ocserv-agent/config.yaml.example
+
+          %changelog
+          * $(date "+%a %b %d %Y") Builder <noreply@github.com> - ${{ steps.get_version.outputs.RPM_VERSION }}-1
+          - Automated build from Git tag ${{ github.ref_name }}
+          EOF
+
+      - name: Build RPM with mock
+        run: |
+          # Build SRPM first
+          rpmbuild -bs ~/rpmbuild/SPECS/ocserv-agent.spec
+
+          # Build RPM with mock for specific dist
+          mock -r ${{ matrix.dist }}-x86_64 \
+            --resultdir=./rpm-output-${{ matrix.dist }} \
+            ~/rpmbuild/SRPMS/ocserv-agent-${{ steps.get_version.outputs.RPM_VERSION }}-1.*.src.rpm
+
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-${{ matrix.dist }}
+          path: ./rpm-output-${{ matrix.dist }}/*.rpm
+          if-no-files-found: error
+
+  # Build DEB packages for Debian/Ubuntu
+  build-deb:
+    name: Build DEB (${{ matrix.dist }})
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        dist:
+          - debian12      # Debian 12 (Bookworm)
+          - debian13      # Debian 13 (Trixie)
+          - ubuntu2404    # Ubuntu 24.04 LTS
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # DEB version: replace - with ~ for pre-releases
+          echo "DEB_VERSION=${VERSION//-/\~}" >> $GITHUB_OUTPUT
+
+      - name: Install dpkg-dev
+        run: |
+          sudo dnf install -y dpkg dpkg-dev
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent ./cmd/agent
+
+      - name: Create DEB package
+        run: |
+          # Create debian package structure
+          mkdir -p debian-build/DEBIAN
+          mkdir -p debian-build/usr/sbin
+          mkdir -p debian-build/lib/systemd/system
+          mkdir -p debian-build/etc/ocserv-agent/certs
+          mkdir -p debian-build/usr/share/doc/ocserv-agent
+
+          # Copy files
+          cp ocserv-agent debian-build/usr/sbin/
+          cp deploy/systemd/ocserv-agent.service debian-build/lib/systemd/system/
+          cp config.yaml.example debian-build/etc/ocserv-agent/
+          cp README.md debian-build/usr/share/doc/ocserv-agent/
+          cp LICENSE debian-build/usr/share/doc/ocserv-agent/
+
+          # Create control file
+          cat > debian-build/DEBIAN/control <<EOF
+          Package: ocserv-agent
+          Version: ${{ steps.get_version.outputs.DEB_VERSION }}
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Depends: ocserv
+          Maintainer: ocserv-agent developers <noreply@github.com>
+          Description: gRPC management agent for OpenConnect VPN server
+           ocserv-agent is a gRPC-based management agent for OpenConnect VPN
+           server (ocserv). It provides remote management capabilities with
+           mTLS authentication and comprehensive monitoring features.
+          Homepage: https://github.com/dantte-lp/ocserv-agent
+          EOF
+
+          # Create postinst script
+          cat > debian-build/DEBIAN/postinst <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "configure" ]; then
+              systemctl daemon-reload || true
+          fi
+          EOF
+          chmod 755 debian-build/DEBIAN/postinst
+
+          # Build package
+          dpkg-deb --build debian-build ocserv-agent_${{ steps.get_version.outputs.DEB_VERSION }}_amd64.deb
+
+      - name: Upload DEB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.dist }}
+          path: ocserv-agent_*.deb
+          if-no-files-found: error
+
+  # Build FreeBSD packages
+  build-freebsd:
+    name: Build FreeBSD Package
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Build FreeBSD binaries
+        run: |
+          # Build for FreeBSD amd64
+          GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent-freebsd-amd64 ./cmd/agent
+
+          # Build for FreeBSD arm64
+          GOOS=freebsd GOARCH=arm64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent-freebsd-arm64 ./cmd/agent
+
+      - name: Create FreeBSD package manifest
+        run: |
+          mkdir -p freebsd-pkg/usr/local/sbin
+          mkdir -p freebsd-pkg/usr/local/etc/rc.d
+          mkdir -p freebsd-pkg/usr/local/etc/ocserv-agent/certs
+
+          # Copy binary (amd64 version for now)
+          cp ocserv-agent-freebsd-amd64 freebsd-pkg/usr/local/sbin/ocserv-agent
+
+          # Create rc.d script
+          cat > freebsd-pkg/usr/local/etc/rc.d/ocserv_agent <<'EOF'
+          #!/bin/sh
+
+          # PROVIDE: ocserv_agent
+          # REQUIRE: NETWORKING
+          # KEYWORD: shutdown
+
+          . /etc/rc.subr
+
+          name="ocserv_agent"
+          rcvar="ocserv_agent_enable"
+
+          command="/usr/local/sbin/ocserv-agent"
+          pidfile="/var/run/${name}.pid"
+
+          load_rc_config $name
+          : ${ocserv_agent_enable:="NO"}
+          : ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
+
+          command_args="-config ${ocserv_agent_config}"
+
+          run_rc_command "$1"
+          EOF
+          chmod +x freebsd-pkg/usr/local/etc/rc.d/ocserv_agent
+
+          # Copy config
+          cp config.yaml.example freebsd-pkg/usr/local/etc/ocserv-agent/
+
+          # Create pkg manifest
+          cat > freebsd-pkg/+MANIFEST <<EOF
+          name: ocserv-agent
+          version: "${{ steps.get_version.outputs.VERSION }}"
+          origin: net/ocserv-agent
+          comment: "gRPC management agent for OpenConnect VPN server"
+          desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS"
+          www: https://github.com/dantte-lp/ocserv-agent
+          maintainer: noreply@github.com
+          prefix: /usr/local
+          deps: {
+            ocserv: {origin: "net/ocserv", version: ">=1.1.0"}
+          }
+          EOF
+
+      - name: Create tarball for FreeBSD
+        run: |
+          # Create tarballs for both architectures
+          tar -czf ocserv-agent-${{ steps.get_version.outputs.VERSION }}-freebsd-amd64.tar.gz \
+            ocserv-agent-freebsd-amd64 config.yaml.example README.md LICENSE
+
+          tar -czf ocserv-agent-${{ steps.get_version.outputs.VERSION }}-freebsd-arm64.tar.gz \
+            ocserv-agent-freebsd-arm64 config.yaml.example README.md LICENSE
+
+      - name: Upload FreeBSD artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: freebsd-packages
+          path: ocserv-agent-*-freebsd-*.tar.gz
+          if-no-files-found: error
+
+  # Create GitHub Release with all packages
+  release:
+    name: Create Release
+    needs: [build-rpm, build-deb, build-freebsd]
+    runs-on: self-hosted
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Organize packages
+        run: |
+          mkdir -p packages/rpm packages/deb packages/freebsd
+
+          # Move RPM packages
+          find dist/rpm-* -name "*.rpm" -exec cp {} packages/rpm/ \;
+
+          # Move DEB packages
+          find dist/deb-* -name "*.deb" -exec cp {} packages/deb/ \;
+
+          # Move FreeBSD packages
+          find dist/freebsd-* -name "*.tar.gz" -exec cp {} packages/freebsd/ \;
+
+          # Create checksums
+          cd packages
+          sha256sum rpm/*.rpm > SHA256SUMS-rpm.txt
+          sha256sum deb/*.deb > SHA256SUMS-deb.txt
+          sha256sum freebsd/*.tar.gz > SHA256SUMS-freebsd.txt
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Read release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          if [ -f "docs/releases/${VERSION}.md" ]; then
+            cat "docs/releases/${VERSION}.md" > release_notes.md
+          else
+            echo "Release ${VERSION}" > release_notes.md
+            echo "" >> release_notes.md
+            echo "## Packages" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### RPM (RHEL/Oracle Linux/Rocky Linux)" >> release_notes.md
+            echo "- EL8, EL9, EL10 packages available" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### DEB (Debian/Ubuntu)" >> release_notes.md
+            echo "- Debian 12, Debian 13, Ubuntu 24.04 packages available" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### FreeBSD" >> release_notes.md
+            echo "- FreeBSD amd64 and arm64 packages available" >> release_notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: packages/**/*
+          body_path: release_notes.md
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

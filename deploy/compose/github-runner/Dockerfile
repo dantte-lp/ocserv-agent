@@ -1,11 +1,11 @@
 # ============================================================================
 # GitHub Actions Self-Hosted Runner for ocserv-agent
-# Base: Oracle Linux 10 (modern packages, .NET 8.0 support)
+# Base: Oracle Linux 10 (full image for GitHub Actions runner compatibility)
 # ============================================================================
 FROM oraclelinux:10
 
 # ============================================================================
-# Enable repositories
+# Enable additional repositories
 # ============================================================================
 RUN dnf config-manager --set-enabled ol10_addons && \
     dnf config-manager --set-enabled ol10_appstream && \
@@ -18,7 +18,6 @@ RUN dnf config-manager --set-enabled ol10_addons && \
 RUN dnf install -y \
         # Base tools
         curl \
-        wget \
         tar \
         gzip \
         bzip2 \
@@ -50,16 +49,16 @@ RUN dnf install -y \
         podman \
     && dnf clean all
 
-# Install EPEL and update all packages
+# Install EPEL and update packages
 RUN dnf install -y oracle-epel-release-el10 && \
-    dnf update -y && \
+    dnf update -y --allowerasing && \
     dnf clean all
 
 # ============================================================================
 # Install Python 3.14.0 from source
 # ============================================================================
 RUN cd /tmp && \
-    wget https://www.python.org/ftp/python/3.14.0/Python-3.14.0.tgz && \
+    curl -fsSL -o Python-3.14.0.tgz https://www.python.org/ftp/python/3.14.0/Python-3.14.0.tgz && \
     tar -xzf Python-3.14.0.tgz && \
     cd Python-3.14.0 && \
     ./configure --enable-optimizations --with-ensurepip=install && \
@@ -87,7 +86,7 @@ RUN dnf install -y dotnet-sdk-8.0 && \
 # ============================================================================
 # Install Go 1.25.1
 # ============================================================================
-RUN wget https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
+RUN curl -fsSL -o go1.25.1.linux-amd64.tar.gz https://go.dev/dl/go1.25.1.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.25.1.linux-amd64.tar.gz && \
     rm go1.25.1.linux-amd64.tar.gz
 
@@ -98,7 +97,8 @@ ENV GOPATH="/go"
 # Install protoc (Protocol Buffers compiler)
 # ============================================================================
 ARG PROTOC_VERSION="29.3"
-RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
+RUN curl -fsSL -o protoc-${PROTOC_VERSION}-linux-x86_64.zip \
+        https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip && \
     unzip protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local && \
     rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
 
@@ -156,8 +156,10 @@ RUN curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
 # Install runner dependencies
 RUN cd /home/runner && ./bin/installdependencies.sh
 
-# Change ownership after all setup is done
-RUN chown -R runner:runner /home/runner
+# Create work directory with correct permissions
+RUN mkdir -p /home/runner/_work && \
+    chown -R runner:runner /home/runner && \
+    chmod -R 755 /home/runner/_work
 
 # ============================================================================
 # Configure runner environment
