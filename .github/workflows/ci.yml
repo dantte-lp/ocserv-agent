@@ -28,6 +28,9 @@ jobs:
   test:
     name: Test (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     strategy:
       matrix:
         go-version: ['1.25']
@@ -82,6 +85,9 @@ jobs:
   build:
     name: Build (${{ matrix.os }}/${{ matrix.arch }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # For artifact upload
     strategy:
       matrix:
         os: [linux, freebsd]
@@ -135,6 +141,9 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
+      actions: read  # For artifact download
 
     steps:
       - name: Checkout code
@@ -170,6 +179,8 @@ jobs:
   checks:
     name: Code Quality Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code

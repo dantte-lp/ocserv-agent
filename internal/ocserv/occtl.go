@@ -33,47 +33,47 @@ func NewOcctlManager(socketPath, sudoUser string, timeout time.Duration, logger 
 
 // User represents a connected VPN user
 type User struct {
-	ID                int       `json:"ID"`
-	Username          string    `json:"Username"`
-	Groupname         string    `json:"Groupname"`
-	State             string    `json:"State"`
-	VHost             string    `json:"vhost"`
-	Device            string    `json:"Device"`
-	MTU               string    `json:"MTU"`
-	RemoteIP          string    `json:"Remote IP"`
-	Location          string    `json:"Location"`
-	LocalDeviceIP     string    `json:"Local Device IP"`
-	IPv4              string    `json:"IPv4"`
-	PtPIPv4           string    `json:"P-t-P IPv4"`
-	IPv6              string    `json:"IPv6"`
-	PtPIPv6           string    `json:"P-t-P IPv6"`
-	UserAgent         string    `json:"User-Agent"`
-	RX                string    `json:"RX"`
-	TX                string    `json:"TX"`
-	ReadableRX        string    `json:"_RX"`
-	ReadableTX        string    `json:"_TX"`
-	AverageRX         string    `json:"Average RX"`
-	AverageTX         string    `json:"Average TX"`
-	DPD               string    `json:"DPD"`
-	KeepAlive         string    `json:"KeepAlive"`
-	Hostname          string    `json:"Hostname"`
-	ConnectedAt       string    `json:"Connected at"`
-	ConnectedDuration string    `json:"_Connected at"`
-	RawConnectedAt    int64     `json:"raw_connected_at"`
-	FullSession       string    `json:"Full session"`
-	Session           string    `json:"Session"`
-	TLSCiphersuite    string    `json:"TLS ciphersuite"`
-	DTLSCipher        string    `json:"DTLS cipher"`
-	CSTPCompression   string    `json:"CSTP compression"`
-	DTLSCompression   string    `json:"DTLS compression"`
-	DNS               []string     `json:"DNS"`
-	NBNS              []string     `json:"NBNS"`
-	SplitDNSDomains   []string     `json:"Split-DNS-Domains"`
-	Routes            interface{}  `json:"Routes"` // Can be []string or string (e.g. "defaultroute")
-	NoRoutes          []string     `json:"No-routes"`
-	IRoutes           []string     `json:"iRoutes"`
-	RestrictedRoutes  string       `json:"Restricted to routes"`
-	RestrictedPorts   []string     `json:"Restricted to ports"`
+	ID                int         `json:"ID"`
+	Username          string      `json:"Username"`
+	Groupname         string      `json:"Groupname"`
+	State             string      `json:"State"`
+	VHost             string      `json:"vhost"`
+	Device            string      `json:"Device"`
+	MTU               string      `json:"MTU"`
+	RemoteIP          string      `json:"Remote IP"`
+	Location          string      `json:"Location"`
+	LocalDeviceIP     string      `json:"Local Device IP"`
+	IPv4              string      `json:"IPv4"`
+	PtPIPv4           string      `json:"P-t-P IPv4"`
+	IPv6              string      `json:"IPv6"`
+	PtPIPv6           string      `json:"P-t-P IPv6"`
+	UserAgent         string      `json:"User-Agent"`
+	RX                string      `json:"RX"`
+	TX                string      `json:"TX"`
+	ReadableRX        string      `json:"_RX"`
+	ReadableTX        string      `json:"_TX"`
+	AverageRX         string      `json:"Average RX"`
+	AverageTX         string      `json:"Average TX"`
+	DPD               string      `json:"DPD"`
+	KeepAlive         string      `json:"KeepAlive"`
+	Hostname          string      `json:"Hostname"`
+	ConnectedAt       string      `json:"Connected at"`
+	ConnectedDuration string      `json:"_Connected at"`
+	RawConnectedAt    int64       `json:"raw_connected_at"`
+	FullSession       string      `json:"Full session"`
+	Session           string      `json:"Session"`
+	TLSCiphersuite    string      `json:"TLS ciphersuite"`
+	DTLSCipher        string      `json:"DTLS cipher"`
+	CSTPCompression   string      `json:"CSTP compression"`
+	DTLSCompression   string      `json:"DTLS compression"`
+	DNS               []string    `json:"DNS"`
+	NBNS              []string    `json:"NBNS"`
+	SplitDNSDomains   []string    `json:"Split-DNS-Domains"`
+	Routes            interface{} `json:"Routes"` // Can be []string or string (e.g. "defaultroute")
+	NoRoutes          []string    `json:"No-routes"`
+	IRoutes           []string    `json:"iRoutes"`
+	RestrictedRoutes  string      `json:"Restricted to routes"`
+	RestrictedPorts   []string    `json:"Restricted to ports"`
 }
 
 // ServerStatus represents ocserv status
