@@ -182,9 +182,9 @@ func TestSetDefaults_NoOverride(t *testing.T) {
 // TestBootstrapCertificates tests certificate auto-generation
 func TestBootstrapCertificates(t *testing.T) {
 	tests := []struct {
-		name        string
-		tlsEnabled  bool
-		autoGen     bool
+		name         string
+		tlsEnabled   bool
+		autoGen      bool
 		wantGenerate bool
 	}{
 		{
@@ -253,13 +253,13 @@ func TestBootstrapCertificates(t *testing.T) {
 func TestApplyEnvOverrides(t *testing.T) {
 	// Save original env
 	originalEnv := map[string]string{
-		"AGENT_ID":                 os.Getenv("AGENT_ID"),
-		"CONTROL_SERVER_ADDRESS":   os.Getenv("CONTROL_SERVER_ADDRESS"),
-		"TLS_CERT_FILE":            os.Getenv("TLS_CERT_FILE"),
-		"TLS_KEY_FILE":             os.Getenv("TLS_KEY_FILE"),
-		"TLS_CA_FILE":              os.Getenv("TLS_CA_FILE"),
-		"LOG_LEVEL":                os.Getenv("LOG_LEVEL"),
-		"TELEMETRY_ENDPOINT":       os.Getenv("TELEMETRY_ENDPOINT"),
+		"AGENT_ID":               os.Getenv("AGENT_ID"),
+		"CONTROL_SERVER_ADDRESS": os.Getenv("CONTROL_SERVER_ADDRESS"),
+		"TLS_CERT_FILE":          os.Getenv("TLS_CERT_FILE"),
+		"TLS_KEY_FILE":           os.Getenv("TLS_KEY_FILE"),
+		"TLS_CA_FILE":            os.Getenv("TLS_CA_FILE"),
+		"LOG_LEVEL":              os.Getenv("LOG_LEVEL"),
+		"TELEMETRY_ENDPOINT":     os.Getenv("TELEMETRY_ENDPOINT"),
 	}
 
 	// Restore env after test
