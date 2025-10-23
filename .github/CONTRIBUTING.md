@@ -24,6 +24,19 @@ The `main` branch is protected with the following rules:
 - ✅ All conversations must be resolved before merge
 - ⚠️ Admins can bypass (use with caution)
 
+**Smart CI Triggering:**
+
+The CI system intelligently skips heavy checks when only documentation or configuration files are changed:
+
+**Documentation-only changes** (only .md, .yml, .yaml, docs/*, LICENSE, .gitignore):
+- ✅ Lint checks (Markdown, YAML, Dockerfile) - **RUNS**
+- ❌ Tests, builds, security scans - **SKIPPED**
+
+**Code changes** (.go, proto, Dockerfile, go.mod, etc.):
+- ✅ All checks run - **FULL CI**
+
+This saves CI resources and speeds up documentation PRs while ensuring code changes are thoroughly tested.
+
 ### 2. Development Process
 
 #### Step 1: Create Feature Branch
