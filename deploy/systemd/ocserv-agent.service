@@ -10,7 +10,7 @@ User=ocserv-agent
 Group=ocserv-agent
 
 # Binary
-ExecStart=/etc/ocserv-agent/ocserv-agent --config /etc/ocserv-agent/config.yaml
+ExecStart=/usr/sbin/ocserv-agent --config /etc/ocserv-agent/config.yaml
 
 # Restart policy
 Restart=always
@@ -28,7 +28,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/etc/ocserv-agent /var/log/ocserv-agent /var/backups/ocserv-agent
+ReadWritePaths=/var/log/ocserv-agent /var/backups/ocserv-agent
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictRealtime=true

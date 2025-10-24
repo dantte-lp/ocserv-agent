@@ -111,8 +111,43 @@ jobs:
           install -d %{buildroot}%{_sysconfdir}/ocserv-agent/certs
           install -D -m 0644 config.yaml.example %{buildroot}%{_sysconfdir}/ocserv-agent/config.yaml.example
 
+          # Create log and backup directories
+          install -d %{buildroot}%{_localstatedir}/log/ocserv-agent
+          install -d %{buildroot}%{_localstatedir}/backups/ocserv-agent
+
+          %pre
+          # Create ocserv-agent user and group
+          getent group ocserv-agent >/dev/null || groupadd -r ocserv-agent
+          getent passwd ocserv-agent >/dev/null || \
+            useradd -r -g ocserv-agent -d /etc/ocserv-agent -s /sbin/nologin \
+            -c "ocserv-agent service user" ocserv-agent
+          exit 0
+
           %post
           %systemd_post ocserv-agent.service
+
+          # SELinux contexts for RHEL/Oracle Linux
+          if command -v semanage >/dev/null 2>&1; then
+            # Set SELinux context for binary
+            semanage fcontext -a -t bin_t '/usr/sbin/ocserv-agent' 2>/dev/null || true
+            restorecon -v /usr/sbin/ocserv-agent 2>/dev/null || true
+
+            # Set SELinux context for config
+            semanage fcontext -a -t etc_t '/etc/ocserv-agent(/.*)?' 2>/dev/null || true
+            restorecon -Rv /etc/ocserv-agent 2>/dev/null || true
+
+            # Set SELinux context for logs
+            semanage fcontext -a -t var_log_t '/var/log/ocserv-agent(/.*)?' 2>/dev/null || true
+            restorecon -Rv /var/log/ocserv-agent 2>/dev/null || true
+
+            # Allow network binding if needed
+            setsebool -P nis_enabled 1 2>/dev/null || true
+          fi
+
+          # Set ownership
+          chown -R ocserv-agent:ocserv-agent /etc/ocserv-agent 2>/dev/null || true
+          chown -R ocserv-agent:ocserv-agent /var/log/ocserv-agent 2>/dev/null || true
+          chown -R ocserv-agent:ocserv-agent /var/backups/ocserv-agent 2>/dev/null || true
 
           %preun
           %systemd_preun ocserv-agent.service
@@ -120,14 +155,22 @@ jobs:
           %postun
           %systemd_postun_with_restart ocserv-agent.service
 
+          # Remove user only on complete removal (not upgrade)
+          if [ $1 -eq 0 ]; then
+            userdel ocserv-agent 2>/dev/null || true
+            groupdel ocserv-agent 2>/dev/null || true
+          fi
+
           %files
           %license LICENSE
           %doc README.md
           %{_sbindir}/ocserv-agent
           %{_unitdir}/ocserv-agent.service
-          %dir %{_sysconfdir}/ocserv-agent
-          %dir %{_sysconfdir}/ocserv-agent/certs
-          %config(noreplace) %{_sysconfdir}/ocserv-agent/config.yaml.example
+          %dir %attr(0750,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent
+          %dir %attr(0750,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent/certs
+          %config(noreplace) %attr(0640,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent/config.yaml.example
+          %dir %attr(0755,ocserv-agent,ocserv-agent) %{_localstatedir}/log/ocserv-agent
+          %dir %attr(0755,ocserv-agent,ocserv-agent) %{_localstatedir}/backups/ocserv-agent
 
           %changelog
           * $(date "+%a %b %d %Y") Builder <noreply@github.com> - ${{ steps.get_version.outputs.RPM_VERSION }}-1
@@ -209,10 +252,13 @@ jobs:
           mkdir -p debian-build/usr/sbin
           mkdir -p debian-build/lib/systemd/system
           mkdir -p debian-build/etc/ocserv-agent/certs
+          mkdir -p debian-build/var/log/ocserv-agent
+          mkdir -p debian-build/var/backups/ocserv-agent
           mkdir -p debian-build/usr/share/doc/ocserv-agent
 
           # Copy files
           cp ocserv-agent debian-build/usr/sbin/
+          chmod 755 debian-build/usr/sbin/ocserv-agent
           cp deploy/systemd/ocserv-agent.service debian-build/lib/systemd/system/
           cp config.yaml.example debian-build/etc/ocserv-agent/
           cp README.md debian-build/usr/share/doc/ocserv-agent/
@@ -225,7 +271,7 @@ jobs:
           Section: net
           Priority: optional
           Architecture: amd64
-          Depends: ocserv
+          Depends: ocserv, adduser
           Maintainer: ocserv-agent developers <noreply@github.com>
           Description: gRPC management agent for OpenConnect VPN server
            ocserv-agent is a gRPC-based management agent for OpenConnect VPN
@@ -234,15 +280,80 @@ jobs:
           Homepage: https://github.com/dantte-lp/ocserv-agent
           EOF
 
+          # Create preinst script (create user before installation)
+          cat > debian-build/DEBIAN/preinst <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "install" ] || [ "$1" = "upgrade" ]; then
+              # Create ocserv-agent user and group
+              if ! getent group ocserv-agent >/dev/null; then
+                  addgroup --system ocserv-agent
+              fi
+              if ! getent passwd ocserv-agent >/dev/null; then
+                  adduser --system --home /etc/ocserv-agent --no-create-home \
+                      --ingroup ocserv-agent --disabled-password --shell /usr/sbin/nologin \
+                      --gecos "ocserv-agent service user" ocserv-agent
+              fi
+          fi
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/preinst
+
           # Create postinst script
           cat > debian-build/DEBIAN/postinst <<'EOF'
           #!/bin/sh
           set -e
           if [ "$1" = "configure" ]; then
+              # Set ownership
+              chown -R ocserv-agent:ocserv-agent /etc/ocserv-agent || true
+              chown -R ocserv-agent:ocserv-agent /var/log/ocserv-agent || true
+              chown -R ocserv-agent:ocserv-agent /var/backups/ocserv-agent || true
+
+              # Set permissions
+              chmod 750 /etc/ocserv-agent || true
+              chmod 750 /etc/ocserv-agent/certs || true
+              chmod 640 /etc/ocserv-agent/config.yaml.example || true
+
+              # Reload systemd
               systemctl daemon-reload || true
           fi
+          exit 0
           EOF
           chmod 755 debian-build/DEBIAN/postinst
+
+          # Create prerm script
+          cat > debian-build/DEBIAN/prerm <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "remove" ]; then
+              systemctl stop ocserv-agent.service 2>/dev/null || true
+              systemctl disable ocserv-agent.service 2>/dev/null || true
+          fi
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/prerm
+
+          # Create postrm script
+          cat > debian-build/DEBIAN/postrm <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "purge" ]; then
+              # Remove user and group only on purge
+              if getent passwd ocserv-agent >/dev/null; then
+                  deluser --system ocserv-agent 2>/dev/null || true
+              fi
+              if getent group ocserv-agent >/dev/null; then
+                  delgroup --system ocserv-agent 2>/dev/null || true
+              fi
+
+              # Remove directories
+              rm -rf /var/log/ocserv-agent || true
+              rm -rf /var/backups/ocserv-agent || true
+          fi
+          systemctl daemon-reload || true
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/postrm
 
           # Build package
           dpkg-deb --build debian-build ocserv-agent_${{ steps.get_version.outputs.DEB_VERSION }}_amd64.deb
