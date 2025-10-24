@@ -87,12 +87,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
-          check-latest: true
+      - name: Verify Go installation
+        run: |
+          go version
+          echo "GOPATH: $GOPATH"
+          echo "Using pre-installed Go from runner image"
 
       - name: Install dependencies
         run: |
@@ -146,11 +145,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
 
       - name: Generate protobuf
         run: |
@@ -279,11 +275,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
 
       - name: Generate protobuf
         run: |
@@ -313,11 +306,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
 
       - name: Generate protobuf
         run: |
