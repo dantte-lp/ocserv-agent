@@ -255,6 +255,7 @@ jobs:
       - name: Scan binaries with Grype
         run: |
           # Scan each binary for vulnerabilities
+          mkdir -p sarif-results
           SARIF_COUNT=0
           for binary in artifacts/binary-*/*; do
             if [ -f "$binary" ]; then
@@ -264,10 +265,10 @@ jobs:
               # Run grype and check if SARIF was created
               grype "file:$binary" \
                 --output sarif \
-                --file "grype-${base}.sarif" 2>&1 || true
+                --file "sarif-results/grype-${base}.sarif" 2>&1 || true
 
               # Check if SARIF file was actually created
-              if [ -f "grype-${base}.sarif" ]; then
+              if [ -f "sarif-results/grype-${base}.sarif" ]; then
                 SARIF_COUNT=$((SARIF_COUNT + 1))
                 echo "✓ Generated grype-${base}.sarif"
               else
@@ -280,13 +281,19 @@ jobs:
           echo "SARIF_COUNT=$SARIF_COUNT" >> $GITHUB_ENV
 
           # List generated files for debugging
-          ls -la grype-*.sarif 2>/dev/null || echo "No SARIF files found"
+          if [ $SARIF_COUNT -gt 0 ]; then
+            echo "Generated SARIF files:"
+            ls -la sarif-results/
+          else
+            echo "No SARIF files generated"
+          fi
 
       - name: Upload Grype results
         if: always() && env.SARIF_COUNT != '0'
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: grype-*.sarif
+          sarif_file: sarif-results
+          category: grype-scan
 
   # Integration tests with containers
   integration:
