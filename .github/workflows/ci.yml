@@ -93,6 +93,12 @@ jobs:
           echo "GOPATH: $GOPATH"
           echo "Using pre-installed Go from runner image"
 
+      - name: Clean Go cache
+        run: |
+          # Clean build and module cache to avoid version mismatch errors
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
+
       - name: Install dependencies
         run: |
           # protoc and protoc-gen-* already installed in self-hosted runner
@@ -147,6 +153,11 @@ jobs:
 
       - name: Verify Go installation
         run: go version
+
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Generate protobuf
         run: |
@@ -278,6 +289,11 @@ jobs:
       - name: Verify Go installation
         run: go version
 
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
+
       - name: Generate protobuf
         run: |
           protoc --go_out=. --go-grpc_out=. \
@@ -308,6 +324,11 @@ jobs:
 
       - name: Verify Go installation
         run: go version
+
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Generate protobuf
         run: |
