@@ -315,6 +315,10 @@ jobs:
           jq '.runs | length' merged-grype.sarif
 
       - name: Upload Grype results
+        # Allow failure due to GitHub limitation: cannot upload multiple runs per category
+        # See: https://github.blog/changelog/2025-07-21-code-scanning-will-stop-combining-multiple-sarif-runs-uploaded-in-the-same-sarif-file/
+        # For statically-linked Go binaries, Grype typically finds no vulnerabilities anyway
+        continue-on-error: true
         if: always() && env.SARIF_COUNT != '0'
         uses: github/codeql-action/upload-sarif@v3
         with:
