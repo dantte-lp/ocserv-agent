@@ -14,7 +14,7 @@ jobs:
   # Build RPM packages for RHEL/Oracle Linux/Rocky Linux
   build-rpm:
     name: Build RPM (${{ matrix.dist }})
-    runs-on: [self-hosted, oracle-linux, rpm-build, mock]
+    runs-on: self-hosted
     strategy:
       matrix:
         dist:
@@ -59,19 +59,28 @@ jobs:
             HEAD > ~/rpmbuild/SOURCES/ocserv-agent-${{ steps.get_version.outputs.VERSION }}.tar.gz
 
       - name: Create RPM spec file
+        env:
+          RPM_VERSION: ${{ steps.get_version.outputs.RPM_VERSION }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+          GIT_COMMIT: ${{ github.sha }}
+          TAG_NAME: ${{ github.ref_name }}
         run: |
-          cat > ~/rpmbuild/SPECS/ocserv-agent.spec <<'EOF'
-          %global commit $(git rev-parse HEAD)
-          %global shortcommit %(c=%{commit}; echo ${c:0:7})
+          # Get short commit hash
+          SHORT_COMMIT="${GIT_COMMIT:0:7}"
+          BUILD_DATE=$(date "+%a %b %d %Y")
+
+          cat > ~/rpmbuild/SPECS/ocserv-agent.spec <<EOF
+          %global commit ${GIT_COMMIT}
+          %global shortcommit ${SHORT_COMMIT}
 
           Name:           ocserv-agent
-          Version:        ${{ steps.get_version.outputs.RPM_VERSION }}
+          Version:        ${RPM_VERSION}
           Release:        1%{?dist}
           Summary:        gRPC management agent for OpenConnect VPN server (ocserv)
 
           License:        MIT
           URL:            https://github.com/dantte-lp/ocserv-agent
-          Source0:        ocserv-agent-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          Source0:        ocserv-agent-${VERSION}.tar.gz
 
           BuildRequires:  golang >= 1.25
           BuildRequires:  protobuf-compiler
@@ -85,7 +94,7 @@ jobs:
           monitoring features.
 
           %prep
-          %autosetup -n ocserv-agent-${{ steps.get_version.outputs.VERSION }}
+          %autosetup -n ocserv-agent-${VERSION}
 
           %build
           # Generate protobuf code
@@ -96,7 +105,7 @@ jobs:
 
           # Build binary
           CGO_ENABLED=0 go build -trimpath \
-            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=%{shortcommit} -X main.date=$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)" \
+            -ldflags="-s -w -X main.version=${VERSION} -X main.commit=%{shortcommit} -X main.date=\$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)" \
             -o ocserv-agent ./cmd/agent
 
           %install
@@ -173,8 +182,8 @@ jobs:
           %dir %attr(0755,ocserv-agent,ocserv-agent) %{_localstatedir}/backups/ocserv-agent
 
           %changelog
-          * $(date "+%a %b %d %Y") Builder <noreply@github.com> - ${{ steps.get_version.outputs.RPM_VERSION }}-1
-          - Automated build from Git tag ${{ github.ref_name }}
+          * ${BUILD_DATE} Builder <noreply@github.com> - ${RPM_VERSION}-1
+          - Automated build from Git tag ${TAG_NAME}
           EOF
 
       - name: Build RPM with mock
@@ -197,7 +206,7 @@ jobs:
   # Build DEB packages for Debian/Ubuntu
   build-deb:
     name: Build DEB (${{ matrix.dist }})
-    runs-on: [self-hosted, debian]
+    runs-on: self-hosted
     strategy:
       matrix:
         dist:
@@ -228,9 +237,9 @@ jobs:
 
       - name: Install Debian packaging tools
         run: |
-          # Install debian packaging tools
-          sudo apt-get update
-          sudo apt-get install -y dpkg-dev debhelper devscripts
+          # Debian packaging tools already installed in runner image
+          echo "Using pre-installed Debian packaging tools"
+          dpkg --version
 
       - name: Generate protobuf code
         run: |
@@ -427,28 +436,28 @@ jobs:
 
             # Create rc.d script
             cat > $PKGDIR/usr/local/etc/rc.d/ocserv_agent <<'RCEOF'
-#!/bin/sh
+          #!/bin/sh
 
-# PROVIDE: ocserv_agent
-# REQUIRE: NETWORKING
-# KEYWORD: shutdown
+          # PROVIDE: ocserv_agent
+          # REQUIRE: NETWORKING
+          # KEYWORD: shutdown
 
-. /etc/rc.subr
+          . /etc/rc.subr
 
-name="ocserv_agent"
-rcvar="ocserv_agent_enable"
+          name="ocserv_agent"
+          rcvar="ocserv_agent_enable"
 
-command="/usr/local/sbin/ocserv-agent"
-pidfile="/var/run/${name}.pid"
+          command="/usr/local/sbin/ocserv-agent"
+          pidfile="/var/run/${name}.pid"
 
-load_rc_config $name
-: ${ocserv_agent_enable:="NO"}
-: ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
+          load_rc_config $name
+          : ${ocserv_agent_enable:="NO"}
+          : ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
 
-command_args="-config ${ocserv_agent_config}"
+          command_args="-config ${ocserv_agent_config}"
 
-run_rc_command "$1"
-RCEOF
+          run_rc_command "$1"
+          RCEOF
             chmod +x $PKGDIR/usr/local/etc/rc.d/ocserv_agent
 
             # Copy documentation and config
@@ -458,27 +467,27 @@ RCEOF
 
             # Create pkg manifest with proper plist
             cat > $PKGDIR/+MANIFEST <<PKGEOF
-name: ocserv-agent
-version: "${{ steps.get_version.outputs.VERSION }}"
-origin: net/ocserv-agent
-comment: "gRPC management agent for OpenConnect VPN server"
-desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS authentication"
-www: https://github.com/dantte-lp/ocserv-agent
-maintainer: noreply@github.com
-prefix: /usr/local
-arch: freebsd:14:$ARCH
-licenses: [MIT]
-PKGEOF
+          name: ocserv-agent
+          version: "${{ steps.get_version.outputs.VERSION }}"
+          origin: net/ocserv-agent
+          comment: "gRPC management agent for OpenConnect VPN server"
+          desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS authentication"
+          www: https://github.com/dantte-lp/ocserv-agent
+          maintainer: noreply@github.com
+          prefix: /usr/local
+          arch: freebsd:14:$ARCH
+          licenses: [MIT]
+          PKGEOF
 
             # Create plist (file manifest)
             cat > $PKGDIR/+MANIFEST.plist <<PLISTEOF
-/usr/local/sbin/ocserv-agent
-/usr/local/etc/rc.d/ocserv_agent
-@dir /usr/local/etc/ocserv-agent/certs
-@sample /usr/local/etc/ocserv-agent/config.yaml.example /usr/local/etc/ocserv-agent/config.yaml
-/usr/local/share/doc/ocserv-agent/README.md
-/usr/local/share/doc/ocserv-agent/LICENSE
-PLISTEOF
+          /usr/local/sbin/ocserv-agent
+          /usr/local/etc/rc.d/ocserv_agent
+          @dir /usr/local/etc/ocserv-agent/certs
+          @sample /usr/local/etc/ocserv-agent/config.yaml.example /usr/local/etc/ocserv-agent/config.yaml
+          /usr/local/share/doc/ocserv-agent/README.md
+          /usr/local/share/doc/ocserv-agent/LICENSE
+          PLISTEOF
 
           done
 
@@ -562,11 +571,9 @@ PLISTEOF
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: packages/**/*
           body_path: release_notes.md
           draft: false
           prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

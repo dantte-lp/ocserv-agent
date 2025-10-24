@@ -25,6 +25,11 @@ jobs:
       - name: Verify Go installation
         run: go version
 
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
+
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
@@ -124,6 +129,61 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # Vulnerability scanning for release binaries
+  security-scan:
+    needs: [build-artifacts]
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+
+      - name: Scan release binaries with Grype
+        continue-on-error: true  # Don't block releases for CVEs in dependencies
+        run: |
+          mkdir -p sarif-results
+          cd dist
+          for archive in *.tar.gz; do
+            if [ -f "$archive" ]; then
+              echo "Scanning $archive with Grype..."
+              base="${archive%.tar.gz}"
+
+              # Extract binary
+              tar -xzf "$archive"
+
+              # Scan the binary
+              grype "file:ocserv-agent" \
+                --output sarif \
+                --file "../sarif-results/grype-${base}.sarif" 2>&1 || true
+
+              # Cleanup
+              rm ocserv-agent
+            fi
+          done
+
+      - name: Scan source code with Trivy
+        continue-on-error: true
+        run: |
+          trivy fs --format sarif --output sarif-results/trivy-source.sarif .
+
+      - name: Upload security scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: sarif-results/*.sarif
+          if-no-files-found: ignore
+
   # Generate SLSA provenance for secure builds
   build:
     needs: [build-artifacts]
@@ -176,14 +236,12 @@ jobs:
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           body_path: release_notes.md
           draft: false
           prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Container image build and push
   container:
