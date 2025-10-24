@@ -17,7 +17,6 @@ type SystemdTestHelper struct {
 	ServiceFile    string
 	UserMode       bool
 	UnitDir        string
-	originalDir    string
 	setupCompleted bool
 }
 

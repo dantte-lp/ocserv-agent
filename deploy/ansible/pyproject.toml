@@ -7,6 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.14"
+# Ansible versions
+# Note: PYSEC-2020-220 (CVE-2020-25635) is a false positive
+#   - Vulnerability affects aws_ssm connection plugin (not used in this project)
+#   - Debian tracker confirms regular Ansible package not affected
+#   - ansible 12.1.0 is 4+ years newer than CVE-2020-25635 (2020-10-05)
 ansible = "12.1.0"
 ansible-core = "2.19.3"
 # Additional Ansible dependencies

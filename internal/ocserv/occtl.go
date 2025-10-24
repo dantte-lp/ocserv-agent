@@ -488,15 +488,6 @@ func (m *OcctlManager) executeJSON(ctx context.Context, args ...string) (string,
 	return m.execute(ctx, jsonArgs...)
 }
 
-// parseUsers is deprecated, use parseUsersJSON instead
-// This function is kept for backwards compatibility but is not used
-func (m *OcctlManager) parseUsers(output string) []User {
-	// Deprecated: This function parses text output, but we now use JSON
-	// Return empty list as this should not be called
-	m.logger.Warn().Msg("parseUsers (text mode) is deprecated, use JSON mode")
-	return []User{}
-}
-
 // parseUsersJSON parses 'occtl -j show users' JSON output
 func (m *OcctlManager) parseUsersJSON(output string) ([]User, error) {
 	var users []User

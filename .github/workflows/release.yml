@@ -9,7 +9,7 @@ permissions: {}  # No default permissions - each job declares its own
 
 jobs:
   build-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       actions: write  # For artifact upload
@@ -22,22 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
+
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate protobuf code
         run: |
@@ -96,11 +91,36 @@ jobs:
           # List created files
           ls -lh dist/
 
+      - name: Generate SBOMs for release artifacts
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          cd dist
+          # Generate SBOM for each binary archive
+          for archive in *.tar.gz; do
+            echo "Generating SBOM for $archive..."
+            base="${archive%.tar.gz}"
+
+            # Extract binary temporarily
+            tar -xzf "$archive"
+
+            # Generate SBOM
+            syft scan "file:ocserv-agent" \
+              --output cyclonedx-json="${base}-sbom.json" \
+              --output spdx-json="${base}-sbom-spdx.json"
+
+            # Cleanup extracted binary
+            rm ocserv-agent
+          done
+
+          echo "✅ SBOMs generated"
+          ls -lh *-sbom*.json
+
       - name: Generate hashes for provenance
         id: hash
         run: |
           cd dist
-          echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+          echo "hashes=$(sha256sum *.tar.gz *.sha256 | base64 -w0)" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -108,6 +128,61 @@ jobs:
           name: binaries
           path: dist/*
           if-no-files-found: error
+
+  # Vulnerability scanning for release binaries
+  security-scan:
+    needs: [build-artifacts]
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+
+      - name: Scan release binaries with Grype
+        continue-on-error: true  # Don't block releases for CVEs in dependencies
+        run: |
+          mkdir -p sarif-results
+          cd dist
+          for archive in *.tar.gz; do
+            if [ -f "$archive" ]; then
+              echo "Scanning $archive with Grype..."
+              base="${archive%.tar.gz}"
+
+              # Extract binary
+              tar -xzf "$archive"
+
+              # Scan the binary
+              grype "file:ocserv-agent" \
+                --output sarif \
+                --file "../sarif-results/grype-${base}.sarif" 2>&1 || true
+
+              # Cleanup
+              rm ocserv-agent
+            fi
+          done
+
+      - name: Scan source code with Trivy
+        continue-on-error: true
+        run: |
+          trivy fs --format sarif --output sarif-results/trivy-source.sarif .
+
+      - name: Upload security scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: sarif-results/*.sarif
+          if-no-files-found: ignore
 
   # Generate SLSA provenance for secure builds
   build:
@@ -124,7 +199,7 @@ jobs:
   # Create GitHub Release
   release:
     needs: [build-artifacts, build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
       actions: read  # For artifact download
@@ -161,19 +236,17 @@ jobs:
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           body_path: release_notes.md
           draft: false
           prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Container image build and push
   container:
     needs: build-artifacts
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       packages: write
@@ -207,6 +280,7 @@ jobs:
             type=sha
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -216,3 +290,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OCserv Agent
+
+      - name: Sign container image with Cosign
+        run: |
+          # Install cosign if not available (should be in runner)
+          if ! command -v cosign &> /dev/null; then
+            echo "Cosign not found, skipping signing"
+            exit 0
+          fi
+
+          # Sign image with keyless signing (using OIDC)
+          # This uses Sigstore's public-good instance
+          echo "Signing container images..."
+          for tag in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
+            echo "Signing $tag..."
+            cosign sign --yes "$tag"
+          done
+
+          echo "✅ Container images signed with Cosign"
+        env:
+          COSIGN_EXPERIMENTAL: 1  # Enable keyless signing

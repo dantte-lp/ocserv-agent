@@ -217,3 +217,27 @@ build-all-test:
 build-all-build:
 	@echo "🔨 Running multi-platform build..."
 	@./scripts/build-all.sh build
+
+# ============================================================================
+# GitHub Actions Self-Hosted Runner
+# ============================================================================
+
+.PHONY: runner-token runner-up runner-down runner-logs runner-shell runner-restart
+
+## Get GitHub Actions runner registration token
+runner-token:
+	@echo "📝 Getting runner registration token..."
+	@gh api --method POST \
+		/repos/dantte-lp/ocserv-agent/actions/runners/registration-token \
+		--jq '.token'
+
+## Start GitHub Actions runner container
+## ⚠️  GitHub Actions Runners MOVED
+## Runners are now in a separate repository:
+##   https://github.com/dantte-lp/self-hosted-runners
+##   Location: /opt/projects/repositories/self-hosted-runners
+##
+## New setup uses Podman pods + systemd quadlets (RHEL 9+ best practice)
+## Quick start: cd /opt/projects/repositories/self-hosted-runners && sudo make install
+## See: self-hosted-runners/docs/SETUP.md
+

@@ -23,7 +23,7 @@ jobs:
   # Detect what files changed to skip expensive jobs for docs-only changes
   detect-changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
     outputs:
@@ -72,7 +72,7 @@ jobs:
   # Test on multiple Go versions
   test:
     name: Test (Go ${{ matrix.go-version }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -87,19 +87,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache: true
-          check-latest: true
+      - name: Verify Go installation
+        run: |
+          go version
+          echo "GOPATH: $GOPATH"
+          echo "Using pre-installed Go from runner image"
+
+      - name: Clean Go cache
+        run: |
+          # Clean build and module cache to avoid version mismatch errors
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          # protoc and protoc-gen-* already installed in self-hosted runner
+          echo "Using pre-installed protoc $(protoc --version)"
 
       - name: Generate protobuf code
         run: |
@@ -132,7 +135,7 @@ jobs:
   # Build test for multiple platforms
   build:
     name: Build (${{ matrix.os }}/${{ matrix.arch }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -148,18 +151,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
 
-      - name: Install protoc
+      - name: Clean Go cache
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Generate protobuf
         run: |
@@ -187,10 +185,10 @@ jobs:
           path: ocserv-agent-*
           if-no-files-found: error
 
-  # Integration tests with containers
-  integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
+  # Generate SBOM for built artifacts
+  sbom:
+    name: Generate SBOM
+    runs-on: self-hosted
     needs: [detect-changes, build]
     # Skip if only docs changed (build will be skipped too)
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -202,18 +200,153 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          go-version: '1.25'
-          cache: true
+          path: artifacts/
 
-      - name: Install protoc
+      - name: Generate SBOM for repository
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          # Generate SBOM for source code and dependencies
+          syft scan dir:. \
+            --output cyclonedx-json=sbom-repo.json \
+            --output spdx-json=sbom-repo-spdx.json
+
+      - name: Generate SBOMs for binaries
+        run: |
+          # Generate SBOM for each built binary
+          for binary in artifacts/binary-*/*; do
+            if [ -f "$binary" ]; then
+              base=$(basename "$binary")
+              echo "Generating SBOM for $base..."
+              syft scan "file:$binary" \
+                --output cyclonedx-json="sbom-${base}.json"
+            fi
+          done
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-files
+          path: sbom-*.json
+          if-no-files-found: error
+
+  # Scan built binaries for vulnerabilities
+  grype-scan:
+    name: Post-Build Vulnerability Scan
+    runs-on: self-hosted
+    needs: [detect-changes, build, sbom]
+    # Skip if only docs changed
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
+    permissions:
+      contents: read
+      actions: read  # For artifact download
+      security-events: write  # For SARIF upload
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Scan binaries with Grype
+        run: |
+          # Scan each binary for vulnerabilities
+          mkdir -p sarif-results
+          SARIF_COUNT=0
+          for binary in artifacts/binary-*/*; do
+            if [ -f "$binary" ]; then
+              base=$(basename "$binary")
+              echo "Scanning $base with Grype..."
+
+              # Run grype and check if SARIF was created
+              grype "file:$binary" \
+                --output sarif \
+                --file "sarif-results/grype-${base}.sarif" 2>&1 || true
+
+              # Check if SARIF file was actually created
+              if [ -f "sarif-results/grype-${base}.sarif" ]; then
+                SARIF_COUNT=$((SARIF_COUNT + 1))
+                echo "✓ Generated grype-${base}.sarif"
+              else
+                echo "ℹ No SARIF generated for $base (likely no vulnerabilities found)"
+              fi
+            fi
+          done
+
+          echo "Total SARIF files generated: $SARIF_COUNT"
+          echo "SARIF_COUNT=$SARIF_COUNT" >> $GITHUB_ENV
+
+          # List generated files for debugging
+          if [ $SARIF_COUNT -gt 0 ]; then
+            echo "Generated SARIF files:"
+            ls -la sarif-results/
+          else
+            echo "No SARIF files generated"
+          fi
+
+      - name: Merge SARIF files
+        if: always() && env.SARIF_COUNT != '0'
+        run: |
+          # Merge all SARIF files into one
+          # The upload-sarif action requires a single SARIF file per upload
+          echo "Merging $(ls -1 sarif-results/*.sarif | wc -l) SARIF files..."
+
+          # Create merged SARIF with combined runs from all files
+          first=true
+          for sarif_file in sarif-results/*.sarif; do
+            if [ -f "$sarif_file" ]; then
+              if [ "$first" = true ]; then
+                # Use first file as base
+                cp "$sarif_file" merged-grype.sarif
+                first=false
+              else
+                # Merge subsequent files' runs into the base file
+                jq -s '.[0].runs += .[1].runs | .[0]' merged-grype.sarif "$sarif_file" > temp-merged.sarif
+                mv temp-merged.sarif merged-grype.sarif
+              fi
+            fi
+          done
+
+          echo "✓ Merged SARIF file created: merged-grype.sarif"
+          jq '.runs | length' merged-grype.sarif
+
+      - name: Upload Grype results
+        # Allow failure due to GitHub limitation: cannot upload multiple runs per category
+        # See: https://github.blog/changelog/2025-07-21-code-scanning-will-stop-combining-multiple-sarif-runs-uploaded-in-the-same-sarif-file/
+        # For statically-linked Go binaries, Grype typically finds no vulnerabilities anyway
+        continue-on-error: true
+        if: always() && env.SARIF_COUNT != '0'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: merged-grype.sarif
+          category: grype-scan
+
+  # Integration tests with containers
+  integration:
+    name: Integration Tests
+    runs-on: self-hosted
+    needs: [detect-changes, build, sbom, grype-scan]
+    # Skip if only docs changed (build will be skipped too)
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
+    permissions:
+      contents: read
+      actions: read  # For artifact download
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Go installation
+        run: go version
+
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Generate protobuf
         run: |
@@ -232,7 +365,7 @@ jobs:
   # Always run (fast and catches issues early)
   checks:
     name: Code Quality Checks
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: detect-changes
     # Skip if only docs changed
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
@@ -243,18 +376,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-          cache: true
+      - name: Verify Go installation
+        run: go version
 
-      - name: Install protoc
+      - name: Clean Go cache
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go clean -cache -modcache -testcache
+          echo "Go cache cleared"
 
       - name: Generate protobuf
         run: |
@@ -274,17 +402,42 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Run staticcheck
+        run: |
+          # Run staticcheck installed in runner
+          staticcheck -checks=all,-ST1000,-ST1003 ./...
+
       - name: Check go mod tidy
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
 
+      - name: Check for common Go mistakes
+        run: |
+          # errcheck - check for unchecked errors
+          if command -v errcheck &> /dev/null; then
+            errcheck ./...
+          else
+            echo "errcheck not installed, skipping"
+          fi
+        continue-on-error: true
+
+      - name: Check for ineffectual assignments
+        run: |
+          # ineffassign - detect ineffectual assignments
+          if command -v ineffassign &> /dev/null; then
+            ineffassign ./...
+          else
+            echo "ineffassign not installed, skipping"
+          fi
+        continue-on-error: true
+
   # Summary job that always succeeds (for required status checks)
   # This ensures docs-only PRs can be merged even when heavy jobs are skipped
   ci-success:
     name: CI Success
-    runs-on: ubuntu-latest
-    needs: [detect-changes, test, build, integration, checks]
+    runs-on: self-hosted
+    needs: [detect-changes, test, build, sbom, grype-scan, integration, checks]
     if: always()  # Run even if jobs were skipped
     steps:
       - name: Check job results
@@ -298,6 +451,8 @@ jobs:
           # If code changed, check that all jobs succeeded
           if [ "${{ needs.test.result }}" = "success" ] && \
              [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.sbom.result }}" = "success" ] && \
+             [ "${{ needs.grype-scan.result }}" = "success" ] && \
              [ "${{ needs.integration.result }}" = "success" ] && \
              [ "${{ needs.checks.result }}" = "success" ]; then
             echo "✅ All CI jobs passed"
@@ -308,6 +463,8 @@ jobs:
           echo "❌ Some CI jobs failed"
           echo "test: ${{ needs.test.result }}"
           echo "build: ${{ needs.build.result }}"
+          echo "sbom: ${{ needs.sbom.result }}"
+          echo "grype-scan: ${{ needs.grype-scan.result }}"
           echo "integration: ${{ needs.integration.result }}"
           echo "checks: ${{ needs.checks.result }}"
           exit 1

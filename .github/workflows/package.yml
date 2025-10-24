@@ -1,0 +1,579 @@
+name: Package Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:  # Manual trigger for testing
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  # Build RPM packages for RHEL/Oracle Linux/Rocky Linux
+  build-rpm:
+    name: Build RPM (${{ matrix.dist }})
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        dist:
+          - el8   # RHEL 8 / Oracle Linux 8
+          - el9   # RHEL 9 / Oracle Linux 9
+          - el10  # RHEL 10 / Oracle Linux 10
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "RPM_VERSION=${VERSION//-/_}" >> $GITHUB_OUTPUT
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Create RPM build environment
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+          # Create source tarball
+          git archive --format=tar.gz \
+            --prefix=ocserv-agent-${{ steps.get_version.outputs.VERSION }}/ \
+            HEAD > ~/rpmbuild/SOURCES/ocserv-agent-${{ steps.get_version.outputs.VERSION }}.tar.gz
+
+      - name: Create RPM spec file
+        env:
+          RPM_VERSION: ${{ steps.get_version.outputs.RPM_VERSION }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+          GIT_COMMIT: ${{ github.sha }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          # Get short commit hash
+          SHORT_COMMIT="${GIT_COMMIT:0:7}"
+          BUILD_DATE=$(date "+%a %b %d %Y")
+
+          cat > ~/rpmbuild/SPECS/ocserv-agent.spec <<EOF
+          %global commit ${GIT_COMMIT}
+          %global shortcommit ${SHORT_COMMIT}
+
+          Name:           ocserv-agent
+          Version:        ${RPM_VERSION}
+          Release:        1%{?dist}
+          Summary:        gRPC management agent for OpenConnect VPN server (ocserv)
+
+          License:        MIT
+          URL:            https://github.com/dantte-lp/ocserv-agent
+          Source0:        ocserv-agent-${VERSION}.tar.gz
+
+          BuildRequires:  golang >= 1.25
+          BuildRequires:  protobuf-compiler
+          BuildRequires:  systemd-rpm-macros
+
+          Requires:       ocserv
+
+          %description
+          ocserv-agent is a gRPC-based management agent for OpenConnect VPN server (ocserv).
+          It provides remote management capabilities with mTLS authentication and comprehensive
+          monitoring features.
+
+          %prep
+          %autosetup -n ocserv-agent-${VERSION}
+
+          %build
+          # Generate protobuf code
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+          # Build binary
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${VERSION} -X main.commit=%{shortcommit} -X main.date=\$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)" \
+            -o ocserv-agent ./cmd/agent
+
+          %install
+          # Install binary
+          install -D -m 0755 ocserv-agent %{buildroot}%{_sbindir}/ocserv-agent
+
+          # Install systemd service
+          install -D -m 0644 deploy/systemd/ocserv-agent.service %{buildroot}%{_unitdir}/ocserv-agent.service
+
+          # Install config directory
+          install -d %{buildroot}%{_sysconfdir}/ocserv-agent
+          install -d %{buildroot}%{_sysconfdir}/ocserv-agent/certs
+          install -D -m 0644 config.yaml.example %{buildroot}%{_sysconfdir}/ocserv-agent/config.yaml.example
+
+          # Create log and backup directories
+          install -d %{buildroot}%{_localstatedir}/log/ocserv-agent
+          install -d %{buildroot}%{_localstatedir}/backups/ocserv-agent
+
+          %pre
+          # Create ocserv-agent user and group
+          getent group ocserv-agent >/dev/null || groupadd -r ocserv-agent
+          getent passwd ocserv-agent >/dev/null || \
+            useradd -r -g ocserv-agent -d /etc/ocserv-agent -s /sbin/nologin \
+            -c "ocserv-agent service user" ocserv-agent
+          exit 0
+
+          %post
+          %systemd_post ocserv-agent.service
+
+          # SELinux contexts for RHEL/Oracle Linux
+          if command -v semanage >/dev/null 2>&1; then
+            # Set SELinux context for binary
+            semanage fcontext -a -t bin_t '/usr/sbin/ocserv-agent' 2>/dev/null || true
+            restorecon -v /usr/sbin/ocserv-agent 2>/dev/null || true
+
+            # Set SELinux context for config
+            semanage fcontext -a -t etc_t '/etc/ocserv-agent(/.*)?' 2>/dev/null || true
+            restorecon -Rv /etc/ocserv-agent 2>/dev/null || true
+
+            # Set SELinux context for logs
+            semanage fcontext -a -t var_log_t '/var/log/ocserv-agent(/.*)?' 2>/dev/null || true
+            restorecon -Rv /var/log/ocserv-agent 2>/dev/null || true
+
+            # Allow network binding if needed
+            setsebool -P nis_enabled 1 2>/dev/null || true
+          fi
+
+          # Set ownership
+          chown -R ocserv-agent:ocserv-agent /etc/ocserv-agent 2>/dev/null || true
+          chown -R ocserv-agent:ocserv-agent /var/log/ocserv-agent 2>/dev/null || true
+          chown -R ocserv-agent:ocserv-agent /var/backups/ocserv-agent 2>/dev/null || true
+
+          %preun
+          %systemd_preun ocserv-agent.service
+
+          %postun
+          %systemd_postun_with_restart ocserv-agent.service
+
+          # Remove user only on complete removal (not upgrade)
+          if [ $1 -eq 0 ]; then
+            userdel ocserv-agent 2>/dev/null || true
+            groupdel ocserv-agent 2>/dev/null || true
+          fi
+
+          %files
+          %license LICENSE
+          %doc README.md
+          %{_sbindir}/ocserv-agent
+          %{_unitdir}/ocserv-agent.service
+          %dir %attr(0750,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent
+          %dir %attr(0750,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent/certs
+          %config(noreplace) %attr(0640,ocserv-agent,ocserv-agent) %{_sysconfdir}/ocserv-agent/config.yaml.example
+          %dir %attr(0755,ocserv-agent,ocserv-agent) %{_localstatedir}/log/ocserv-agent
+          %dir %attr(0755,ocserv-agent,ocserv-agent) %{_localstatedir}/backups/ocserv-agent
+
+          %changelog
+          * ${BUILD_DATE} Builder <noreply@github.com> - ${RPM_VERSION}-1
+          - Automated build from Git tag ${TAG_NAME}
+          EOF
+
+      - name: Build RPM with mock
+        run: |
+          # Build SRPM first
+          rpmbuild -bs ~/rpmbuild/SPECS/ocserv-agent.spec
+
+          # Build RPM with mock for specific dist
+          mock -r ${{ matrix.dist }}-x86_64 \
+            --resultdir=./rpm-output-${{ matrix.dist }} \
+            ~/rpmbuild/SRPMS/ocserv-agent-${{ steps.get_version.outputs.RPM_VERSION }}-1.*.src.rpm
+
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-${{ matrix.dist }}
+          path: ./rpm-output-${{ matrix.dist }}/*.rpm
+          if-no-files-found: error
+
+  # Build DEB packages for Debian/Ubuntu
+  build-deb:
+    name: Build DEB (${{ matrix.dist }})
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        dist:
+          - debian12      # Debian 12 (Bookworm)
+          - debian13      # Debian 13 (Trixie)
+          - ubuntu2404    # Ubuntu 24.04 LTS
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # DEB version: replace - with ~ for pre-releases
+          echo "DEB_VERSION=${VERSION//-/\~}" >> $GITHUB_OUTPUT
+
+      - name: Install Debian packaging tools
+        run: |
+          # Debian packaging tools already installed in runner image
+          echo "Using pre-installed Debian packaging tools"
+          dpkg --version
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent ./cmd/agent
+
+      - name: Create DEB package
+        run: |
+          # Create debian package structure
+          mkdir -p debian-build/DEBIAN
+          mkdir -p debian-build/usr/sbin
+          mkdir -p debian-build/lib/systemd/system
+          mkdir -p debian-build/etc/ocserv-agent/certs
+          mkdir -p debian-build/var/log/ocserv-agent
+          mkdir -p debian-build/var/backups/ocserv-agent
+          mkdir -p debian-build/usr/share/doc/ocserv-agent
+
+          # Copy files
+          cp ocserv-agent debian-build/usr/sbin/
+          chmod 755 debian-build/usr/sbin/ocserv-agent
+          cp deploy/systemd/ocserv-agent.service debian-build/lib/systemd/system/
+          cp config.yaml.example debian-build/etc/ocserv-agent/
+          cp README.md debian-build/usr/share/doc/ocserv-agent/
+          cp LICENSE debian-build/usr/share/doc/ocserv-agent/
+
+          # Create control file
+          cat > debian-build/DEBIAN/control <<EOF
+          Package: ocserv-agent
+          Version: ${{ steps.get_version.outputs.DEB_VERSION }}
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Depends: ocserv, adduser
+          Maintainer: ocserv-agent developers <noreply@github.com>
+          Description: gRPC management agent for OpenConnect VPN server
+           ocserv-agent is a gRPC-based management agent for OpenConnect VPN
+           server (ocserv). It provides remote management capabilities with
+           mTLS authentication and comprehensive monitoring features.
+          Homepage: https://github.com/dantte-lp/ocserv-agent
+          EOF
+
+          # Create preinst script (create user before installation)
+          cat > debian-build/DEBIAN/preinst <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "install" ] || [ "$1" = "upgrade" ]; then
+              # Create ocserv-agent user and group
+              if ! getent group ocserv-agent >/dev/null; then
+                  addgroup --system ocserv-agent
+              fi
+              if ! getent passwd ocserv-agent >/dev/null; then
+                  adduser --system --home /etc/ocserv-agent --no-create-home \
+                      --ingroup ocserv-agent --disabled-password --shell /usr/sbin/nologin \
+                      --gecos "ocserv-agent service user" ocserv-agent
+              fi
+          fi
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/preinst
+
+          # Create postinst script
+          cat > debian-build/DEBIAN/postinst <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "configure" ]; then
+              # Set ownership
+              chown -R ocserv-agent:ocserv-agent /etc/ocserv-agent || true
+              chown -R ocserv-agent:ocserv-agent /var/log/ocserv-agent || true
+              chown -R ocserv-agent:ocserv-agent /var/backups/ocserv-agent || true
+
+              # Set permissions
+              chmod 750 /etc/ocserv-agent || true
+              chmod 750 /etc/ocserv-agent/certs || true
+              chmod 640 /etc/ocserv-agent/config.yaml.example || true
+
+              # Reload systemd
+              systemctl daemon-reload || true
+          fi
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/postinst
+
+          # Create prerm script
+          cat > debian-build/DEBIAN/prerm <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "remove" ]; then
+              systemctl stop ocserv-agent.service 2>/dev/null || true
+              systemctl disable ocserv-agent.service 2>/dev/null || true
+          fi
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/prerm
+
+          # Create postrm script
+          cat > debian-build/DEBIAN/postrm <<'EOF'
+          #!/bin/sh
+          set -e
+          if [ "$1" = "purge" ]; then
+              # Remove user and group only on purge
+              if getent passwd ocserv-agent >/dev/null; then
+                  deluser --system ocserv-agent 2>/dev/null || true
+              fi
+              if getent group ocserv-agent >/dev/null; then
+                  delgroup --system ocserv-agent 2>/dev/null || true
+              fi
+
+              # Remove directories
+              rm -rf /var/log/ocserv-agent || true
+              rm -rf /var/backups/ocserv-agent || true
+          fi
+          systemctl daemon-reload || true
+          exit 0
+          EOF
+          chmod 755 debian-build/DEBIAN/postrm
+
+          # Build package
+          dpkg-deb --build debian-build ocserv-agent_${{ steps.get_version.outputs.DEB_VERSION }}_amd64.deb
+
+      - name: Upload DEB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.dist }}
+          path: ocserv-agent_*.deb
+          if-no-files-found: error
+
+  # Build FreeBSD packages
+  build-freebsd:
+    name: Build FreeBSD Package
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Build FreeBSD binaries
+        run: |
+          # Build for FreeBSD amd64
+          GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent-freebsd-amd64 ./cmd/agent
+
+          # Build for FreeBSD arm64
+          GOOS=freebsd GOARCH=arm64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
+            -o ocserv-agent-freebsd-arm64 ./cmd/agent
+
+      - name: Create FreeBSD packages (amd64 and arm64)
+        run: |
+          # Create packages for both architectures
+          for ARCH in amd64 arm64; do
+            echo "Creating FreeBSD package for $ARCH..."
+
+            # Create package directory structure
+            PKGDIR="freebsd-pkg-$ARCH"
+            mkdir -p $PKGDIR/usr/local/sbin
+            mkdir -p $PKGDIR/usr/local/etc/rc.d
+            mkdir -p $PKGDIR/usr/local/etc/ocserv-agent/certs
+            mkdir -p $PKGDIR/usr/local/share/doc/ocserv-agent
+
+            # Copy binary for this architecture
+            cp ocserv-agent-freebsd-$ARCH $PKGDIR/usr/local/sbin/ocserv-agent
+            chmod +x $PKGDIR/usr/local/sbin/ocserv-agent
+
+            # Create rc.d script
+            cat > $PKGDIR/usr/local/etc/rc.d/ocserv_agent <<'RCEOF'
+          #!/bin/sh
+
+          # PROVIDE: ocserv_agent
+          # REQUIRE: NETWORKING
+          # KEYWORD: shutdown
+
+          . /etc/rc.subr
+
+          name="ocserv_agent"
+          rcvar="ocserv_agent_enable"
+
+          command="/usr/local/sbin/ocserv-agent"
+          pidfile="/var/run/${name}.pid"
+
+          load_rc_config $name
+          : ${ocserv_agent_enable:="NO"}
+          : ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
+
+          command_args="-config ${ocserv_agent_config}"
+
+          run_rc_command "$1"
+          RCEOF
+            chmod +x $PKGDIR/usr/local/etc/rc.d/ocserv_agent
+
+            # Copy documentation and config
+            cp config.yaml.example $PKGDIR/usr/local/etc/ocserv-agent/
+            cp README.md $PKGDIR/usr/local/share/doc/ocserv-agent/
+            cp LICENSE $PKGDIR/usr/local/share/doc/ocserv-agent/
+
+            # Create pkg manifest with proper plist
+            cat > $PKGDIR/+MANIFEST <<PKGEOF
+          name: ocserv-agent
+          version: "${{ steps.get_version.outputs.VERSION }}"
+          origin: net/ocserv-agent
+          comment: "gRPC management agent for OpenConnect VPN server"
+          desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS authentication"
+          www: https://github.com/dantte-lp/ocserv-agent
+          maintainer: noreply@github.com
+          prefix: /usr/local
+          arch: freebsd:14:$ARCH
+          licenses: [MIT]
+          PKGEOF
+
+            # Create plist (file manifest)
+            cat > $PKGDIR/+MANIFEST.plist <<PLISTEOF
+          /usr/local/sbin/ocserv-agent
+          /usr/local/etc/rc.d/ocserv_agent
+          @dir /usr/local/etc/ocserv-agent/certs
+          @sample /usr/local/etc/ocserv-agent/config.yaml.example /usr/local/etc/ocserv-agent/config.yaml
+          /usr/local/share/doc/ocserv-agent/README.md
+          /usr/local/share/doc/ocserv-agent/LICENSE
+          PLISTEOF
+
+          done
+
+      - name: Create tarball for FreeBSD
+        run: |
+          # Create tarballs for both architectures
+          tar -czf ocserv-agent-${{ steps.get_version.outputs.VERSION }}-freebsd-amd64.tar.gz \
+            ocserv-agent-freebsd-amd64 config.yaml.example README.md LICENSE
+
+          tar -czf ocserv-agent-${{ steps.get_version.outputs.VERSION }}-freebsd-arm64.tar.gz \
+            ocserv-agent-freebsd-arm64 config.yaml.example README.md LICENSE
+
+      - name: Upload FreeBSD artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: freebsd-packages
+          path: ocserv-agent-*-freebsd-*.tar.gz
+          if-no-files-found: error
+
+  # Create GitHub Release with all packages
+  release:
+    name: Create Release
+    needs: [build-rpm, build-deb, build-freebsd]
+    runs-on: self-hosted
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Organize packages
+        run: |
+          mkdir -p packages/rpm packages/deb packages/freebsd
+
+          # Move RPM packages
+          find dist/rpm-* -name "*.rpm" -exec cp {} packages/rpm/ \;
+
+          # Move DEB packages
+          find dist/deb-* -name "*.deb" -exec cp {} packages/deb/ \;
+
+          # Move FreeBSD packages
+          find dist/freebsd-* -name "*.tar.gz" -exec cp {} packages/freebsd/ \;
+
+          # Create checksums
+          cd packages
+          sha256sum rpm/*.rpm > SHA256SUMS-rpm.txt
+          sha256sum deb/*.deb > SHA256SUMS-deb.txt
+          sha256sum freebsd/*.tar.gz > SHA256SUMS-freebsd.txt
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Read release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          if [ -f "docs/releases/${VERSION}.md" ]; then
+            cat "docs/releases/${VERSION}.md" > release_notes.md
+          else
+            echo "Release ${VERSION}" > release_notes.md
+            echo "" >> release_notes.md
+            echo "## Packages" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### RPM (RHEL/Oracle Linux/Rocky Linux)" >> release_notes.md
+            echo "- EL8, EL9, EL10 packages available" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### DEB (Debian/Ubuntu)" >> release_notes.md
+            echo "- Debian 12, Debian 13, Ubuntu 24.04 packages available" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "### FreeBSD" >> release_notes.md
+            echo "- FreeBSD amd64 and arm64 packages available" >> release_notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/**/*
+          body_path: release_notes.md
+          draft: false
+          prerelease: true
