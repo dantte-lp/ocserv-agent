@@ -147,7 +147,7 @@ WORKDIR /home/runner
 # ============================================================================
 # Download and install GitHub Actions runner
 # ============================================================================
-ARG RUNNER_VERSION="2.321.0"
+ARG RUNNER_VERSION="2.329.0"
 RUN curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
     -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz && \
     tar xzf actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz && \
@@ -155,6 +155,16 @@ RUN curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
 
 # Install runner dependencies
 RUN cd /home/runner && ./bin/installdependencies.sh
+
+# Install Docker CE (actual Docker instead of podman)
+RUN dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
+    dnf install -y docker-ce docker-ce-cli containerd.io && \
+    dnf clean all
+
+# Fix GOPATH permissions for go install commands
+RUN mkdir -p /go/pkg/mod/cache && \
+    chown -R runner:runner /go && \
+    chmod -R 755 /go
 
 # Create work directory with correct permissions
 RUN mkdir -p /home/runner/_work && \

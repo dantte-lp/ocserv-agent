@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-  github-runner:
+  github-runner-debian:
     build:
-      context: github-runner
+      context: github-runner-debian
       dockerfile: Dockerfile
-    container_name: ocserv-agent-github-runner
-    hostname: github-runner
+    container_name: ocserv-agent-github-runner-debian
+    hostname: github-runner-debian
     restart: unless-stopped
 
     environment:
@@ -14,29 +14,25 @@ services:
       - REPO_URL=https://github.com/dantte-lp/ocserv-agent
 
       # Runner configuration
-      - RUNNER_NAME=podman-runner-ocserv-agent
-      - RUNNER_LABELS=self-hosted,linux,x64,podman
+      - RUNNER_NAME=debian-runner-ocserv-agent
+      - RUNNER_LABELS=self-hosted,linux,x64,debian,docker
       - RUNNER_GROUP=Default
 
       # Runner token (MUST be provided)
       # Get with: gh api --method POST /repos/dantte-lp/ocserv-agent/actions/runners/registration-token --jq '.token'
       - RUNNER_TOKEN=${RUNNER_TOKEN}
 
-      # Podman configuration for rootful mode (required for container actions)
-      - BUILDAH_ISOLATION=chroot
-      - STORAGE_DRIVER=vfs
-
     volumes:
       # Mount project directory for builds
       - ../../:/workspace:rw
 
-      # Mount Docker socket for Docker-in-Docker (if needed)
-      # - /var/run/docker.sock:/var/run/docker.sock
+      # Mount Docker socket for Docker-in-Docker
+      - /run/podman/podman.sock:/var/run/docker.sock
 
       # Note: _work directory uses container storage (no persistent volume needed)
       # GitHub Actions clones repos fresh for each job
 
-    # Privileged mode for podman-in-podman (required for container actions)
+    # Privileged mode for Docker-in-Docker
     privileged: true
 
     # Security options
@@ -45,8 +41,8 @@ services:
 
     # Network
     networks:
-      - runner-net
+      - runner-net-debian
 
 networks:
-  runner-net:
+  runner-net-debian:
     driver: bridge
