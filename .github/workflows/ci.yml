@@ -255,18 +255,27 @@ jobs:
       - name: Scan binaries with Grype
         run: |
           # Scan each binary for vulnerabilities
+          SARIF_GENERATED=0
           for binary in artifacts/binary-*/*; do
             if [ -f "$binary" ]; then
               base=$(basename "$binary")
               echo "Scanning $base with Grype..."
-              grype "file:$binary" \
+              if grype "file:$binary" \
                 --output sarif \
-                --file "grype-${base}.sarif" || true
+                --file "grype-${base}.sarif" 2>&1; then
+                SARIF_GENERATED=1
+                echo "✓ Generated grype-${base}.sarif"
+              else
+                echo "⚠ Grype scan failed or found no vulnerabilities for $base"
+              fi
             fi
           done
 
+          # Store result for next step
+          echo "SARIF_GENERATED=$SARIF_GENERATED" >> $GITHUB_ENV
+
       - name: Upload Grype results
-        if: always()
+        if: always() && env.SARIF_GENERATED == '1'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: grype-*.sarif

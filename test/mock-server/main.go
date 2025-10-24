@@ -7,9 +7,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type mockServer struct {
-	// TODO: implement proto interface
-}
+// TODO: implement mock server with proto interface when needed
 
 func main() {
 	lis, err := net.Listen("tcp", ":9091")

@@ -204,14 +204,21 @@ jobs:
       - name: Run native scorecard
         run: |
           # Use native scorecard installed in runner
-          # Redirect output to file instead of using unsupported --output-file flag
+          # SARIF format not supported by native scorecard, use JSON instead
           scorecard \
             --repo=github.com/dantte-lp/ocserv-agent \
-            --format=sarif > results.sarif
+            --format=json \
+            --show-details > scorecard-results.json
+
+          # Display results summary
+          echo "OSSF Scorecard Results:"
+          cat scorecard-results.json | jq -r '.checks[] | "\(.name): \(.score)/10"'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload results
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload scorecard results as artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: results.sarif
+          name: scorecard-results
+          path: scorecard-results.json
+          if-no-files-found: error

@@ -73,16 +73,11 @@ func NewTestClient(t *testing.T, address string, opts ClientOptions) *TestClient
 		t.Logf("Client using insecure connection")
 	}
 
-	// Add block option to ensure connection is ready
-	dialOpts = append(dialOpts, grpc.WithBlock())
-
-	// Create connection with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), opts.Timeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(ctx, address, dialOpts...)
+	// Create connection using new API (grpc.NewClient instead of deprecated grpc.DialContext)
+	// Note: WithBlock is not supported and connection happens lazily on first RPC
+	conn, err := grpc.NewClient(address, dialOpts...)
 	if err != nil {
-		t.Fatalf("Failed to connect to gRPC server at %s: %v", address, err)
+		t.Fatalf("Failed to create gRPC client for %s: %v", address, err)
 	}
 
 	client := pb.NewAgentServiceClient(conn)
