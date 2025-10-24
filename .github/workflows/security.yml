@@ -50,12 +50,10 @@ jobs:
             pkg/proto/agent/v1/agent.proto
 
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
-        with:
-          args: '-no-fail -fmt sarif -out results.sarif ./...'
-
-      - name: Fix Gosec SARIF format
         run: |
+          # Run native gosec installed in runner
+          gosec -no-fail -fmt sarif -out results.sarif ./...
+
           # Remove problematic 'fixes' field from SARIF that causes upload errors
           # Gosec generates invalid artifactChanges format in fixes field
           jq 'walk(if type == "object" then del(.fixes) else . end)' results.sarif > results-fixed.sarif
@@ -94,6 +92,34 @@ jobs:
 
       - name: Run govulncheck
         run: govulncheck ./...
+
+  # OSV-Scanner - Multi-ecosystem vulnerability scanning
+  osv-scanner:
+    name: OSV Vulnerability Scanner
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        run: |
+          # Scan all supported package files and lock files
+          osv-scanner scan \
+            --format sarif \
+            --output osv-results.sarif \
+            --recursive \
+            .
+        continue-on-error: true
+
+      - name: Upload OSV-Scanner results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: osv-results.sarif
 
   # CodeQL analysis
   codeql:
@@ -150,14 +176,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (repo)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+      - name: Run Trivy vulnerability scanner
+        run: |
+          # Run native trivy installed in runner
+          trivy fs \
+            --format sarif \
+            --output trivy-results.sarif \
+            --severity CRITICAL,HIGH \
+            .
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
@@ -180,14 +206,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Run analysis
-        uses: ossf/scorecard-action@v2.3.1
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
+      - name: Run OSSF Scorecard
+        run: |
+          # Run native scorecard installed in runner
+          scorecard \
+            --repo=github.com/${{ github.repository }} \
+            --format=sarif \
+            --output-file=results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload results
+      - name: Upload Scorecard results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif

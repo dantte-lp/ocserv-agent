@@ -178,11 +178,97 @@ jobs:
           path: ocserv-agent-*
           if-no-files-found: error
 
+  # Generate SBOM for built artifacts
+  sbom:
+    name: Generate SBOM
+    runs-on: self-hosted
+    needs: [detect-changes, build]
+    # Skip if only docs changed (build will be skipped too)
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
+    permissions:
+      contents: read
+      actions: read  # For artifact download
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate SBOM for repository
+        run: |
+          # Generate SBOM for source code and dependencies
+          syft scan dir:. \
+            --output cyclonedx-json=sbom-repo.json \
+            --output spdx-json=sbom-repo-spdx.json
+
+      - name: Generate SBOMs for binaries
+        run: |
+          # Generate SBOM for each built binary
+          for binary in artifacts/binary-*/*; do
+            if [ -f "$binary" ]; then
+              base=$(basename "$binary")
+              echo "Generating SBOM for $base..."
+              syft scan "file:$binary" \
+                --output cyclonedx-json="sbom-${base}.json"
+            fi
+          done
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-files
+          path: sbom-*.json
+          if-no-files-found: error
+
+  # Scan built binaries for vulnerabilities
+  grype-scan:
+    name: Post-Build Vulnerability Scan
+    runs-on: self-hosted
+    needs: [detect-changes, build, sbom]
+    # Skip if only docs changed
+    if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
+    permissions:
+      contents: read
+      actions: read  # For artifact download
+      security-events: write  # For SARIF upload
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Scan binaries with Grype
+        run: |
+          # Scan each binary for vulnerabilities
+          for binary in artifacts/binary-*/*; do
+            if [ -f "$binary" ]; then
+              base=$(basename "$binary")
+              echo "Scanning $base with Grype..."
+              grype "file:$binary" \
+                --output sarif \
+                --file "grype-${base}.sarif" || true
+            fi
+          done
+
+      - name: Upload Grype results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: grype-*.sarif
+
   # Integration tests with containers
   integration:
     name: Integration Tests
     runs-on: self-hosted
-    needs: [detect-changes, build]
+    needs: [detect-changes, build, sbom, grype-scan]
     # Skip if only docs changed (build will be skipped too)
     if: needs.detect-changes.outputs.code == 'true' || github.event_name == 'push'
     permissions:
@@ -261,7 +347,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: self-hosted
-    needs: [detect-changes, test, build, integration, checks]
+    needs: [detect-changes, test, build, sbom, grype-scan, integration, checks]
     if: always()  # Run even if jobs were skipped
     steps:
       - name: Check job results
@@ -275,6 +361,8 @@ jobs:
           # If code changed, check that all jobs succeeded
           if [ "${{ needs.test.result }}" = "success" ] && \
              [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.sbom.result }}" = "success" ] && \
+             [ "${{ needs.grype-scan.result }}" = "success" ] && \
              [ "${{ needs.integration.result }}" = "success" ] && \
              [ "${{ needs.checks.result }}" = "success" ]; then
             echo "✅ All CI jobs passed"
@@ -285,6 +373,8 @@ jobs:
           echo "❌ Some CI jobs failed"
           echo "test: ${{ needs.test.result }}"
           echo "build: ${{ needs.build.result }}"
+          echo "sbom: ${{ needs.sbom.result }}"
+          echo "grype-scan: ${{ needs.grype-scan.result }}"
           echo "integration: ${{ needs.integration.result }}"
           echo "checks: ${{ needs.checks.result }}"
           exit 1

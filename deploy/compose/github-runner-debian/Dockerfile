@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
         zip \
         unzip \
         rsync \
+        gh \
         # Build tools
         build-essential \
         cmake \
@@ -137,7 +138,9 @@ RUN apt-get update && apt-get install -y \
 
 # Go tools (install globally in GOPATH)
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
-    go install honnef.co/go/tools/cmd/staticcheck@latest
+    go install honnef.co/go/tools/cmd/staticcheck@latest && \
+    go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Python tools (CLI tools installed globally)
 RUN pip3 install --no-cache-dir \
@@ -204,8 +207,33 @@ RUN curl -fsSL -o /usr/local/bin/hadolint \
 # Install trivy (container/dependency security scanner)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
+# Install OSSF Scorecard v5.3.0
+ARG SCORECARD_VERSION="5.3.0"
+RUN curl -fsSL -o scorecard.tar.gz \
+        https://github.com/ossf/scorecard/releases/download/v${SCORECARD_VERSION}/scorecard_${SCORECARD_VERSION}_linux_amd64.tar.gz && \
+    tar -xzf scorecard.tar.gz -C /usr/local/bin scorecard && \
+    rm scorecard.tar.gz && \
+    chmod +x /usr/local/bin/scorecard
+
 # Install markdownlint-cli
 RUN npm install -g markdownlint-cli
+
+# Install OSV-Scanner v2 (Google's vulnerability scanner)
+RUN go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
+
+# Install Syft (SBOM generation tool from Anchore)
+ARG SYFT_VERSION="v1.20.0"
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin ${SYFT_VERSION}
+
+# Install Grype (vulnerability scanner for containers and filesystems)
+ARG GRYPE_VERSION="v0.87.0"
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin ${GRYPE_VERSION}
+
+# Install Cosign (container signing and verification from Sigstore)
+ARG COSIGN_VERSION="v2.4.2"
+RUN curl -fsSL -o /usr/local/bin/cosign \
+        https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64 && \
+    chmod +x /usr/local/bin/cosign
 
 # ============================================================================
 # Create runner user
