@@ -89,11 +89,36 @@ jobs:
           # List created files
           ls -lh dist/
 
+      - name: Generate SBOMs for release artifacts
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          cd dist
+          # Generate SBOM for each binary archive
+          for archive in *.tar.gz; do
+            echo "Generating SBOM for $archive..."
+            base="${archive%.tar.gz}"
+
+            # Extract binary temporarily
+            tar -xzf "$archive"
+
+            # Generate SBOM
+            syft scan "file:ocserv-agent" \
+              --output cyclonedx-json="${base}-sbom.json" \
+              --output spdx-json="${base}-sbom-spdx.json"
+
+            # Cleanup extracted binary
+            rm ocserv-agent
+          done
+
+          echo "✅ SBOMs generated"
+          ls -lh *-sbom*.json
+
       - name: Generate hashes for provenance
         id: hash
         run: |
           cd dist
-          echo "hashes=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
+          echo "hashes=$(sha256sum *.tar.gz *.sha256 | base64 -w0)" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -200,6 +225,7 @@ jobs:
             type=sha
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -209,3 +235,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=OCserv Agent
+
+      - name: Sign container image with Cosign
+        run: |
+          # Install cosign if not available (should be in runner)
+          if ! command -v cosign &> /dev/null; then
+            echo "Cosign not found, skipping signing"
+            exit 0
+          fi
+
+          # Sign image with keyless signing (using OIDC)
+          # This uses Sigstore's public-good instance
+          echo "Signing container images..."
+          for tag in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
+            echo "Signing $tag..."
+            cosign sign --yes "$tag"
+          done
+
+          echo "✅ Container images signed with Cosign"
+        env:
+          COSIGN_EXPERIMENTAL: 1  # Enable keyless signing

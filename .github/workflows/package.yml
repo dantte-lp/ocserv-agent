@@ -14,7 +14,7 @@ jobs:
   # Build RPM packages for RHEL/Oracle Linux/Rocky Linux
   build-rpm:
     name: Build RPM (${{ matrix.dist }})
-    runs-on: self-hosted
+    runs-on: [self-hosted, oracle-linux, rpm-build, mock]
     strategy:
       matrix:
         dist:
@@ -154,7 +154,7 @@ jobs:
   # Build DEB packages for Debian/Ubuntu
   build-deb:
     name: Build DEB (${{ matrix.dist }})
-    runs-on: self-hosted
+    runs-on: [self-hosted, debian]
     strategy:
       matrix:
         dist:
@@ -183,9 +183,11 @@ jobs:
           # DEB version: replace - with ~ for pre-releases
           echo "DEB_VERSION=${VERSION//-/\~}" >> $GITHUB_OUTPUT
 
-      - name: Install dpkg-dev
+      - name: Install Debian packaging tools
         run: |
-          sudo dnf install -y dpkg dpkg-dev
+          # Install debian packaging tools
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev debhelper devscripts
 
       - name: Generate protobuf code
         run: |
@@ -295,58 +297,79 @@ jobs:
             -ldflags="-s -w -X main.version=${{ steps.get_version.outputs.VERSION }}" \
             -o ocserv-agent-freebsd-arm64 ./cmd/agent
 
-      - name: Create FreeBSD package manifest
+      - name: Create FreeBSD packages (amd64 and arm64)
         run: |
-          mkdir -p freebsd-pkg/usr/local/sbin
-          mkdir -p freebsd-pkg/usr/local/etc/rc.d
-          mkdir -p freebsd-pkg/usr/local/etc/ocserv-agent/certs
+          # Create packages for both architectures
+          for ARCH in amd64 arm64; do
+            echo "Creating FreeBSD package for $ARCH..."
 
-          # Copy binary (amd64 version for now)
-          cp ocserv-agent-freebsd-amd64 freebsd-pkg/usr/local/sbin/ocserv-agent
+            # Create package directory structure
+            PKGDIR="freebsd-pkg-$ARCH"
+            mkdir -p $PKGDIR/usr/local/sbin
+            mkdir -p $PKGDIR/usr/local/etc/rc.d
+            mkdir -p $PKGDIR/usr/local/etc/ocserv-agent/certs
+            mkdir -p $PKGDIR/usr/local/share/doc/ocserv-agent
 
-          # Create rc.d script
-          cat > freebsd-pkg/usr/local/etc/rc.d/ocserv_agent <<'EOF'
-          #!/bin/sh
+            # Copy binary for this architecture
+            cp ocserv-agent-freebsd-$ARCH $PKGDIR/usr/local/sbin/ocserv-agent
+            chmod +x $PKGDIR/usr/local/sbin/ocserv-agent
 
-          # PROVIDE: ocserv_agent
-          # REQUIRE: NETWORKING
-          # KEYWORD: shutdown
+            # Create rc.d script
+            cat > $PKGDIR/usr/local/etc/rc.d/ocserv_agent <<'RCEOF'
+#!/bin/sh
 
-          . /etc/rc.subr
+# PROVIDE: ocserv_agent
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
 
-          name="ocserv_agent"
-          rcvar="ocserv_agent_enable"
+. /etc/rc.subr
 
-          command="/usr/local/sbin/ocserv-agent"
-          pidfile="/var/run/${name}.pid"
+name="ocserv_agent"
+rcvar="ocserv_agent_enable"
 
-          load_rc_config $name
-          : ${ocserv_agent_enable:="NO"}
-          : ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
+command="/usr/local/sbin/ocserv-agent"
+pidfile="/var/run/${name}.pid"
 
-          command_args="-config ${ocserv_agent_config}"
+load_rc_config $name
+: ${ocserv_agent_enable:="NO"}
+: ${ocserv_agent_config:="/usr/local/etc/ocserv-agent/config.yaml"}
 
-          run_rc_command "$1"
-          EOF
-          chmod +x freebsd-pkg/usr/local/etc/rc.d/ocserv_agent
+command_args="-config ${ocserv_agent_config}"
 
-          # Copy config
-          cp config.yaml.example freebsd-pkg/usr/local/etc/ocserv-agent/
+run_rc_command "$1"
+RCEOF
+            chmod +x $PKGDIR/usr/local/etc/rc.d/ocserv_agent
 
-          # Create pkg manifest
-          cat > freebsd-pkg/+MANIFEST <<EOF
-          name: ocserv-agent
-          version: "${{ steps.get_version.outputs.VERSION }}"
-          origin: net/ocserv-agent
-          comment: "gRPC management agent for OpenConnect VPN server"
-          desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS"
-          www: https://github.com/dantte-lp/ocserv-agent
-          maintainer: noreply@github.com
-          prefix: /usr/local
-          deps: {
-            ocserv: {origin: "net/ocserv", version: ">=1.1.0"}
-          }
-          EOF
+            # Copy documentation and config
+            cp config.yaml.example $PKGDIR/usr/local/etc/ocserv-agent/
+            cp README.md $PKGDIR/usr/local/share/doc/ocserv-agent/
+            cp LICENSE $PKGDIR/usr/local/share/doc/ocserv-agent/
+
+            # Create pkg manifest with proper plist
+            cat > $PKGDIR/+MANIFEST <<PKGEOF
+name: ocserv-agent
+version: "${{ steps.get_version.outputs.VERSION }}"
+origin: net/ocserv-agent
+comment: "gRPC management agent for OpenConnect VPN server"
+desc: "ocserv-agent provides remote management for ocserv via gRPC with mTLS authentication"
+www: https://github.com/dantte-lp/ocserv-agent
+maintainer: noreply@github.com
+prefix: /usr/local
+arch: freebsd:14:$ARCH
+licenses: [MIT]
+PKGEOF
+
+            # Create plist (file manifest)
+            cat > $PKGDIR/+MANIFEST.plist <<PLISTEOF
+/usr/local/sbin/ocserv-agent
+/usr/local/etc/rc.d/ocserv_agent
+@dir /usr/local/etc/ocserv-agent/certs
+@sample /usr/local/etc/ocserv-agent/config.yaml.example /usr/local/etc/ocserv-agent/config.yaml
+/usr/local/share/doc/ocserv-agent/README.md
+/usr/local/share/doc/ocserv-agent/LICENSE
+PLISTEOF
+
+          done
 
       - name: Create tarball for FreeBSD
         run: |

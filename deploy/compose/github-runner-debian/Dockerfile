@@ -137,9 +137,13 @@ RUN apt-get update && apt-get install -y \
 # ============================================================================
 
 # Go tools (install globally in GOPATH)
+# SAST & Code Quality
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
     go install honnef.co/go/tools/cmd/staticcheck@latest && \
     go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    go install github.com/kisielk/errcheck@latest && \
+    go install github.com/gordonklaus/ineffassign@latest && \
+# Vulnerability & Dependency Scanning
     go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Python tools (CLI tools installed globally)
@@ -204,10 +208,17 @@ RUN curl -fsSL -o /usr/local/bin/hadolint \
     https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-Linux-x86_64 && \
     chmod +x /usr/local/bin/hadolint
 
+# Install markdownlint-cli
+RUN npm install -g markdownlint-cli
+
+# ============================================================================
+# Install security scanning and supply chain tools (OSSF/SLSA/SBOM)
+# ============================================================================
+
 # Install trivy (container/dependency security scanner)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-# Install OSSF Scorecard v5.3.0
+# Install OSSF Scorecard v5.3.0 (project security health metrics)
 ARG SCORECARD_VERSION="5.3.0"
 RUN curl -fsSL -o scorecard.tar.gz \
         https://github.com/ossf/scorecard/releases/download/v${SCORECARD_VERSION}/scorecard_${SCORECARD_VERSION}_linux_amd64.tar.gz && \
@@ -215,25 +226,47 @@ RUN curl -fsSL -o scorecard.tar.gz \
     rm scorecard.tar.gz && \
     chmod +x /usr/local/bin/scorecard
 
-# Install markdownlint-cli
-RUN npm install -g markdownlint-cli
-
 # Install OSV-Scanner v2 (Google's vulnerability scanner)
 RUN go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
 
+# Install Nancy (OSS Index dependency scanner for Go)
+RUN go install github.com/sonatype-nexus-community/nancy@latest
+
+# Install go-licenses (Go license compliance tool)
+RUN go install github.com/google/go-licenses@latest
+
 # Install Syft (SBOM generation tool from Anchore)
-ARG SYFT_VERSION="v1.20.0"
+ARG SYFT_VERSION="v1.34.2"
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin ${SYFT_VERSION}
 
 # Install Grype (vulnerability scanner for containers and filesystems)
-ARG GRYPE_VERSION="v0.87.0"
+ARG GRYPE_VERSION="v0.101.1"
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin ${GRYPE_VERSION}
 
 # Install Cosign (container signing and verification from Sigstore)
-ARG COSIGN_VERSION="v2.4.2"
+ARG COSIGN_VERSION="v3.0.2"
 RUN curl -fsSL -o /usr/local/bin/cosign \
         https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64 && \
     chmod +x /usr/local/bin/cosign
+
+# Install Gitleaks (secrets detection - fast and lightweight)
+ARG GITLEAKS_VERSION="8.28.0"
+RUN curl -fsSL -o gitleaks.tar.gz \
+        https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks && \
+    rm gitleaks.tar.gz && \
+    chmod +x /usr/local/bin/gitleaks
+
+# Install TruffleHog (secrets detection - comprehensive with verification)
+ARG TRUFFLEHOG_VERSION="3.90.3"
+RUN curl -fsSL -o trufflehog.tar.gz \
+        https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz && \
+    tar -xzf trufflehog.tar.gz -C /usr/local/bin trufflehog && \
+    rm trufflehog.tar.gz && \
+    chmod +x /usr/local/bin/trufflehog
+
+# Install Semgrep (multi-language SAST tool)
+RUN pip3 install --no-cache-dir semgrep
 
 # ============================================================================
 # Create runner user

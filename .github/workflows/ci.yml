@@ -337,10 +337,35 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Run staticcheck
+        run: |
+          # Run staticcheck installed in runner
+          staticcheck -checks=all,-ST1000,-ST1003 ./...
+
       - name: Check go mod tidy
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
+
+      - name: Check for common Go mistakes
+        run: |
+          # errcheck - check for unchecked errors
+          if command -v errcheck &> /dev/null; then
+            errcheck ./...
+          else
+            echo "errcheck not installed, skipping"
+          fi
+        continue-on-error: true
+
+      - name: Check for ineffectual assignments
+        run: |
+          # ineffassign - detect ineffectual assignments
+          if command -v ineffassign &> /dev/null; then
+            ineffassign ./...
+          else
+            echo "ineffassign not installed, skipping"
+          fi
+        continue-on-error: true
 
   # Summary job that always succeeds (for required status checks)
   # This ensures docs-only PRs can be merged even when heavy jobs are skipped

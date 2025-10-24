@@ -56,11 +56,12 @@ jobs:
 
       - name: Run golangci-lint
         if: steps.check.outputs.has_go_files == 'true'
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          args: --timeout=5m
-          only-new-issues: false
+        run: |
+          # Run golangci-lint installed in runner
+          golangci-lint run \
+            --timeout=5m \
+            --out-format colored-line-number \
+            ./...
 
   # Markdown linting - only run when .md files change
   markdown:
@@ -84,10 +85,9 @@ jobs:
 
       - name: Lint markdown files
         if: steps.check.outputs.has_md_files == 'true'
-        uses: avto-dev/markdown-lint@v1
-        with:
-          args: '**/*.md'
-          ignore: 'vendor'
+        run: |
+          # Run markdownlint-cli installed in runner
+          markdownlint '**/*.md' --ignore vendor --ignore node_modules
 
   # YAML linting - only run when .yml/.yaml files change
   yaml:
@@ -111,11 +111,9 @@ jobs:
 
       - name: Lint YAML files
         if: steps.check.outputs.has_yaml_files == 'true'
-        uses: ibiqlik/action-yamllint@v3
-        with:
-          config_file: .yamllint.yml
-          file_or_dir: .
-          strict: true
+        run: |
+          # Run yamllint installed in runner
+          yamllint -c .yamllint.yml -s .
 
   # Dockerfile linting - only run when Dockerfile changes
   dockerfile:
@@ -139,7 +137,6 @@ jobs:
 
       - name: Lint Dockerfile
         if: steps.check.outputs.has_dockerfile == 'true'
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: warning
+        run: |
+          # Run hadolint installed in runner
+          hadolint --failure-threshold warning Dockerfile

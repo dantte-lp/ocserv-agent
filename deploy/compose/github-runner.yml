@@ -14,8 +14,8 @@ services:
       - REPO_URL=https://github.com/dantte-lp/ocserv-agent
 
       # Runner configuration
-      - RUNNER_NAME=podman-runner-ocserv-agent
-      - RUNNER_LABELS=self-hosted,linux,x64,podman
+      - RUNNER_NAME=oraclelinux-runner-ocserv-agent
+      - RUNNER_LABELS=self-hosted,linux,x64,oracle-linux,rpm-build,mock,podman
       - RUNNER_GROUP=Default
 
       # Runner token (MUST be provided)
