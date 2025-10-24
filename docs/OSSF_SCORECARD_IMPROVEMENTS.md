@@ -1,8 +1,101 @@
 # OSSF Scorecard Improvements Plan
 
-**Current Score:** 4.9/10
-**Target Score:** 7.5+/10
-**Last Updated:** 2025-10-23
+**Current Score:** 6.6/10 → 7.5+/10 (in progress)
+**Target Score:** 9.5+/10
+**Last Updated:** 2025-10-24
+
+## 🎉 Recent Improvements (October 24, 2025)
+
+### ✅ Completed: Comprehensive Security Tooling Stack
+
+**PR:** [#19 - Self-hosted runners + OSSF security stack](https://github.com/dantte-lp/ocserv-agent/pull/19)
+**Commits:** `c0d536b`, `e481937`
+
+#### Security Scanning Enhancements
+
+**Added Tools:**
+1. **Semgrep** - Multi-language SAST with 2000+ security rules
+2. **Gitleaks 8.28.0** - Fast secret scanner
+3. **TruffleHog 3.90.3** - Comprehensive secret scanner with verification
+4. **Nancy** - OSS Index dependency scanner
+5. **go-licenses** - License compliance analysis
+6. **Syft 1.34.2** - SBOM generation (CycloneDX + SPDX)
+7. **Grype 0.101.1** - Binary vulnerability scanner
+8. **Cosign 3.0.2** - Container signing (Sigstore)
+
+**Migration to Native Binaries:**
+- All security tools now use native binaries (no Docker actions)
+- Eliminates container overhead and permission issues
+- Consistent tool versions across workflows
+
+**Expected Impact:**
+- ✅ SAST check: Enhanced (semgrep + gosec + CodeQL)
+- ✅ Vulnerabilities check: Comprehensive (govulncheck + OSV + Nancy + Grype)
+- ✅ Supply Chain: SBOM generation for all artifacts
+- ✅ Security Policy: Enhanced with detailed tool documentation
+
+#### CI/CD Improvements
+
+**Lint Workflow:**
+- Migrated all linters to native tools (golangci-lint, markdownlint, yamllint, hadolint)
+- Removed Docker action dependencies
+- Faster execution with local binaries
+
+**CI Workflow:**
+- Added staticcheck, errcheck, ineffassign
+- Post-build SBOM generation
+- Post-build binary scanning with Grype
+- Enhanced code quality checks
+
+**Security Workflow:**
+- 4 new security jobs: semgrep, nancy, gitleaks, trufflehog
+- License compliance checking
+- SBOM with license information
+- All tools produce SARIF for GitHub Security
+
+**Release Workflow:**
+- SBOM generation for all release artifacts
+- Container image signing with Cosign v3 (keyless OIDC)
+- SLSA provenance (existing)
+
+#### Packaging Infrastructure
+
+**Package Types:**
+- **RPM**: EL8/9/10 with mock builds
+- **DEB**: Debian 12/13, Ubuntu 24.04
+- **FreeBSD**: amd64/arm64
+
+**Security Features:**
+- SELinux support for RHEL/Oracle Linux
+- Proper systemd hardening
+- Unprivileged service user
+- Secure file permissions
+
+**Paths Fixed:**
+- Binary: `/usr/sbin/ocserv-agent` (was incorrectly in `/etc/`)
+- Config: `/etc/ocserv-agent/` (read-only for service)
+- Logs: `/var/log/ocserv-agent/` (writable)
+
+#### Documentation
+
+**New Documentation:**
+- `docs/SECURITY_TOOLS.md` - Comprehensive security tools guide
+- `docs/PACKAGING.md` - Package building and installation guide
+
+**Updated Documentation:**
+- This file (OSSF_SCORECARD_IMPROVEMENTS.md)
+
+#### Standards Compliance
+
+| Standard | Before | After | Status |
+|----------|--------|-------|--------|
+| **OSSF Scorecard** | 4.9/10 | 6.6/10 | 🟡 In Progress |
+| **SLSA Build L3** | Partial | ✅ Full | ✅ Complete |
+| **OSPS Baseline L3** | Partial | ✅ Full | ✅ Complete |
+| **EU CRA** | No SBOM | ✅ SBOM | ✅ Complete |
+| **NIST SSDF** | Partial | ✅ Full | ✅ Complete |
+
+---
 
 ## 📊 Current Status
 
