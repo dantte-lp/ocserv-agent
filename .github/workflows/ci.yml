@@ -288,11 +288,37 @@ jobs:
             echo "No SARIF files generated"
           fi
 
+      - name: Merge SARIF files
+        if: always() && env.SARIF_COUNT != '0'
+        run: |
+          # Merge all SARIF files into one
+          # The upload-sarif action requires a single SARIF file per upload
+          echo "Merging $(ls -1 sarif-results/*.sarif | wc -l) SARIF files..."
+
+          # Create merged SARIF with combined runs from all files
+          first=true
+          for sarif_file in sarif-results/*.sarif; do
+            if [ -f "$sarif_file" ]; then
+              if [ "$first" = true ]; then
+                # Use first file as base
+                cp "$sarif_file" merged-grype.sarif
+                first=false
+              else
+                # Merge subsequent files' runs into the base file
+                jq -s '.[0].runs += .[1].runs | .[0]' merged-grype.sarif "$sarif_file" > temp-merged.sarif
+                mv temp-merged.sarif merged-grype.sarif
+              fi
+            fi
+          done
+
+          echo "✓ Merged SARIF file created: merged-grype.sarif"
+          jq '.runs | length' merged-grype.sarif
+
       - name: Upload Grype results
         if: always() && env.SARIF_COUNT != '0'
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: sarif-results
+          sarif_file: merged-grype.sarif
           category: grype-scan
 
   # Integration tests with containers
