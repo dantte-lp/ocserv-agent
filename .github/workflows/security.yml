@@ -28,7 +28,7 @@ jobs:
   # Go security scanning with gosec
   gosec:
     name: Go Security Scanner
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
@@ -37,3 +37,181 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt sarif -out results.sarif ./...'
+
+      - name: Fix Gosec SARIF format
+        run: |
+          # Remove problematic 'fixes' field from SARIF that causes upload errors
+          # Gosec generates invalid artifactChanges format in fixes field
+          jq 'walk(if type == "object" then del(.fixes) else . end)' results.sarif > results-fixed.sarif
+          mv results-fixed.sarif results.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+  # Dependency vulnerability scanning
+  govulncheck:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  # CodeQL analysis
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'go' ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      - name: Generate protobuf code
+        run: |
+          protoc --go_out=. --go-grpc_out=. \
+            --go_opt=paths=source_relative \
+            --go-grpc_opt=paths=source_relative \
+            pkg/proto/agent/v1/agent.proto
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # Trivy vulnerability scanner
+  trivy:
+    name: Trivy Security Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (repo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # OSSF Scorecard
+  scorecard:
+    name: OSSF Scorecard
+    runs-on: self-hosted
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run native scorecard
+        run: |
+          # Use native scorecard installed in runner
+          # Redirect output to file instead of using unsupported --output-file flag
+          scorecard \
+            --repo=github.com/dantte-lp/ocserv-agent \
+            --format=sarif > results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
