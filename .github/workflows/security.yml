@@ -222,10 +222,98 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate scorecard HTML report
+        if: always()
+        run: |
+          # Generate simple HTML visualization from JSON results
+          cat > scorecard-report.html <<'HTML_EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>OSSF Scorecard Report - ocserv-agent</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+              .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+              h1 { color: #24292e; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
+              .meta { color: #586069; font-size: 14px; margin-bottom: 20px; }
+              .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+              .check-card { border: 1px solid #e1e4e8; border-radius: 6px; padding: 15px; background: #fafbfc; }
+              .check-name { font-weight: 600; font-size: 16px; color: #24292e; margin-bottom: 8px; }
+              .check-score { font-size: 24px; font-weight: bold; }
+              .score-10 { color: #28a745; }
+              .score-8-9 { color: #85e89d; }
+              .score-5-7 { color: #ffd33d; }
+              .score-1-4 { color: #f97583; }
+              .score-0 { color: #d73a49; }
+              .check-reason { font-size: 13px; color: #586069; margin-top: 8px; }
+              .links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e4e8; }
+              .links a { color: #0366d6; text-decoration: none; margin-right: 15px; }
+              .links a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>OSSF Scorecard Report</h1>
+              <div class="meta">
+                <strong>Repository:</strong> dantte-lp/ocserv-agent<br>
+                <strong>Generated:</strong> <span id="date"></span>
+              </div>
+              <div class="score-grid" id="checks"></div>
+              <div class="links">
+                <strong>View Interactive Visualization:</strong><br>
+                <a href="https://ossf.github.io/scorecard-visualizer/#/projects/github.com/dantte-lp/ocserv-agent" target="_blank">
+                  OSSF Scorecard Visualizer
+                </a>
+                <a href="https://github.com/dantte-lp/ocserv-agent/security" target="_blank">
+                  Repository Security
+                </a>
+              </div>
+            </div>
+            <script>
+              document.getElementById('date').textContent = new Date().toLocaleString();
+
+              fetch('scorecard-results.json')
+                .then(r => r.json())
+                .then(data => {
+                  const checks = data.checks || [];
+                  const container = document.getElementById('checks');
+
+                  checks.sort((a, b) => b.score - a.score).forEach(check => {
+                    const score = check.score;
+                    const scoreClass = score === 10 ? 'score-10' :
+                                      score >= 8 ? 'score-8-9' :
+                                      score >= 5 ? 'score-5-7' :
+                                      score >= 1 ? 'score-1-4' : 'score-0';
+
+                    const card = document.createElement('div');
+                    card.className = 'check-card';
+                    card.innerHTML = `
+                      <div class="check-name">${check.name}</div>
+                      <div class="check-score ${scoreClass}">${score}/10</div>
+                      <div class="check-reason">${check.reason || ''}</div>
+                    `;
+                    container.appendChild(card);
+                  });
+                })
+                .catch(e => {
+                  document.getElementById('checks').innerHTML =
+                    '<p>No scorecard data available. The scan may have failed due to permissions.</p>';
+                });
+            </script>
+          </body>
+          </html>
+          HTML_EOF
+
+          echo "✓ Generated scorecard HTML report"
+
       - name: Upload scorecard results as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scorecard-results
-          path: scorecard-results.json
+          path: |
+            scorecard-results.json
+            scorecard-report.html
           if-no-files-found: ignore
