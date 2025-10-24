@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"

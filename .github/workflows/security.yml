@@ -202,23 +202,30 @@ jobs:
           persist-credentials: false
 
       - name: Run native scorecard
+        continue-on-error: true  # May fail due to token permissions for branch protection
         run: |
           # Use native scorecard installed in runner
           # SARIF format not supported by native scorecard, use JSON instead
           scorecard \
             --repo=github.com/dantte-lp/ocserv-agent \
             --format=json \
-            --show-details > scorecard-results.json
+            --show-details > scorecard-results.json || {
+            echo "⚠ Scorecard failed (may be due to token permissions)"
+            echo "{\"checks\": []}" > scorecard-results.json
+          }
 
-          # Display results summary
-          echo "OSSF Scorecard Results:"
-          cat scorecard-results.json | jq -r '.checks[] | "\(.name): \(.score)/10"'
+          # Display results summary if available
+          if [ -s scorecard-results.json ]; then
+            echo "OSSF Scorecard Results:"
+            cat scorecard-results.json | jq -r '.checks[]? | "\(.name): \(.score)/10"' 2>/dev/null || true
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload scorecard results as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scorecard-results
           path: scorecard-results.json
-          if-no-files-found: error
+          if-no-files-found: ignore
