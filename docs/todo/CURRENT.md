@@ -154,9 +154,14 @@
 - **Impact:** Token-Permissions: 0 → 10
 
 **Dependency Pinning (HIGH PRIORITY):**
-- [ ] Pin all GitHub Actions to SHA hashes
-  - 22 unique actions to pin
-  - **Impact:** Pinned-Dependencies: 0 → 10
+- [x] Pin all GitHub Actions to SHA hashes ✅ (2025-10-25)
+  - ✅ ci.yml: 5 actions pinned
+  - ✅ security.yml: 10 actions pinned (switched gosec@master and trivy-action@master to tagged versions)
+  - ✅ release.yml: 9 actions pinned (including 5 Docker actions)
+  - ✅ package.yml: 4 actions pinned
+  - ✅ Total: 17 unique actions pinned with SHA hashes
+  - **Impact:** Pinned-Dependencies: 0 → 10 (+1.0 point expected)
+  - **Commits:** 4 commits pushed to branch `ossf/scorecard-improvements`
 - [ ] Pin Docker base images to digests
 
 **Signing:**
