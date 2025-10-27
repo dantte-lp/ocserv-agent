@@ -197,7 +197,7 @@ jobs:
             ~/rpmbuild/SRPMS/ocserv-agent-${{ steps.get_version.outputs.RPM_VERSION }}-1.*.src.rpm
 
       - name: Upload RPM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rpm-${{ matrix.dist }}
           path: ./rpm-output-${{ matrix.dist }}/*.rpm
@@ -368,7 +368,7 @@ jobs:
           dpkg-deb --build debian-build ocserv-agent_${{ steps.get_version.outputs.DEB_VERSION }}_amd64.deb
 
       - name: Upload DEB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: deb-${{ matrix.dist }}
           path: ocserv-agent_*.deb
@@ -501,7 +501,7 @@ jobs:
             ocserv-agent-freebsd-arm64 config.yaml.example README.md LICENSE
 
       - name: Upload FreeBSD artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: freebsd-packages
           path: ocserv-agent-*-freebsd-*.tar.gz
