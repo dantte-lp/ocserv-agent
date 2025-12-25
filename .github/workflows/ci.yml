@@ -179,7 +179,7 @@ jobs:
           go build -trimpath -ldflags="-s -w" -o "$OUTPUT" ./cmd/agent
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: binary-${{ matrix.os }}-${{ matrix.arch }}
           path: ocserv-agent-*
@@ -225,7 +225,7 @@ jobs:
           done
 
       - name: Upload SBOMs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: sbom-files
           path: sbom-*.json
