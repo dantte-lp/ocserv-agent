@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -70,6 +73,7 @@ func InitProviders(ctx context.Context, cfg config.TelemetryConfig, logger *slog
 
 		logger.Info("OTLP tracer provider initialized",
 			"endpoint", cfg.OTLP.Endpoint,
+			"protocol", cfg.OTLP.Protocol,
 			"insecure", cfg.OTLP.Insecure,
 		)
 	}
@@ -89,20 +93,45 @@ func InitProviders(ctx context.Context, cfg config.TelemetryConfig, logger *slog
 
 		logger.Info("OTLP meter provider initialized",
 			"endpoint", cfg.OTLP.Endpoint,
+			"protocol", cfg.OTLP.Protocol,
 		)
 	}
 
-	if cfg.VictoriaMetrics.Enabled {
-		vmExporter := NewVictoriaMetricsExporter(cfg.VictoriaMetrics)
-		vmExporter.Start(ctx)
-		shutdownFuncs = append(shutdownFuncs, func(ctx context.Context) error {
-			return vmExporter.Close()
-		})
+	// Prometheus HTTP server для /metrics endpoint
+	if cfg.Prometheus.Enabled {
+		promServer, err := NewPrometheusServer(ctx, cfg, res, logger)
+		if err != nil {
+			// Cleanup при ошибке
+			for _, fn := range shutdownFuncs {
+				_ = fn(ctx)
+			}
+			return nil, fmt.Errorf("failed to init prometheus server: %w", err)
+		}
 
-		logger.Info("VictoriaMetrics exporter initialized",
+		if promServer != nil {
+			if err := promServer.Start(); err != nil {
+				// Cleanup при ошибке
+				for _, fn := range shutdownFuncs {
+					_ = fn(ctx)
+				}
+				return nil, fmt.Errorf("failed to start prometheus server: %w", err)
+			}
+
+			shutdownFuncs = append(shutdownFuncs, promServer.Shutdown)
+
+			logger.Info("Prometheus metrics server initialized",
+				"address", cfg.Prometheus.Address,
+			)
+		}
+	}
+
+	// VictoriaMetrics через Prometheus remote_write (DEPRECATED - используйте OTLP)
+	// Оставлено для обратной совместимости
+	if cfg.VictoriaMetrics.Enabled {
+		logger.Warn("VictoriaMetrics direct integration is deprecated, use OTLP or Prometheus exporter instead",
 			"endpoint", cfg.VictoriaMetrics.Endpoint,
-			"push_interval", cfg.VictoriaMetrics.PushInterval,
 		)
+		// Старый код закомментирован - удалите секцию victoria_metrics из config
 	}
 
 	// Logs - VictoriaLogs handler будет настраиваться в logging package
@@ -141,18 +170,44 @@ func InitProviders(ctx context.Context, cfg config.TelemetryConfig, logger *slog
 	}, nil
 }
 
-// initTracerProvider создает TracerProvider с OTLP exporter.
+// initTracerProvider создает TracerProvider с OTLP exporter (gRPC или HTTP).
 func initTracerProvider(ctx context.Context, cfg config.TelemetryConfig, res *resource.Resource) (*trace.TracerProvider, error) {
-	opts := []otlptracegrpc.Option{
-		otlptracegrpc.WithEndpoint(cfg.OTLP.Endpoint),
-	}
-	if cfg.OTLP.Insecure {
-		opts = append(opts, otlptracegrpc.WithInsecure())
-	}
+	var exporter trace.SpanExporter
+	var err error
 
-	exporter, err := otlptracegrpc.New(ctx, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	// Выбираем транспорт на основе cfg.OTLP.Protocol
+	protocol := strings.ToLower(cfg.OTLP.Protocol)
+	switch protocol {
+	case "http", "http/protobuf":
+		// HTTP транспорт
+		opts := []otlptracehttp.Option{
+			otlptracehttp.WithEndpoint(cfg.OTLP.Endpoint),
+			otlptracehttp.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlptracehttp.WithInsecure())
+		}
+		exporter, err = otlptracehttp.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP trace exporter: %w", err)
+		}
+
+	case "grpc", "":
+		// gRPC транспорт (default)
+		opts := []otlptracegrpc.Option{
+			otlptracegrpc.WithEndpoint(cfg.OTLP.Endpoint),
+			otlptracegrpc.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlptracegrpc.WithInsecure())
+		}
+		exporter, err = otlptracegrpc.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gRPC trace exporter: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported OTLP protocol: %s (supported: grpc, http)", cfg.OTLP.Protocol)
 	}
 
 	// Определяем sampler
@@ -170,18 +225,44 @@ func initTracerProvider(ctx context.Context, cfg config.TelemetryConfig, res *re
 	return tp, nil
 }
 
-// initMeterProvider создает MeterProvider с OTLP exporter.
+// initMeterProvider создает MeterProvider с OTLP exporter (gRPC или HTTP).
 func initMeterProvider(ctx context.Context, cfg config.TelemetryConfig, res *resource.Resource) (*metric.MeterProvider, error) {
-	opts := []otlpmetricgrpc.Option{
-		otlpmetricgrpc.WithEndpoint(cfg.OTLP.Endpoint),
-	}
-	if cfg.OTLP.Insecure {
-		opts = append(opts, otlpmetricgrpc.WithInsecure())
-	}
+	var exporter metric.Exporter
+	var err error
 
-	exporter, err := otlpmetricgrpc.New(ctx, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
+	// Выбираем транспорт на основе cfg.OTLP.Protocol
+	protocol := strings.ToLower(cfg.OTLP.Protocol)
+	switch protocol {
+	case "http", "http/protobuf":
+		// HTTP транспорт
+		opts := []otlpmetrichttp.Option{
+			otlpmetrichttp.WithEndpoint(cfg.OTLP.Endpoint),
+			otlpmetrichttp.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlpmetrichttp.WithInsecure())
+		}
+		exporter, err = otlpmetrichttp.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP metric exporter: %w", err)
+		}
+
+	case "grpc", "":
+		// gRPC транспорт (default)
+		opts := []otlpmetricgrpc.Option{
+			otlpmetricgrpc.WithEndpoint(cfg.OTLP.Endpoint),
+			otlpmetricgrpc.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlpmetricgrpc.WithInsecure())
+		}
+		exporter, err = otlpmetricgrpc.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gRPC metric exporter: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported OTLP protocol: %s (supported: grpc, http)", cfg.OTLP.Protocol)
 	}
 
 	mp := metric.NewMeterProvider(

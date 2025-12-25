@@ -25,10 +25,9 @@ linters:
   enable:
     # Enabled by default
     - errcheck      # Check for unchecked errors
-    - gosimple      # Simplify code
     - govet         # Reports suspicious constructs
     - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Staticcheck is a go vet on steroids
+    - staticcheck   # Staticcheck is a go vet on steroids (includes gosimple)
     - unused        # Check for unused code
 
     # Additional recommended linters
@@ -38,7 +37,6 @@ linters:
     - unparam       # Reports unused function parameters
     - nakedret      # Finds naked returns in functions
     - prealloc      # Finds slice declarations that could be preallocated
-    - exportloopref # Checks for pointers to enclosing loop variables
     - noctx         # Finds sending http request without context.Context
     - gosec         # Security problems
     - bodyclose     # Checks HTTP body is closed

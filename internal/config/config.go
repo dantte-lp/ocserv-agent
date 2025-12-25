@@ -81,8 +81,15 @@ type TelemetryConfig struct {
 	Environment     string                `yaml:"environment"`
 	SampleRate      float64               `yaml:"sample_rate"`
 	OTLP            OTLPConfig            `yaml:"otlp"`
+	Prometheus      PrometheusConfig      `yaml:"prometheus"`
 	VictoriaMetrics VictoriaMetricsConfig `yaml:"victoria_metrics"`
 	VictoriaLogs    VictoriaLogsConfig    `yaml:"victoria_logs"`
+}
+
+// PrometheusConfig defines Prometheus scrape endpoint settings
+type PrometheusConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Address string `yaml:"address"` // Default: ":9090"
 }
 
 // OTLPConfig defines OTLP exporter settings
@@ -90,6 +97,7 @@ type OTLPConfig struct {
 	Enabled  bool          `yaml:"enabled"`
 	Endpoint string        `yaml:"endpoint"`
 	Insecure bool          `yaml:"insecure"`
+	Protocol string        `yaml:"protocol"` // "grpc" или "http" (default: "grpc")
 	Timeout  time.Duration `yaml:"timeout"`
 }
 
@@ -256,6 +264,9 @@ func setDefaults(cfg *Config) {
 	if cfg.Telemetry.OTLP.Timeout == 0 {
 		cfg.Telemetry.OTLP.Timeout = 10 * time.Second
 	}
+	if cfg.Telemetry.OTLP.Protocol == "" {
+		cfg.Telemetry.OTLP.Protocol = "grpc"
+	}
 	if cfg.Telemetry.VictoriaMetrics.PushInterval == 0 {
 		cfg.Telemetry.VictoriaMetrics.PushInterval = 15 * time.Second
 	}
@@ -264,6 +275,9 @@ func setDefaults(cfg *Config) {
 	}
 	if cfg.Telemetry.VictoriaLogs.FlushInterval == 0 {
 		cfg.Telemetry.VictoriaLogs.FlushInterval = 5 * time.Second
+	}
+	if cfg.Telemetry.Prometheus.Address == "" {
+		cfg.Telemetry.Prometheus.Address = ":9090"
 	}
 
 	if cfg.TLS.MinVersion == "" {
