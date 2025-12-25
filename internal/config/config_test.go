@@ -303,7 +303,7 @@ func TestApplyEnvOverrides(t *testing.T) {
 		{"TLS_KEY_FILE", cfg.TLS.KeyFile, "/env/key.pem"},
 		{"TLS_CA_FILE", cfg.TLS.CAFile, "/env/ca.pem"},
 		{"LOG_LEVEL", cfg.Logging.Level, "trace"},
-		{"TELEMETRY_ENDPOINT", cfg.Telemetry.Endpoint, "http://otel-env:4318"},
+		{"TELEMETRY_ENDPOINT", cfg.Telemetry.OTLP.Endpoint, "http://otel-env:4318"},
 	}
 
 	for _, tt := range tests {

@@ -1,0 +1,173 @@
+# ═══════════════════════════════════════════════════════════════
+# ocserv-agent Configuration Example
+# Версия: 0.7.0
+# ═══════════════════════════════════════════════════════════════
+
+# Идентификатор агента (уникальный для каждого сервера)
+agent_id: "vpn-server-01"
+
+# Hostname сервера (автоопределяется если не указан)
+hostname: ""
+
+# ═══════════════════════════════════════════════════════════════
+# Control Server Configuration
+# ═══════════════════════════════════════════════════════════════
+control_server:
+  # gRPC адрес control server (ocserv-portal)
+  address: "localhost:9091"
+
+  # Настройки переподключения при обрыве связи
+  reconnect:
+    initial_delay: 1s
+    max_delay: 60s
+    multiplier: 2.0
+    max_attempts: 5
+
+  # Circuit Breaker для защиты от каскадных сбоев
+  circuit_breaker:
+    failure_threshold: 5
+    timeout: 30s
+
+# ═══════════════════════════════════════════════════════════════
+# TLS/mTLS Configuration
+# ═══════════════════════════════════════════════════════════════
+tls:
+  enabled: true
+
+  # Автоматическая генерация самоподписанных сертификатов при первом запуске
+  # Используйте только для dev/testing! В production используйте CA-signed certs
+  auto_generate: true
+
+  # Пути к сертификатам (генерируются автоматически если auto_generate=true)
+  cert_file: "/etc/ocserv-agent/certs/agent.crt"
+  key_file: "/etc/ocserv-agent/certs/agent.key"
+  ca_file: "/etc/ocserv-agent/certs/ca.crt"
+
+  # Server name для проверки CN в сертификате
+  server_name: "ocserv-portal"
+
+  # Минимальная версия TLS (TLS1.2, TLS1.3)
+  min_version: "TLS1.3"
+
+# ═══════════════════════════════════════════════════════════════
+# Ocserv Configuration
+# ═══════════════════════════════════════════════════════════════
+ocserv:
+  # Путь к основному конфигурационному файлу ocserv
+  config_path: "/etc/ocserv/ocserv.conf"
+
+  # Директории с per-user и per-group конфигами
+  config_per_user_dir: "/etc/ocserv/config-per-user"
+  config_per_group_dir: "/etc/ocserv/config-per-group"
+
+  # Unix socket для occtl
+  ctl_socket: "/run/ocserv/occtl.socket"
+
+  # Имя systemd service
+  systemd_service: "ocserv"
+
+  # Директория для бэкапов конфигурации
+  backup_dir: "/var/backups/ocserv"
+
+# ═══════════════════════════════════════════════════════════════
+# Health Checks & Metrics
+# ═══════════════════════════════════════════════════════════════
+health:
+  # Интервал отправки heartbeat в control server
+  heartbeat_interval: 15s
+
+  # Интервал глубокой проверки состояния (ocserv status, etc)
+  deep_check_interval: 2m
+
+  # Интервал сбора метрик (активные сессии, пользователи)
+  metrics_interval: 30s
+
+# ═══════════════════════════════════════════════════════════════
+# OpenTelemetry (Traces, Metrics, Logs)
+# ═══════════════════════════════════════════════════════════════
+telemetry:
+  # Включить/выключить телеметрию
+  enabled: true
+
+  # OTLP gRPC endpoint (VictoriaMetrics, Grafana Agent, OTEL Collector)
+  endpoint: "localhost:4317"
+
+  # Использовать незащищенное соединение (только для dev!)
+  insecure: true
+
+  # Метаданные сервиса
+  service_name: "ocserv-agent"
+  service_version: "0.7.0"
+  environment: "development"  # development, staging, production
+
+  # Частота семплирования traces (0.0-1.0, где 1.0 = 100% traces)
+  # В production рекомендуется 0.1-0.5 для снижения нагрузки
+  sample_rate: 1.0
+
+# ═══════════════════════════════════════════════════════════════
+# Logging Configuration
+# ═══════════════════════════════════════════════════════════════
+logging:
+  # Уровень логирования: debug, info, warn, error
+  level: "info"
+
+  # Формат вывода: json (production), text (development)
+  format: "json"
+
+  # Куда писать логи: stdout, stderr, file
+  output: "stdout"
+
+  # Путь к файлу (используется если output=file)
+  file_path: "/var/log/ocserv-agent/agent.log"
+
+  # Добавлять информацию о файле и строке кода (полезно для debug)
+  add_source: true
+
+  # Настройки rotation (пока не реализованы, для будущего использования)
+  max_size_mb: 100
+  max_backups: 7
+  max_age_days: 30
+
+# ═══════════════════════════════════════════════════════════════
+# Security Configuration
+# ═══════════════════════════════════════════════════════════════
+security:
+  # Белый список разрешенных команд occtl
+  allowed_commands:
+    - "show"
+    - "disconnect"
+    - "unban"
+    - "reload"
+
+  # Пользователь для выполнения sudo команд (для systemctl)
+  sudo_user: "root"
+
+  # Максимальный таймаут выполнения команды
+  max_command_timeout: 300s
+
+# ═══════════════════════════════════════════════════════════════
+# NOTES
+# ═══════════════════════════════════════════════════════════════
+#
+# 1. PRODUCTION CHECKLIST:
+#    - [ ] Установить auto_generate: false
+#    - [ ] Использовать CA-signed сертификаты для mTLS
+#    - [ ] Изменить logging.format на "json"
+#    - [ ] Установить telemetry.environment: "production"
+#    - [ ] Снизить telemetry.sample_rate до 0.1-0.5
+#    - [ ] Проверить security.allowed_commands
+#
+# 2. МОНИТОРИНГ:
+#    - Метрики доступны через OTLP exporter
+#    - Traces автоматически коррелируются с логами
+#    - Рекомендуется использовать VictoriaMetrics + Grafana
+#
+# 3. ENVIRONMENT VARIABLES:
+#    Можно переопределить параметры через env:
+#    - AGENT_ID
+#    - CONTROL_SERVER_ADDRESS
+#    - TLS_CERT_FILE, TLS_KEY_FILE, TLS_CA_FILE
+#    - LOG_LEVEL
+#    - TELEMETRY_ENDPOINT
+#
+# ═══════════════════════════════════════════════════════════════

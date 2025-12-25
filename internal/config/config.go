@@ -75,11 +75,43 @@ type HealthConfig struct {
 
 // TelemetryConfig defines OpenTelemetry settings
 type TelemetryConfig struct {
-	Enabled        bool    `yaml:"enabled"`
-	Endpoint       string  `yaml:"endpoint"`
-	ServiceName    string  `yaml:"service_name"`
-	ServiceVersion string  `yaml:"service_version"`
-	SampleRate     float64 `yaml:"sample_rate"`
+	Enabled         bool                  `yaml:"enabled"`
+	ServiceName     string                `yaml:"service_name"`
+	ServiceVersion  string                `yaml:"service_version"`
+	Environment     string                `yaml:"environment"`
+	SampleRate      float64               `yaml:"sample_rate"`
+	OTLP            OTLPConfig            `yaml:"otlp"`
+	VictoriaMetrics VictoriaMetricsConfig `yaml:"victoria_metrics"`
+	VictoriaLogs    VictoriaLogsConfig    `yaml:"victoria_logs"`
+}
+
+// OTLPConfig defines OTLP exporter settings
+type OTLPConfig struct {
+	Enabled  bool          `yaml:"enabled"`
+	Endpoint string        `yaml:"endpoint"`
+	Insecure bool          `yaml:"insecure"`
+	Timeout  time.Duration `yaml:"timeout"`
+}
+
+// VictoriaMetricsConfig defines VictoriaMetrics exporter settings
+type VictoriaMetricsConfig struct {
+	Enabled      bool              `yaml:"enabled"`
+	Endpoint     string            `yaml:"endpoint"`
+	PushInterval time.Duration     `yaml:"push_interval"`
+	Username     string            `yaml:"username"`
+	Password     string            `yaml:"password"`
+	Labels       map[string]string `yaml:"labels"`
+}
+
+// VictoriaLogsConfig defines VictoriaLogs handler settings
+type VictoriaLogsConfig struct {
+	Enabled       bool              `yaml:"enabled"`
+	Endpoint      string            `yaml:"endpoint"`
+	BatchSize     int               `yaml:"batch_size"`
+	FlushInterval time.Duration     `yaml:"flush_interval"`
+	Username      string            `yaml:"username"`
+	Password      string            `yaml:"password"`
+	Labels        map[string]string `yaml:"labels"`
 }
 
 // LoggingConfig defines logging behavior
@@ -88,6 +120,7 @@ type LoggingConfig struct {
 	Format     string `yaml:"format"`
 	Output     string `yaml:"output"`
 	FilePath   string `yaml:"file_path"`
+	AddSource  bool   `yaml:"add_source"`
 	MaxSizeMB  int    `yaml:"max_size_mb"`
 	MaxBackups int    `yaml:"max_backups"`
 	MaxAgeDays int    `yaml:"max_age_days"`
@@ -162,7 +195,10 @@ func applyEnvOverrides(cfg *Config) {
 		cfg.Logging.Level = v
 	}
 	if v := os.Getenv("TELEMETRY_ENDPOINT"); v != "" {
-		cfg.Telemetry.Endpoint = v
+		cfg.Telemetry.OTLP.Endpoint = v
+	}
+	if v := os.Getenv("TELEMETRY_ENABLED"); v == "true" {
+		cfg.Telemetry.Enabled = true
 	}
 }
 
@@ -208,8 +244,26 @@ func setDefaults(cfg *Config) {
 	if cfg.Telemetry.ServiceName == "" {
 		cfg.Telemetry.ServiceName = "ocserv-agent"
 	}
+	if cfg.Telemetry.ServiceVersion == "" {
+		cfg.Telemetry.ServiceVersion = "0.7.0"
+	}
+	if cfg.Telemetry.Environment == "" {
+		cfg.Telemetry.Environment = "production"
+	}
 	if cfg.Telemetry.SampleRate == 0 {
 		cfg.Telemetry.SampleRate = 1.0
+	}
+	if cfg.Telemetry.OTLP.Timeout == 0 {
+		cfg.Telemetry.OTLP.Timeout = 10 * time.Second
+	}
+	if cfg.Telemetry.VictoriaMetrics.PushInterval == 0 {
+		cfg.Telemetry.VictoriaMetrics.PushInterval = 15 * time.Second
+	}
+	if cfg.Telemetry.VictoriaLogs.BatchSize == 0 {
+		cfg.Telemetry.VictoriaLogs.BatchSize = 100
+	}
+	if cfg.Telemetry.VictoriaLogs.FlushInterval == 0 {
+		cfg.Telemetry.VictoriaLogs.FlushInterval = 5 * time.Second
 	}
 
 	if cfg.TLS.MinVersion == "" {
