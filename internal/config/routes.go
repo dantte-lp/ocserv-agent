@@ -68,10 +68,8 @@ func ValidateRoutes(routes []string) error {
 			continue
 		}
 
-		// Check for no-route directive
-		if strings.HasPrefix(route, "no-route = ") {
-			route = strings.TrimPrefix(route, "no-route = ")
-		}
+		// Check for no-route directive and trim prefix unconditionally
+		route = strings.TrimPrefix(route, "no-route = ")
 
 		// Parse route
 		if _, err := ParseRoute(route); err != nil {

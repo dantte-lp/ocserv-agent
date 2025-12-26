@@ -74,15 +74,13 @@ type CircuitBreaker struct {
 	config CircuitBreakerConfig
 	logger *slog.Logger
 
-	mu              sync.RWMutex
-	state           CircuitState
-	generation      uint64
-	consecutiveFail uint32
-	consecutiveSucc uint32
-	lastFailTime    time.Time
-	lastSuccTime    time.Time
-	counts          Counts
-	expiry          time.Time
+	mu           sync.RWMutex
+	state        CircuitState
+	generation   uint64
+	lastFailTime time.Time
+	lastSuccTime time.Time
+	counts       Counts
+	expiry       time.Time
 }
 
 // Counts holds counters for circuit breaker

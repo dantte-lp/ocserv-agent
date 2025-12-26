@@ -56,7 +56,7 @@ func runServerPhase2(cfg *config.Config, _ *slog.Logger) error {
 		slog.Uint64("failure_threshold", uint64(cfg.Resilience.CircuitBreaker.FailureThreshold)),
 		slog.Duration("timeout", cfg.Resilience.CircuitBreaker.Timeout),
 	)
-	_, cbErr := resilience.NewCircuitBreaker(
+	circuitBreaker, cbErr := resilience.NewCircuitBreaker(
 		resilience.Config{
 			MaxRequests:      cfg.Resilience.CircuitBreaker.MaxRequests,
 			Interval:         cfg.Resilience.CircuitBreaker.Interval,
@@ -70,6 +70,7 @@ func runServerPhase2(cfg *config.Config, _ *slog.Logger) error {
 		return fmt.Errorf("create circuit breaker: %w", cbErr)
 	}
 	// TODO: Integrate circuit breaker into portal client or IPC handler
+	_ = circuitBreaker // Reserved for future integration
 
 	// Создаем Decision Cache для IPC Handler
 	logger.InfoContext(ctx, "initializing decision cache",

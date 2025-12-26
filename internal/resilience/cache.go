@@ -273,17 +273,17 @@ func (dc *DecisionCache) Stats() map[string]interface{} {
 	dc.mu.RLock()
 	defer dc.mu.RUnlock()
 
-	var validEntries, staleEntries, expiredEntries int
+	var validEntries, staleEntries int
 
 	for _, entry := range dc.entries {
 		if entry.IsValid() {
 			validEntries++
 		} else if entry.IsStale() {
 			staleEntries++
-		} else {
-			expiredEntries++
 		}
 	}
+
+	expiredEntries := len(dc.entries) - validEntries - staleEntries
 
 	return map[string]interface{}{
 		"total_entries":   len(dc.entries),

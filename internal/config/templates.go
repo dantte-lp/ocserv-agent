@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 // userConfigTemplate defines the template for per-user ocserv configuration
 const userConfigTemplate = `# Auto-generated per-user configuration for ocserv
 # User: {{.Username}}
@@ -89,11 +87,6 @@ restrict-user-to-routes = true
 func init() {
 	// Register template functions if needed
 	// For now, we use simple templates without custom functions
-}
-
-// Helper function to get current timestamp for templates
-func now() string {
-	return time.Now().Format(time.RFC3339)
 }
 
 // DefaultUserConfig returns a default per-user configuration
