@@ -1,0 +1,231 @@
+# Default values for ocserv-agent
+# This is a YAML-formatted file.
+
+# -- Number of replicas
+replicaCount: 1
+
+image:
+  # -- Image repository
+  repository: ghcr.io/dantte-lp/ocserv-agent
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Image tag (overrides appVersion)
+  tag: ""
+
+# -- Image pull secrets
+imagePullSecrets: []
+
+# -- Override chart name
+nameOverride: ""
+# -- Override full name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create service account
+  create: true
+  # -- Annotations for service account
+  annotations: {}
+  # -- Service account name
+  name: ""
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- gRPC port
+  grpcPort: 8080
+  # -- Metrics port
+  metricsPort: 9090
+  # -- Service annotations
+  annotations: {}
+
+# -- Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# Application configuration
+config:
+  # -- Log level (debug, info, warn, error)
+  logLevel: info
+  # -- Log format (json, text)
+  logFormat: json
+
+  # gRPC Server
+  grpc:
+    # -- gRPC server address
+    address: "0.0.0.0:8080"
+    # -- Enable TLS
+    tls:
+      enabled: true
+      # -- Path to TLS certificate
+      certPath: /etc/ocserv-agent/tls/tls.crt
+      # -- Path to TLS key
+      keyPath: /etc/ocserv-agent/tls/tls.key
+
+  # Portal integration
+  portal:
+    # -- Portal gRPC endpoint
+    endpoint: "portal.default.svc.cluster.local:8080"
+    # -- Enable mTLS
+    mtls:
+      enabled: true
+      # -- Path to client certificate
+      certPath: /etc/ocserv-agent/mtls/client.crt
+      # -- Path to client key
+      keyPath: /etc/ocserv-agent/mtls/client.key
+      # -- Path to CA certificate
+      caPath: /etc/ocserv-agent/mtls/ca.crt
+    # -- Request timeout
+    timeout: 10s
+
+  # Circuit breaker
+  circuitBreaker:
+    # -- Fail mode (open, close, stale)
+    failMode: stale
+    # -- Max failures before opening
+    maxFailures: 5
+    # -- Timeout for half-open state
+    timeout: 60s
+
+  # Cache configuration
+  cache:
+    # -- Decision cache TTL
+    decisionTTL: 5m
+    # -- Session sync interval
+    sessionSyncInterval: 30s
+
+# Metrics configuration
+metrics:
+  # -- Enable Prometheus metrics
+  enabled: true
+  # -- Metrics port
+  port: 9090
+  # -- ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    enabled: false
+    # -- ServiceMonitor interval
+    interval: 30s
+    # -- ServiceMonitor scrape timeout
+    scrapeTimeout: 10s
+
+# TLS certificates (if not using cert-manager)
+tls:
+  # -- Create TLS secret from values
+  create: false
+  # -- Existing TLS secret name
+  existingSecret: ""
+  # -- TLS certificate (base64 encoded)
+  cert: ""
+  # -- TLS key (base64 encoded)
+  key: ""
+
+# mTLS certificates for portal communication
+mtls:
+  # -- Create mTLS secret from values
+  create: false
+  # -- Existing mTLS secret name
+  existingSecret: ""
+  # -- Client certificate (base64 encoded)
+  clientCert: ""
+  # -- Client key (base64 encoded)
+  clientKey: ""
+  # -- CA certificate (base64 encoded)
+  caCert: ""
+
+# Persistence for Unix socket (if needed)
+persistence:
+  # -- Enable persistence for ocserv socket
+  enabled: false
+  # -- Existing PVC name
+  existingClaim: ""
+  # -- Storage class
+  storageClass: ""
+  # -- Access mode
+  accessMode: ReadWriteOnce
+  # -- Size
+  size: 1Gi
+  # -- Mount path
+  mountPath: /var/run/ocserv
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Environment variables
+env: []
+  # - name: CUSTOM_VAR
+  #   value: "custom_value"
+
+# Extra volumes
+extraVolumes: []
+  # - name: custom-config
+  #   configMap:
+  #     name: custom-config
+
+# Extra volume mounts
+extraVolumeMounts: []
+  # - name: custom-config
+  #   mountPath: /etc/custom
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Horizontal pod autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80

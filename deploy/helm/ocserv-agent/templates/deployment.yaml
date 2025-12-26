@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ocserv-agent.fullname" . }}
+  labels:
+    {{- include "ocserv-agent.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "ocserv-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "ocserv-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ocserv-agent.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.service.grpcPort }}
+          protocol: TCP
+        {{- if .Values.metrics.enabled }}
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          exec:
+            command:
+            - /usr/local/bin/ocserv-agent
+            - healthcheck
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          exec:
+            command:
+            - /usr/local/bin/ocserv-agent
+            - healthcheck
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/ocserv-agent
+          readOnly: true
+        {{- if .Values.config.grpc.tls.enabled }}
+        - name: tls
+          mountPath: /etc/ocserv-agent/tls
+          readOnly: true
+        {{- end }}
+        {{- if .Values.config.portal.mtls.enabled }}
+        - name: mtls
+          mountPath: /etc/ocserv-agent/mtls
+          readOnly: true
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: ocserv-socket
+          mountPath: {{ .Values.persistence.mountPath }}
+        {{- end }}
+        - name: tmp
+          mountPath: /tmp
+        - name: run
+          mountPath: /var/run/ocserv-agent
+        - name: logs
+          mountPath: /var/log/ocserv-agent
+        {{- with .Values.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        env:
+        - name: CONFIG_PATH
+          value: /etc/ocserv-agent/config.yaml
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "ocserv-agent.fullname" . }}
+      {{- if .Values.config.grpc.tls.enabled }}
+      - name: tls
+        secret:
+          secretName: {{ .Values.tls.existingSecret | default (printf "%s-tls" (include "ocserv-agent.fullname" .)) }}
+      {{- end }}
+      {{- if .Values.config.portal.mtls.enabled }}
+      - name: mtls
+        secret:
+          secretName: {{ .Values.mtls.existingSecret | default (printf "%s-mtls" (include "ocserv-agent.fullname" .)) }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      - name: ocserv-socket
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim | default (include "ocserv-agent.fullname" .) }}
+      {{- end }}
+      - name: tmp
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      {{- with .Values.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

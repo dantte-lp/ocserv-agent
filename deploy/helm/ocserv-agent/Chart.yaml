@@ -1,0 +1,25 @@
+apiVersion: v2
+name: ocserv-agent
+description: A Helm chart for ocserv-agent - gRPC agent for OpenConnect VPN management
+type: application
+version: 0.7.0
+appVersion: "0.7.0"
+
+keywords:
+  - vpn
+  - ocserv
+  - openconnect
+  - grpc
+  - agent
+
+home: https://github.com/dantte-lp/ocserv-agent
+sources:
+  - https://github.com/dantte-lp/ocserv-agent
+
+maintainers:
+  - name: DevOps Team
+    email: devops@paymart.uz
+
+annotations:
+  category: Networking
+  licenses: Apache-2.0

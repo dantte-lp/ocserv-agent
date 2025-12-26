@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ocserv-agent.fullname" . }}
+  labels:
+    {{- include "ocserv-agent.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    # ocserv-agent configuration
+    log:
+      level: {{ .Values.config.logLevel }}
+      format: {{ .Values.config.logFormat }}
+
+    grpc:
+      address: {{ .Values.config.grpc.address }}
+      {{- if .Values.config.grpc.tls.enabled }}
+      tls:
+        enabled: true
+        cert_path: {{ .Values.config.grpc.tls.certPath }}
+        key_path: {{ .Values.config.grpc.tls.keyPath }}
+      {{- end }}
+
+    portal:
+      endpoint: {{ .Values.config.portal.endpoint }}
+      timeout: {{ .Values.config.portal.timeout }}
+      {{- if .Values.config.portal.mtls.enabled }}
+      mtls:
+        enabled: true
+        cert_path: {{ .Values.config.portal.mtls.certPath }}
+        key_path: {{ .Values.config.portal.mtls.keyPath }}
+        ca_path: {{ .Values.config.portal.mtls.caPath }}
+      {{- end }}
+
+    circuit_breaker:
+      fail_mode: {{ .Values.config.circuitBreaker.failMode }}
+      max_failures: {{ .Values.config.circuitBreaker.maxFailures }}
+      timeout: {{ .Values.config.circuitBreaker.timeout }}
+
+    cache:
+      decision_ttl: {{ .Values.config.cache.decisionTTL }}
+      session_sync_interval: {{ .Values.config.cache.sessionSyncInterval }}
+
+    {{- if .Values.metrics.enabled }}
+    metrics:
+      enabled: true
+      port: {{ .Values.metrics.port }}
+    {{- end }}
