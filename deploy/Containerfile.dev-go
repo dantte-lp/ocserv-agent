@@ -1,0 +1,91 @@
+# Containerfile.dev-go for AVNDR OpenConnect VPN Portal
+# Development image with hot reload, debugging, and development tools
+# Compatible with podman/buildah
+# Base image: golang:1.25-trixie (Debian Trixie-based)
+
+FROM docker.io/golang:1.25-trixie
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies and development tools
+# Critical dependencies for golangci-lint:
+# - gcc: Required for CGO and CGO-based linters
+# - g++: Required for C++ interop linters
+# - diffutils: Required for diff command used by some linters
+# - build-essential: Complete build toolchain for Go projects
+# - postgresql-client: For database connectivity testing
+# - python3: Required for qa_report.py script
+# - protobuf-compiler: Protocol Buffers compiler for gRPC
+# - libprotobuf-dev: Standard proto files (timestamp.proto, etc.)
+# - unzip: Required for protoc installation
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    make \
+    ca-certificates \
+    curl \
+    vim \
+    nano \
+    postgresql-client \
+    gcc \
+    g++ \
+    diffutils \
+    build-essential \
+    libc6-dev \
+    python3 \
+    protobuf-compiler \
+    libprotobuf-dev \
+    unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+# golangci-lint version - from https://github.com/golangci/golangci-lint/releases
+ARG GOLANGCI_LINT_VERSION=v2.7.2
+
+# Install Go development tools
+# - delve: Go debugger for breakpoint debugging
+# - air: Live reload for Go apps (hot reload)
+# - golangci-lint: Comprehensive linter aggregator (v2.1.6 for Go 1.25)
+# - gosec: Security scanner for Go (v2.22+)
+# - staticcheck: Advanced static analysis
+# - task: Modern task runner (alternative to make)
+# - govulncheck: Official Go vulnerability scanner
+# - swag: Swagger/OpenAPI documentation generator
+# - mockgen: Mock generation for testing
+# - protoc-gen-go: Protocol Buffers Go plugin
+# - protoc-gen-go-grpc: gRPC Go plugin
+RUN go install github.com/go-delve/delve/cmd/dlv@latest && \
+    go install github.com/air-verse/air@latest && \
+    go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    go install honnef.co/go/tools/cmd/staticcheck@latest && \
+    go install github.com/go-task/task/v3/cmd/task@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    go install github.com/swaggo/swag/cmd/swag@latest && \
+    go install go.uber.org/mock/mockgen@latest && \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Install golangci-lint from GitHub releases (specific version for reproducibility)
+# https://github.com/golangci/golangci-lint/releases
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | \
+    sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
+
+# Install Trivy security scanner (latest version)
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
+
+# Copy go.mod and go.sum for dependency caching
+# This layer will be cached unless dependencies change
+COPY go.mod go.sum* ./
+
+# Download dependencies
+RUN go mod download && go mod verify
+
+# Expose ports
+# 8080 - API HTTP server
+# 9090 - Prometheus metrics endpoint
+# 2345 - Delve debugger
+EXPOSE 8080 9090 2345
+
+# Default command - start Air for hot reload
+# Air will watch for file changes and automatically rebuild
+CMD ["air", "-c", ".air.toml"]

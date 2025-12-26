@@ -1,0 +1,31 @@
+# Podman Compose configuration for QA testing
+# Usage: podman-compose -f compose.qa.yaml up -d
+# Run QA: python3 scripts/qa_report.py --container ocserv-agent-qa
+
+services:
+  qa:
+    container_name: ocserv-agent-qa
+    build:
+      context: .
+      dockerfile: deploy/Containerfile.dev-go
+    working_dir: /app
+    volumes:
+      - .:/app:z
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - CGO_ENABLED=1
+      - GOOS=linux
+      - GOARCH=amd64
+    # Keep container running for interactive testing
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - qa-network
+
+networks:
+  qa-network:
+    driver: bridge
+
+volumes:
+  go-mod-cache:
+  go-build-cache:

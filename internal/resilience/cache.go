@@ -111,7 +111,7 @@ func NewDecisionCache(config CacheConfig, tracer trace.Tracer, meter metric.Mete
 }
 
 // Get retrieves a cached entry
-func (dc *DecisionCache) Get(ctx context.Context, key string) (*CacheEntry, bool, error) {
+func (dc *DecisionCache) Get(ctx context.Context, key string) (interface{}, bool, error) {
 	_, span := dc.tracer.Start(ctx, "cache.get",
 		trace.WithAttributes(
 			attribute.String("key", key),
@@ -274,7 +274,6 @@ func (dc *DecisionCache) Stats() map[string]interface{} {
 	defer dc.mu.RUnlock()
 
 	var validEntries, staleEntries, expiredEntries int
-	now := time.Now()
 
 	for _, entry := range dc.entries {
 		if entry.IsValid() {
