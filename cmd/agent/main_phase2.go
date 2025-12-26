@@ -14,6 +14,7 @@ import (
 	"github.com/dantte-lp/ocserv-agent/internal/logging"
 	"github.com/dantte-lp/ocserv-agent/internal/ocserv"
 	"github.com/dantte-lp/ocserv-agent/internal/portal"
+	"github.com/dantte-lp/ocserv-agent/internal/resilience"
 	"github.com/dantte-lp/ocserv-agent/internal/stats"
 	"github.com/dantte-lp/ocserv-agent/internal/telemetry"
 	"github.com/rs/zerolog"
@@ -49,6 +50,44 @@ func runServerPhase2(cfg *config.Config, _ *slog.Logger) error {
 	tracer := tracerProvider.Tracer(cfg.Telemetry.ServiceName)
 	meterProvider := otel.GetMeterProvider()
 	meter := meterProvider.Meter(cfg.Telemetry.ServiceName)
+
+	// Создаем Circuit Breaker для Portal Client
+	logger.InfoContext(ctx, "initializing circuit breaker",
+		slog.Uint64("failure_threshold", uint64(cfg.Resilience.CircuitBreaker.FailureThreshold)),
+		slog.Duration("timeout", cfg.Resilience.CircuitBreaker.Timeout),
+	)
+	circuitBreaker, err := resilience.NewCircuitBreaker(
+		resilience.Config{
+			MaxRequests:      cfg.Resilience.CircuitBreaker.MaxRequests,
+			Interval:         cfg.Resilience.CircuitBreaker.Interval,
+			Timeout:          cfg.Resilience.CircuitBreaker.Timeout,
+			FailureThreshold: cfg.Resilience.CircuitBreaker.FailureThreshold,
+		},
+		tracer,
+		meter,
+	)
+	if err != nil {
+		return fmt.Errorf("create circuit breaker: %w", err)
+	}
+
+	// Создаем Decision Cache для IPC Handler
+	logger.InfoContext(ctx, "initializing decision cache",
+		slog.Duration("ttl", cfg.Resilience.Cache.TTL),
+		slog.Duration("stale_ttl", cfg.Resilience.Cache.StaleTTL),
+		slog.Int("max_size", cfg.Resilience.Cache.MaxSize),
+	)
+	decisionCache, err := resilience.NewDecisionCache(
+		resilience.CacheConfig{
+			TTL:      cfg.Resilience.Cache.TTL,
+			StaleTTL: cfg.Resilience.Cache.StaleTTL,
+			MaxSize:  cfg.Resilience.Cache.MaxSize,
+		},
+		tracer,
+		meter,
+	)
+	if err != nil {
+		return fmt.Errorf("create decision cache: %w", err)
+	}
 
 	// Создаем occtl manager для работы с ocserv
 	// Используем zerolog для совместимости с существующим кодом ocserv
@@ -86,14 +125,18 @@ func runServerPhase2(cfg *config.Config, _ *slog.Logger) error {
 	}
 	defer portalClient.Close()
 
-	// Создаем IPC handler
-	logger.InfoContext(ctx, "creating IPC handler")
+	// Создаем IPC handler с Decision Cache
+	logger.InfoContext(ctx, "creating IPC handler",
+		slog.String("fail_mode", cfg.Resilience.FailMode),
+	)
 	ipcHandler, err := ipc.NewHandler(&ipc.HandlerConfig{
-		Logger:       logger,
-		Tracer:       tracer,
-		Meter:        meter,
-		PortalClient: portalClient,
-		Timeout:      cfg.IPC.Timeout,
+		Logger:        logger,
+		Tracer:        tracer,
+		Meter:         meter,
+		PortalClient:  portalClient,
+		DecisionCache: decisionCache,
+		FailMode:      cfg.Resilience.FailMode,
+		Timeout:       cfg.IPC.Timeout,
 	})
 	if err != nil {
 		return fmt.Errorf("create IPC handler: %w", err)

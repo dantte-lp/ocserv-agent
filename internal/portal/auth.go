@@ -234,3 +234,63 @@ func (c *Client) ReportDisconnect(ctx context.Context, sessionID, username strin
 
 	return nil
 }
+
+// ReportSessionUpdate reports periodic session status update to portal
+func (c *Client) ReportSessionUpdate(ctx context.Context, sessionID, username string, status vpnv1.SessionStatus, bytesRX, bytesTX uint64) (bool, error) {
+	ctx, span := c.tracer.Start(ctx, "portal.report_session_update",
+		trace.WithAttributes(
+			attribute.String("session_id", sessionID),
+			attribute.String("username", username),
+			attribute.String("status", status.String()),
+		),
+	)
+	defer span.End()
+
+	// Create event service client
+	eventClient := vpnv1.NewEventServiceClient(c.conn)
+
+	// Apply timeout
+	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
+	defer cancel()
+
+	// Prepare request
+	req := &vpnv1.ReportSessionUpdateRequest{
+		Username:  username,
+		SessionId: sessionID,
+		Status:    status,
+		Stats: &vpnv1.SessionStats{
+			BytesReceived: bytesRX,
+			BytesSent:     bytesTX,
+		},
+		UpdatedAt: timestamppb.Now(),
+	}
+
+	c.logger.DebugContext(ctx, "reporting session update to portal",
+		"session_id", sessionID,
+		"username", username,
+		"status", status.String(),
+	)
+
+	// Call portal gRPC service
+	resp, err := eventClient.ReportSessionUpdate(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "report session update failed")
+		return false, errors.Wrap(err, "grpc ReportSessionUpdate")
+	}
+
+	// Record response
+	span.SetAttributes(
+		attribute.Bool("success", resp.Success),
+		attribute.Bool("should_disconnect", resp.ShouldDisconnect),
+	)
+
+	if resp.ShouldDisconnect {
+		c.logger.WarnContext(ctx, "portal requests session disconnect",
+			"session_id", sessionID,
+			"username", username,
+		)
+	}
+
+	return resp.ShouldDisconnect, nil
+}

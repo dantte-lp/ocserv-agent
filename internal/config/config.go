@@ -24,6 +24,7 @@ type Config struct {
 	Telemetry     TelemetryConfig     `yaml:"telemetry"`
 	Logging       LoggingConfig       `yaml:"logging"`
 	Security      SecurityConfig      `yaml:"security"`
+	Resilience    ResilienceConfig    `yaml:"resilience"`
 }
 
 // ControlServerConfig defines connection settings to control server
@@ -158,6 +159,28 @@ type SecurityConfig struct {
 	AllowedCommands   []string      `yaml:"allowed_commands"`
 	SudoUser          string        `yaml:"sudo_user"`
 	MaxCommandTimeout time.Duration `yaml:"max_command_timeout"`
+}
+
+// ResilienceConfig defines resilience settings for circuit breaker and cache
+type ResilienceConfig struct {
+	CircuitBreaker ResilienceCBConfig    `yaml:"circuit_breaker"`
+	Cache          ResilienceCacheConfig `yaml:"cache"`
+	FailMode       string                `yaml:"fail_mode"` // open, close, stale
+}
+
+// ResilienceCBConfig defines circuit breaker resilience settings
+type ResilienceCBConfig struct {
+	MaxRequests      uint32        `yaml:"max_requests"`
+	Interval         time.Duration `yaml:"interval"`
+	Timeout          time.Duration `yaml:"timeout"`
+	FailureThreshold uint32        `yaml:"failure_threshold"`
+}
+
+// ResilienceCacheConfig defines cache resilience settings
+type ResilienceCacheConfig struct {
+	TTL      time.Duration `yaml:"ttl"`
+	StaleTTL time.Duration `yaml:"stale_ttl"`
+	MaxSize  int           `yaml:"max_size"`
 }
 
 // Load reads configuration from a YAML file and applies environment variable overrides
@@ -334,6 +357,32 @@ func setDefaults(cfg *Config) {
 
 	if cfg.Portal.Timeout == 0 {
 		cfg.Portal.Timeout = 10 * time.Second
+	}
+
+	// Resilience defaults
+	if cfg.Resilience.CircuitBreaker.MaxRequests == 0 {
+		cfg.Resilience.CircuitBreaker.MaxRequests = 5
+	}
+	if cfg.Resilience.CircuitBreaker.Interval == 0 {
+		cfg.Resilience.CircuitBreaker.Interval = 30 * time.Second
+	}
+	if cfg.Resilience.CircuitBreaker.Timeout == 0 {
+		cfg.Resilience.CircuitBreaker.Timeout = 60 * time.Second
+	}
+	if cfg.Resilience.CircuitBreaker.FailureThreshold == 0 {
+		cfg.Resilience.CircuitBreaker.FailureThreshold = 3
+	}
+	if cfg.Resilience.Cache.TTL == 0 {
+		cfg.Resilience.Cache.TTL = 5 * time.Minute
+	}
+	if cfg.Resilience.Cache.StaleTTL == 0 {
+		cfg.Resilience.Cache.StaleTTL = 30 * time.Minute
+	}
+	if cfg.Resilience.Cache.MaxSize == 0 {
+		cfg.Resilience.Cache.MaxSize = 10000
+	}
+	if cfg.Resilience.FailMode == "" {
+		cfg.Resilience.FailMode = "stale"
 	}
 }
 

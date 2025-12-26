@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/dantte-lp/ocserv-agent/internal/resilience"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -18,13 +19,29 @@ type PortalClient interface {
 	CheckPolicy(ctx context.Context, username, groupName, clientIP string) (bool, string, error)
 }
 
+// CacheEntry represents a cached policy decision
+type CacheEntry struct {
+	Allowed    bool
+	DenyReason string
+}
+
+// DecisionCache defines the interface for caching policy decisions
+type DecisionCache interface {
+	// Get retrieves a cached decision (returns *CacheEntry)
+	Get(ctx context.Context, key string) (entry interface{}, found bool, err error)
+	// Set stores a decision in cache
+	Set(ctx context.Context, key string, allowed bool, denyReason string) error
+}
+
 // Handler processes IPC authentication requests
 type Handler struct {
-	logger       *slog.Logger
-	tracer       trace.Tracer
-	protocol     *Protocol
-	portalClient PortalClient
-	timeout      time.Duration
+	logger        *slog.Logger
+	tracer        trace.Tracer
+	protocol      *Protocol
+	portalClient  PortalClient
+	decisionCache DecisionCache
+	failMode      string // open, close, stale
+	timeout       time.Duration
 
 	// Metrics
 	requestsTotal   metric.Int64Counter
@@ -34,11 +51,13 @@ type Handler struct {
 
 // HandlerConfig configures the IPC handler
 type HandlerConfig struct {
-	Logger       *slog.Logger
-	Tracer       trace.Tracer
-	Meter        metric.Meter
-	PortalClient PortalClient
-	Timeout      time.Duration
+	Logger        *slog.Logger
+	Tracer        trace.Tracer
+	Meter         metric.Meter
+	PortalClient  PortalClient
+	DecisionCache DecisionCache
+	FailMode      string // open, close, stale
+	Timeout       time.Duration
 }
 
 // NewHandler creates a new IPC request handler
@@ -57,6 +76,9 @@ func NewHandler(cfg *HandlerConfig) (*Handler, error) {
 	}
 	if cfg.Timeout == 0 {
 		cfg.Timeout = 5 * time.Second
+	}
+	if cfg.FailMode == "" {
+		cfg.FailMode = "stale"
 	}
 
 	// Initialize metrics
@@ -92,6 +114,8 @@ func NewHandler(cfg *HandlerConfig) (*Handler, error) {
 		tracer:          cfg.Tracer,
 		protocol:        NewProtocol(),
 		portalClient:    cfg.PortalClient,
+		decisionCache:   cfg.DecisionCache,
+		failMode:        cfg.FailMode,
 		timeout:         cfg.Timeout,
 		requestsTotal:   requestsTotal,
 		requestDuration: requestDuration,
@@ -212,7 +236,28 @@ func (h *Handler) processRequest(ctx context.Context, req *AuthRequest) AuthResp
 		}
 	}
 
-	// For connect events, check with portal
+	// For connect events, check cache first (if available)
+	cacheKey := fmt.Sprintf("%s:%s:%s", req.Username, req.GroupName, req.IPReal)
+
+	if h.decisionCache != nil {
+		entry, found, err := h.decisionCache.Get(ctx, cacheKey)
+		if err == nil && found {
+			h.logger.DebugContext(ctx, "using cached decision",
+				slog.String("username", req.Username),
+				slog.Bool("from_cache", true),
+			)
+
+			// Convert to resilience.CacheEntry
+			if ce, ok := entry.(*resilience.CacheEntry); ok {
+				return AuthResponse{
+					Allowed: ce.Allowed,
+					Error:   ce.DenyReason,
+				}
+			}
+		}
+	}
+
+	// Check with portal
 	allowed, message, err := h.portalClient.CheckPolicy(ctx, req.Username, req.GroupName, req.IPReal)
 	if err != nil {
 		h.logger.ErrorContext(ctx, "portal check failed",
@@ -222,9 +267,17 @@ func (h *Handler) processRequest(ctx context.Context, req *AuthRequest) AuthResp
 		h.errorsTotal.Add(ctx, 1, metric.WithAttributes(
 			attribute.String("error_type", "portal"),
 		))
-		return AuthResponse{
-			Allowed: false,
-			Error:   fmt.Sprintf("portal check failed: %v", err),
+
+		// Apply fail mode policy
+		return h.applyFailMode(ctx, req, err)
+	}
+
+	// Cache the decision if cache is available
+	if h.decisionCache != nil {
+		if err := h.decisionCache.Set(ctx, cacheKey, allowed, message); err != nil {
+			h.logger.WarnContext(ctx, "failed to cache decision",
+				slog.String("error", err.Error()),
+			)
 		}
 	}
 
@@ -238,6 +291,70 @@ func (h *Handler) processRequest(ctx context.Context, req *AuthRequest) AuthResp
 	return AuthResponse{
 		Allowed: allowed,
 		Error:   message,
+	}
+}
+
+// applyFailMode applies the configured fail mode when portal is unavailable
+func (h *Handler) applyFailMode(ctx context.Context, req *AuthRequest, portalErr error) AuthResponse {
+	switch h.failMode {
+	case "open":
+		// Fail open: allow all connections
+		h.logger.WarnContext(ctx, "portal unavailable, failing open (allowing)",
+			slog.String("username", req.Username),
+			slog.String("error", portalErr.Error()),
+		)
+		return AuthResponse{
+			Allowed: true,
+			Message: "portal unavailable, access granted (fail-open mode)",
+		}
+
+	case "close":
+		// Fail close: deny all connections
+		h.logger.WarnContext(ctx, "portal unavailable, failing close (denying)",
+			slog.String("username", req.Username),
+			slog.String("error", portalErr.Error()),
+		)
+		return AuthResponse{
+			Allowed: false,
+			Error:   fmt.Sprintf("portal unavailable: %v", portalErr),
+		}
+
+	case "stale":
+		// Fail stale: use cached decision if available
+		cacheKey := fmt.Sprintf("%s:%s:%s", req.Username, req.GroupName, req.IPReal)
+
+		if h.decisionCache != nil {
+			entry, found, err := h.decisionCache.Get(ctx, cacheKey)
+			if err == nil && found {
+				if ce, ok := entry.(*resilience.CacheEntry); ok {
+					h.logger.WarnContext(ctx, "portal unavailable, using stale cache",
+						slog.String("username", req.Username),
+						slog.Bool("allowed", ce.Allowed),
+					)
+
+					return AuthResponse{
+						Allowed: ce.Allowed,
+						Error:   ce.DenyReason,
+					}
+				}
+			}
+		}
+
+		// No cache available, fail close
+		h.logger.WarnContext(ctx, "portal unavailable, no cache, denying",
+			slog.String("username", req.Username),
+		)
+		return AuthResponse{
+			Allowed: false,
+			Error:   fmt.Sprintf("portal unavailable and no cache: %v", portalErr),
+		}
+
+	default:
+		// Default to fail close
+		return AuthResponse{
+			Allowed: false,
+			Error:   fmt.Sprintf("portal check failed: %v", portalErr),
+		}
 	}
 }
 
