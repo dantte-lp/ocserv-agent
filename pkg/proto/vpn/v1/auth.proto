@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package vpn.v1;
+
+option go_package = "github.com/dantte-lp/ocserv-agent/pkg/proto/vpn/v1;vpnv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AuthService - сервис авторизации VPN подключений
+// Используется для проверки политик доступа при подключении пользователей
+service AuthService {
+  // CheckPolicy - проверка политики доступа пользователя
+  // Вызывается connect-script при попытке подключения
+  rpc CheckPolicy(CheckPolicyRequest) returns (CheckPolicyResponse);
+
+  // ValidateSession - валидация активной сессии
+  // Может использоваться для периодической проверки активных сессий
+  rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+}
+
+// CheckPolicyRequest - запрос на проверку политики
+message CheckPolicyRequest {
+  // Имя пользователя (извлекается из CN сертификата)
+  string username = 1;
+
+  // Имя группы (извлекается из OU сертификата)
+  string groupname = 2;
+
+  // IP адрес клиента (откуда подключается)
+  string client_ip = 3;
+
+  // VPN IP адрес (назначенный ocserv)
+  string vpn_ip = 4;
+
+  // ID сессии (уникальный идентификатор сессии ocserv)
+  string session_id = 5;
+
+  // Устройство (tun/tap interface)
+  string device = 6;
+
+  // Время запроса
+  google.protobuf.Timestamp request_time = 7;
+}
+
+// CheckPolicyResponse - ответ на проверку политики
+message CheckPolicyResponse {
+  // Разрешено ли подключение
+  bool allowed = 1;
+
+  // Причина отказа (если allowed = false)
+  string deny_reason = 2;
+
+  // Актуальные маршруты для пользователя
+  repeated string routes = 3;
+
+  // DNS серверы для пользователя
+  repeated string dns_servers = 4;
+
+  // Требуется ли отключить пользователя (например, сертификат отозван)
+  bool should_disconnect = 5;
+
+  // Дополнительные метаданные
+  map<string, string> metadata = 6;
+}
+
+// ValidateSessionRequest - запрос на валидацию сессии
+message ValidateSessionRequest {
+  // Имя пользователя
+  string username = 1;
+
+  // ID сессии
+  string session_id = 2;
+
+  // Текущий IP адрес клиента
+  string client_ip = 3;
+
+  // Время запроса
+  google.protobuf.Timestamp request_time = 4;
+}
+
+// ValidateSessionResponse - ответ на валидацию сессии
+message ValidateSessionResponse {
+  // Валидна ли сессия
+  bool valid = 1;
+
+  // Причина невалидности (если valid = false)
+  string invalid_reason = 2;
+
+  // Требуется ли принудительное отключение
+  bool force_disconnect = 3;
+}

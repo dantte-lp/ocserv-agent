@@ -1,0 +1,93 @@
+# Containerfile.dev for ocserv-agent
+# Development image with hot reload, debugging, and development tools
+# Compatible with podman/buildah
+# Base image: golang:1.25-trixie (Debian Trixie-based)
+
+FROM docker.io/golang:1.25-trixie
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies and development tools
+# Critical dependencies for golangci-lint:
+# - gcc: Required for CGO and CGO-based linters
+# - g++: Required for C++ interop linters
+# - diffutils: Required for diff command used by some linters
+# - build-essential: Complete build toolchain for Go projects
+# - protobuf-compiler: Protocol Buffers compiler
+# - grpcurl: gRPC CLI client for testing
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    make \
+    ca-certificates \
+    curl \
+    vim \
+    nano \
+    gcc \
+    g++ \
+    diffutils \
+    build-essential \
+    libc6-dev \
+    protobuf-compiler \
+    unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+# golangci-lint version - from https://github.com/golangci/golangci-lint/releases
+ARG GOLANGCI_LINT_VERSION=v2.7.2
+
+# Install Go development tools
+# - delve: Go debugger for breakpoint debugging
+# - air: Live reload for Go apps (hot reload)
+# - golangci-lint: Comprehensive linter aggregator
+# - gosec: Security scanner for Go (v2.22+)
+# - staticcheck: Advanced static analysis
+# - govulncheck: Official Go vulnerability scanner
+# - mockgen: Mock generation for testing
+# - protoc-gen-go: Protocol Buffers Go code generator
+# - protoc-gen-go-grpc: gRPC Go code generator
+# - buf: Modern protobuf toolchain
+RUN go install github.com/go-delve/delve/cmd/dlv@latest && \
+    go install github.com/air-verse/air@latest && \
+    go install github.com/securego/gosec/v2/cmd/gosec@latest && \
+    go install honnef.co/go/tools/cmd/staticcheck@latest && \
+    go install golang.org/x/vuln/cmd/govulncheck@latest && \
+    go install go.uber.org/mock/mockgen@latest && \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest && \
+    go install github.com/bufbuild/buf/cmd/buf@latest
+
+# Install golangci-lint from GitHub releases (specific version for reproducibility)
+# https://github.com/golangci/golangci-lint/releases
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | \
+    sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
+
+# Install grpcurl for gRPC testing
+RUN curl -sSL https://github.com/fullstorydev/grpcurl/releases/download/v1.9.2/grpcurl_1.9.2_linux_x86_64.tar.gz | \
+    tar -xz -C /usr/local/bin grpcurl
+
+# Install Trivy security scanner (latest version)
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
+
+# Install goose for database migrations (if needed in future)
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+# Install sqlc for type-safe SQL queries (if needed in future)
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+# Copy go.mod and go.sum for dependency caching
+# This layer will be cached unless dependencies change
+COPY go.mod go.sum* ./
+
+# Download dependencies
+RUN go mod download && go mod verify
+
+# Expose ports
+# 9090 - gRPC server
+# 2345 - Delve debugger
+# 9091 - Prometheus metrics endpoint (future)
+EXPOSE 9090 2345 9091
+
+# Default command - start Air for hot reload
+# Air will watch for file changes and automatically rebuild
+CMD ["air", "-c", ".air.toml"]

@@ -138,11 +138,18 @@ local-proto:
 	@echo "⚠️  WARNING: Generating proto locally (not in container)"
 	@echo "This should only be used for emergency debugging!"
 	@sleep 2
-	@echo "Generating protobuf code..."
+	@echo "Generating protobuf code for agent..."
 	protoc --go_out=. --go-grpc_out=. \
 		--go_opt=paths=source_relative \
 		--go-grpc_opt=paths=source_relative \
 		pkg/proto/agent/v1/agent.proto
+	@echo "Generating protobuf code for VPN services..."
+	protoc --go_out=. --go-grpc_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_opt=paths=source_relative \
+		pkg/proto/vpn/v1/auth.proto \
+		pkg/proto/vpn/v1/events.proto \
+		pkg/proto/vpn/v1/config.proto
 
 local-build:
 	@echo "⚠️  WARNING: Building locally (not in container)"

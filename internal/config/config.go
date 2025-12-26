@@ -18,10 +18,13 @@ type Config struct {
 	ControlServer ControlServerConfig `yaml:"control_server"`
 	TLS           TLSConfig           `yaml:"tls"`
 	Ocserv        OcservConfig        `yaml:"ocserv"`
+	IPC           IPCConfig           `yaml:"ipc"`
+	Portal        PortalConfig        `yaml:"portal"`
 	Health        HealthConfig        `yaml:"health"`
 	Telemetry     TelemetryConfig     `yaml:"telemetry"`
 	Logging       LoggingConfig       `yaml:"logging"`
 	Security      SecurityConfig      `yaml:"security"`
+	Resilience    ResilienceConfig    `yaml:"resilience"`
 }
 
 // ControlServerConfig defines connection settings to control server
@@ -66,6 +69,22 @@ type OcservConfig struct {
 	BackupDir         string `yaml:"backup_dir"`
 }
 
+// IPCConfig defines Unix socket IPC settings
+type IPCConfig struct {
+	SocketPath string        `yaml:"socket_path"`
+	Timeout    time.Duration `yaml:"timeout"`
+}
+
+// PortalConfig defines portal gRPC connection settings
+type PortalConfig struct {
+	Address  string        `yaml:"address"`
+	TLSCert  string        `yaml:"tls_cert"`
+	TLSKey   string        `yaml:"tls_key"`
+	TLSCA    string        `yaml:"tls_ca"`
+	Timeout  time.Duration `yaml:"timeout"`
+	Insecure bool          `yaml:"insecure"`
+}
+
 // HealthConfig defines health check intervals
 type HealthConfig struct {
 	HeartbeatInterval time.Duration `yaml:"heartbeat_interval"`
@@ -75,11 +94,52 @@ type HealthConfig struct {
 
 // TelemetryConfig defines OpenTelemetry settings
 type TelemetryConfig struct {
-	Enabled        bool    `yaml:"enabled"`
-	Endpoint       string  `yaml:"endpoint"`
-	ServiceName    string  `yaml:"service_name"`
-	ServiceVersion string  `yaml:"service_version"`
-	SampleRate     float64 `yaml:"sample_rate"`
+	Enabled         bool                  `yaml:"enabled"`
+	ServiceName     string                `yaml:"service_name"`
+	ServiceVersion  string                `yaml:"service_version"`
+	Environment     string                `yaml:"environment"`
+	SampleRate      float64               `yaml:"sample_rate"`
+	OTLP            OTLPConfig            `yaml:"otlp"`
+	Prometheus      PrometheusConfig      `yaml:"prometheus"`
+	VictoriaMetrics VictoriaMetricsConfig `yaml:"victoria_metrics"`
+	VictoriaLogs    VictoriaLogsConfig    `yaml:"victoria_logs"`
+}
+
+// PrometheusConfig defines Prometheus scrape endpoint settings
+type PrometheusConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Address string `yaml:"address"` // Default: ":9090"
+}
+
+// OTLPConfig defines OTLP exporter settings
+type OTLPConfig struct {
+	Enabled     bool          `yaml:"enabled"`
+	Endpoint    string        `yaml:"endpoint"`
+	Insecure    bool          `yaml:"insecure"`
+	Protocol    string        `yaml:"protocol"`     // "grpc" или "http" (default: "grpc")
+	Timeout     time.Duration `yaml:"timeout"`
+	LogsEnabled bool          `yaml:"logs_enabled"` // Отдельный флаг для экспорта логов через OTLP
+}
+
+// VictoriaMetricsConfig defines VictoriaMetrics exporter settings
+type VictoriaMetricsConfig struct {
+	Enabled      bool              `yaml:"enabled"`
+	Endpoint     string            `yaml:"endpoint"`
+	PushInterval time.Duration     `yaml:"push_interval"`
+	Username     string            `yaml:"username"`
+	Password     string            `yaml:"password"`
+	Labels       map[string]string `yaml:"labels"`
+}
+
+// VictoriaLogsConfig defines VictoriaLogs handler settings
+type VictoriaLogsConfig struct {
+	Enabled       bool              `yaml:"enabled"`
+	Endpoint      string            `yaml:"endpoint"`
+	BatchSize     int               `yaml:"batch_size"`
+	FlushInterval time.Duration     `yaml:"flush_interval"`
+	Username      string            `yaml:"username"`
+	Password      string            `yaml:"password"`
+	Labels        map[string]string `yaml:"labels"`
 }
 
 // LoggingConfig defines logging behavior
@@ -88,6 +148,7 @@ type LoggingConfig struct {
 	Format     string `yaml:"format"`
 	Output     string `yaml:"output"`
 	FilePath   string `yaml:"file_path"`
+	AddSource  bool   `yaml:"add_source"`
 	MaxSizeMB  int    `yaml:"max_size_mb"`
 	MaxBackups int    `yaml:"max_backups"`
 	MaxAgeDays int    `yaml:"max_age_days"`
@@ -98,6 +159,28 @@ type SecurityConfig struct {
 	AllowedCommands   []string      `yaml:"allowed_commands"`
 	SudoUser          string        `yaml:"sudo_user"`
 	MaxCommandTimeout time.Duration `yaml:"max_command_timeout"`
+}
+
+// ResilienceConfig defines resilience settings for circuit breaker and cache
+type ResilienceConfig struct {
+	CircuitBreaker ResilienceCBConfig    `yaml:"circuit_breaker"`
+	Cache          ResilienceCacheConfig `yaml:"cache"`
+	FailMode       string                `yaml:"fail_mode"` // open, close, stale
+}
+
+// ResilienceCBConfig defines circuit breaker resilience settings
+type ResilienceCBConfig struct {
+	MaxRequests      uint32        `yaml:"max_requests"`
+	Interval         time.Duration `yaml:"interval"`
+	Timeout          time.Duration `yaml:"timeout"`
+	FailureThreshold uint32        `yaml:"failure_threshold"`
+}
+
+// ResilienceCacheConfig defines cache resilience settings
+type ResilienceCacheConfig struct {
+	TTL      time.Duration `yaml:"ttl"`
+	StaleTTL time.Duration `yaml:"stale_ttl"`
+	MaxSize  int           `yaml:"max_size"`
 }
 
 // Load reads configuration from a YAML file and applies environment variable overrides
@@ -162,7 +245,28 @@ func applyEnvOverrides(cfg *Config) {
 		cfg.Logging.Level = v
 	}
 	if v := os.Getenv("TELEMETRY_ENDPOINT"); v != "" {
-		cfg.Telemetry.Endpoint = v
+		cfg.Telemetry.OTLP.Endpoint = v
+	}
+	if v := os.Getenv("TELEMETRY_ENABLED"); v == "true" {
+		cfg.Telemetry.Enabled = true
+	}
+	if v := os.Getenv("IPC_SOCKET_PATH"); v != "" {
+		cfg.IPC.SocketPath = v
+	}
+	if v := os.Getenv("PORTAL_ADDRESS"); v != "" {
+		cfg.Portal.Address = v
+	}
+	if v := os.Getenv("PORTAL_TLS_CERT"); v != "" {
+		cfg.Portal.TLSCert = v
+	}
+	if v := os.Getenv("PORTAL_TLS_KEY"); v != "" {
+		cfg.Portal.TLSKey = v
+	}
+	if v := os.Getenv("PORTAL_TLS_CA"); v != "" {
+		cfg.Portal.TLSCA = v
+	}
+	if v := os.Getenv("PORTAL_INSECURE"); v == "true" {
+		cfg.Portal.Insecure = true
 	}
 }
 
@@ -208,8 +312,32 @@ func setDefaults(cfg *Config) {
 	if cfg.Telemetry.ServiceName == "" {
 		cfg.Telemetry.ServiceName = "ocserv-agent"
 	}
+	if cfg.Telemetry.ServiceVersion == "" {
+		cfg.Telemetry.ServiceVersion = "0.7.0"
+	}
+	if cfg.Telemetry.Environment == "" {
+		cfg.Telemetry.Environment = "production"
+	}
 	if cfg.Telemetry.SampleRate == 0 {
 		cfg.Telemetry.SampleRate = 1.0
+	}
+	if cfg.Telemetry.OTLP.Timeout == 0 {
+		cfg.Telemetry.OTLP.Timeout = 10 * time.Second
+	}
+	if cfg.Telemetry.OTLP.Protocol == "" {
+		cfg.Telemetry.OTLP.Protocol = "grpc"
+	}
+	if cfg.Telemetry.VictoriaMetrics.PushInterval == 0 {
+		cfg.Telemetry.VictoriaMetrics.PushInterval = 15 * time.Second
+	}
+	if cfg.Telemetry.VictoriaLogs.BatchSize == 0 {
+		cfg.Telemetry.VictoriaLogs.BatchSize = 100
+	}
+	if cfg.Telemetry.VictoriaLogs.FlushInterval == 0 {
+		cfg.Telemetry.VictoriaLogs.FlushInterval = 5 * time.Second
+	}
+	if cfg.Telemetry.Prometheus.Address == "" {
+		cfg.Telemetry.Prometheus.Address = ":9090"
 	}
 
 	if cfg.TLS.MinVersion == "" {
@@ -218,6 +346,43 @@ func setDefaults(cfg *Config) {
 
 	if cfg.Ocserv.SystemdService == "" {
 		cfg.Ocserv.SystemdService = "ocserv"
+	}
+
+	if cfg.IPC.SocketPath == "" {
+		cfg.IPC.SocketPath = "/var/run/ocserv-agent.sock"
+	}
+	if cfg.IPC.Timeout == 0 {
+		cfg.IPC.Timeout = 5 * time.Second
+	}
+
+	if cfg.Portal.Timeout == 0 {
+		cfg.Portal.Timeout = 10 * time.Second
+	}
+
+	// Resilience defaults
+	if cfg.Resilience.CircuitBreaker.MaxRequests == 0 {
+		cfg.Resilience.CircuitBreaker.MaxRequests = 5
+	}
+	if cfg.Resilience.CircuitBreaker.Interval == 0 {
+		cfg.Resilience.CircuitBreaker.Interval = 30 * time.Second
+	}
+	if cfg.Resilience.CircuitBreaker.Timeout == 0 {
+		cfg.Resilience.CircuitBreaker.Timeout = 60 * time.Second
+	}
+	if cfg.Resilience.CircuitBreaker.FailureThreshold == 0 {
+		cfg.Resilience.CircuitBreaker.FailureThreshold = 3
+	}
+	if cfg.Resilience.Cache.TTL == 0 {
+		cfg.Resilience.Cache.TTL = 5 * time.Minute
+	}
+	if cfg.Resilience.Cache.StaleTTL == 0 {
+		cfg.Resilience.Cache.StaleTTL = 30 * time.Minute
+	}
+	if cfg.Resilience.Cache.MaxSize == 0 {
+		cfg.Resilience.Cache.MaxSize = 10000
+	}
+	if cfg.Resilience.FailMode == "" {
+		cfg.Resilience.FailMode = "stale"
 	}
 }
 
