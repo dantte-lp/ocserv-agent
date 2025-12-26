@@ -27,12 +27,13 @@
 
 | Метрика | Значение |
 |---------|----------|
-| **Версия** | 0.7.0-dev (после PR #36 merge) |
-| **Завершено фаз** | 4 / 7 |
+| **Версия** | 0.7.0-dev (после PR #37 merge) |
+| **Завершено фаз** | 5 / 7 ✅ |
 | **Coverage** | 75-80% |
 | **golangci-lint** | 0 errors ✅ |
-| **Tests** | 119 passed |
+| **Tests** | 273 passed |
 | **Proto sync** | ✅ Синхронизировано с portal |
+| **Последнее обновление** | 2025-12-26 |
 
 ### Ключевые компоненты
 
@@ -72,7 +73,7 @@
 | Sprint 9: gRPC Server | Phase 2: Portal Client | ✅ Complete |
 | Sprint 10: Cert API | Phase 3: Session Sync | ✅ Complete |
 | Sprint 11-12: Advanced | Phase 4: Resilience | ✅ Complete |
-| Sprint 13: gRPC Client | Phase 5: Integration | 🔄 Planned |
+| Sprint 13: gRPC Client | Phase 5: Integration | ✅ Complete (2025-12-26) |
 | Sprint 14: E2E Testing | Phase 6: E2E Tests | 🔄 Planned |
 | Sprint 15: Hardening | Phase 7: Production | 🔄 Planned |
 
@@ -134,10 +135,11 @@
 
 ---
 
-### 🔄 Phase 5: Advanced Integration (IN PROGRESS)
+### ✅ Phase 5: Advanced Integration (COMPLETED)
 
-**Даты:** 2025-12-26 - 2025-12-29 (4 дня)
-**Статус:** 🔄 In Progress (Day 2 Complete ✅)
+**Даты:** 2025-12-26 (1 день)
+**Дата завершения:** 2025-12-26
+**Статус:** ✅ COMPLETED
 **Приоритет:** HIGH (синхронизация с Portal Sprint 13)
 
 #### Цели
@@ -248,13 +250,14 @@ max-same-clients = 2
 
 #### Acceptance Criteria
 
-- [x] Все методы VPNAgentService реализованы (базовые версии) ✅
-- [x] Per-user config генерируется корректно ✅ (Day 2 complete)
-- [x] Session tracking работает ✅ (Day 2 complete)
+- [x] Все методы VPNAgentService реализованы ✅
+- [x] Per-user config генерируется корректно ✅
+- [x] Session tracking работает ✅
 - [x] golangci-lint: 0 errors ✅
 - [x] gosec HIGH: 0 issues ✅
-- [x] Coverage: 85%+ для новых компонентов ✅ (Day 2)
-- [ ] Integration tests проходят (Day 3)
+- [x] Coverage: 85%+ для новых компонентов ✅
+- [x] Unit tests написаны и проходят ✅
+- [x] PR #37 смержен в main ✅ (2025-12-26)
 
 #### Связь с Portal
 
@@ -478,23 +481,22 @@ gantt
     title ocserv-agent Development Timeline
     dateFormat  YYYY-MM-DD
 
-    section Completed (1-4)
+    section Completed (1-5)
     Phase 1: IPC + Portal      :done, p1, 2025-12-23, 1d
     Phase 2: Portal Integration :done, p2, 2025-12-24, 1d
     Phase 3: Session Sync       :done, p3, 2025-12-25, 1d
     Phase 4: Resilience         :done, p4, 2025-12-26, 1d
+    Phase 5: Advanced Integration :done, p5, 2025-12-26, 1d
 
-    section Planned (5-7)
-    Phase 5: Advanced Integration :p5, 2025-12-27, 3d
-    Phase 6: E2E Testing         :p6, 2025-12-30, 4d
+    section Planned (6-7)
+    Phase 6: E2E Testing         :p6, 2025-12-27, 4d
     Phase 7: Production Hardening :p7, 2026-01-03, 5d
 ```
 
 ### Milestones
 
-- ✅ **Phase 1-4 Complete** - 2025-12-26 (Foundation + Resilience)
-- 🎯 **Phase 5 Complete** - 2025-12-29 (Advanced Integration)
-- 🎯 **Phase 6 Complete** - 2026-01-02 (E2E Tests)
+- ✅ **Phase 1-5 Complete** - 2025-12-26 (Foundation + Integration)
+- 🎯 **Phase 6 Complete** - 2025-12-31 (E2E Tests)
 - 🎯 **Phase 7 Complete** - 2026-01-07 (Production Ready)
 - 🚀 **Production Release** - 2026-01-10
 
@@ -622,11 +624,11 @@ journalctl -u ocserv-agent -f
 | Параметр | Значение |
 |----------|----------|
 | Проект | ocserv-agent |
-| Версия плана | 1.0 |
+| Версия плана | 1.1 |
 | Создан | 2025-12-26 |
-| Обновлен | 2025-12-26 |
+| Обновлен | 2025-12-26 (Phase 5 Complete) |
 | Ответственный | Development Team |
-| Статус | Phase 4 Complete, Phase 5 Planned |
+| Статус | Phase 5 Complete, Phase 6 Planned |
 | Синхронизация | ocserv-portal AGILE_PLAN.md ✅ |
 
 ---
