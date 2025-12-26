@@ -31,9 +31,30 @@ func NewVPNService(server *Server, logger *slog.Logger) *VPNService {
 	}
 }
 
+// logInfo safely logs info level message
+func (s *VPNService) logInfo(ctx context.Context, msg string, args ...any) {
+	if s.logger != nil {
+		s.logger.InfoContext(ctx, msg, args...)
+	}
+}
+
+// logError safely logs error level message
+func (s *VPNService) logError(ctx context.Context, msg string, args ...any) {
+	if s.logger != nil {
+		s.logger.ErrorContext(ctx, msg, args...)
+	}
+}
+
+// logWarn safely logs warn level message
+func (s *VPNService) logWarn(ctx context.Context, msg string, args ...any) {
+	if s.logger != nil {
+		s.logger.WarnContext(ctx, msg, args...)
+	}
+}
+
 // NotifyConnect обрабатывает уведомление о попытке подключения пользователя
 func (s *VPNService) NotifyConnect(ctx context.Context, req *pb.NotifyConnectRequest) (*pb.NotifyConnectResponse, error) {
-	s.logger.InfoContext(ctx, "Processing connect notification",
+	s.logInfo(ctx, "Processing connect notification",
 		slog.String("username", req.Username),
 		slog.String("client_ip", req.ClientIp),
 		slog.String("vpn_ip", req.VpnIp),
@@ -60,13 +81,13 @@ func (s *VPNService) NotifyConnect(ctx context.Context, req *pb.NotifyConnectReq
 		}
 
 		if err := s.server.sessionStore.Add(session); err != nil {
-			s.logger.ErrorContext(ctx, "Failed to add session to store",
+			s.logError(ctx, "Failed to add session to store",
 				slog.String("session_id", req.SessionId),
 				slog.String("error", err.Error()),
 			)
 			// Не блокируем подключение из-за ошибки в SessionStore
 		} else {
-			s.logger.InfoContext(ctx, "Session added to store",
+			s.logInfo(ctx, "Session added to store",
 				slog.String("session_id", req.SessionId),
 				slog.Int("total_sessions", s.server.sessionStore.Count()),
 			)
@@ -85,7 +106,7 @@ func (s *VPNService) NotifyConnect(ctx context.Context, req *pb.NotifyConnectReq
 		ConfigParams:      make(map[string]string),
 	}
 
-	s.logger.InfoContext(ctx, "Connect notification processed",
+	s.logInfo(ctx, "Connect notification processed",
 		slog.Bool("allowed", response.Allowed),
 		slog.String("username", req.Username),
 	)
@@ -95,7 +116,7 @@ func (s *VPNService) NotifyConnect(ctx context.Context, req *pb.NotifyConnectReq
 
 // NotifyDisconnect обрабатывает уведомление об отключении пользователя
 func (s *VPNService) NotifyDisconnect(ctx context.Context, req *pb.NotifyDisconnectRequest) (*pb.NotifyDisconnectResponse, error) {
-	s.logger.InfoContext(ctx, "Processing disconnect notification",
+	s.logInfo(ctx, "Processing disconnect notification",
 		slog.String("username", req.Username),
 		slog.String("session_id", req.SessionId),
 		slog.String("reason", req.DisconnectReason),
@@ -108,7 +129,7 @@ func (s *VPNService) NotifyDisconnect(ctx context.Context, req *pb.NotifyDisconn
 	if s.server.sessionStore != nil {
 		// Сначала обновляем статистику если сессия существует
 		if err := s.server.sessionStore.UpdateStats(req.SessionId, req.BytesIn, req.BytesOut); err != nil {
-			s.logger.WarnContext(ctx, "Failed to update session stats",
+			s.logWarn(ctx, "Failed to update session stats",
 				slog.String("session_id", req.SessionId),
 				slog.String("error", err.Error()),
 			)
@@ -116,12 +137,12 @@ func (s *VPNService) NotifyDisconnect(ctx context.Context, req *pb.NotifyDisconn
 
 		// Удаляем сессию
 		if err := s.server.sessionStore.Remove(req.SessionId); err != nil {
-			s.logger.ErrorContext(ctx, "Failed to remove session from store",
+			s.logError(ctx, "Failed to remove session from store",
 				slog.String("session_id", req.SessionId),
 				slog.String("error", err.Error()),
 			)
 		} else {
-			s.logger.InfoContext(ctx, "Session removed from store",
+			s.logInfo(ctx, "Session removed from store",
 				slog.String("session_id", req.SessionId),
 				slog.Int("remaining_sessions", s.server.sessionStore.Count()),
 			)
@@ -140,7 +161,7 @@ func (s *VPNService) NotifyDisconnect(ctx context.Context, req *pb.NotifyDisconn
 
 // GetActiveSessions возвращает список активных VPN сессий
 func (s *VPNService) GetActiveSessions(ctx context.Context, req *pb.GetActiveSessionsRequest) (*pb.GetActiveSessionsResponse, error) {
-	s.logger.InfoContext(ctx, "Fetching active sessions",
+	s.logInfo(ctx, "Fetching active sessions",
 		slog.String("username_filter", req.UsernameFilter),
 		slog.Bool("include_stats", req.IncludeStats),
 	)
@@ -181,14 +202,14 @@ func (s *VPNService) GetActiveSessions(ctx context.Context, req *pb.GetActiveSes
 			sessions = append(sessions, pbSession)
 		}
 
-		s.logger.InfoContext(ctx, "Active sessions fetched from SessionStore",
+		s.logInfo(ctx, "Active sessions fetched from SessionStore",
 			slog.Int("count", len(sessions)),
 		)
 	} else {
 		// Fallback: получаем список пользователей через occtl
 		users, err := s.server.ocservManager.Occtl().ShowUsers(ctx)
 		if err != nil {
-			s.logger.ErrorContext(ctx, "Failed to fetch users",
+			s.logError(ctx, "Failed to fetch users",
 				slog.String("error", err.Error()),
 			)
 			return nil, errors.Wrap(err, "failed to fetch active sessions")
@@ -227,7 +248,7 @@ func (s *VPNService) GetActiveSessions(ctx context.Context, req *pb.GetActiveSes
 			sessions = append(sessions, session)
 		}
 
-		s.logger.InfoContext(ctx, "Active sessions fetched from occtl",
+		s.logInfo(ctx, "Active sessions fetched from occtl",
 			slog.Int("count", len(sessions)),
 		)
 	}
@@ -300,7 +321,7 @@ func parseBytes(s string) (uint64, error) {
 
 // DisconnectUser принудительно отключает пользователя
 func (s *VPNService) DisconnectUser(ctx context.Context, req *pb.DisconnectUserRequest) (*pb.DisconnectUserResponse, error) {
-	s.logger.InfoContext(ctx, "Disconnecting user",
+	s.logInfo(ctx, "Disconnecting user",
 		slog.String("username", req.Username),
 		slog.String("reason", req.Reason),
 		slog.Bool("disconnect_all", req.DisconnectAllSessions),
@@ -313,7 +334,7 @@ func (s *VPNService) DisconnectUser(ctx context.Context, req *pb.DisconnectUserR
 	// Выполняем disconnect через occtl
 	err := s.server.ocservManager.Occtl().DisconnectUser(ctx, req.Username)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "Failed to disconnect user",
+		s.logError(ctx, "Failed to disconnect user",
 			slog.String("username", req.Username),
 			slog.String("error", err.Error()),
 		)
@@ -330,7 +351,7 @@ func (s *VPNService) DisconnectUser(ctx context.Context, req *pb.DisconnectUserR
 		ErrorMessage:        "",
 	}
 
-	s.logger.InfoContext(ctx, "User disconnected successfully",
+	s.logInfo(ctx, "User disconnected successfully",
 		slog.String("username", req.Username),
 	)
 
@@ -339,7 +360,7 @@ func (s *VPNService) DisconnectUser(ctx context.Context, req *pb.DisconnectUserR
 
 // UpdateUserRoutes обновляет маршруты для пользователя
 func (s *VPNService) UpdateUserRoutes(ctx context.Context, req *pb.UpdateUserRoutesRequest) (*pb.UpdateUserRoutesResponse, error) {
-	s.logger.InfoContext(ctx, "Updating user routes",
+	s.logInfo(ctx, "Updating user routes",
 		slog.String("username", req.Username),
 		slog.Int("routes_count", len(req.Routes)),
 		slog.Int("dns_count", len(req.DnsServers)),
@@ -374,7 +395,7 @@ func (s *VPNService) UpdateUserRoutes(ctx context.Context, req *pb.UpdateUserRou
 
 	// Генерируем конфигурационный файл
 	if err := s.server.configGenerator.GenerateUserConfig(userConfig); err != nil {
-		s.logger.ErrorContext(ctx, "Failed to generate user config",
+		s.logError(ctx, "Failed to generate user config",
 			slog.String("username", req.Username),
 			slog.String("error", err.Error()),
 		)
@@ -393,7 +414,7 @@ func (s *VPNService) UpdateUserRoutes(ctx context.Context, req *pb.UpdateUserRou
 		if len(userSessions) > 0 {
 			// Отключаем пользователя для применения новой конфигурации
 			if err := s.server.ocservManager.Occtl().DisconnectUser(ctx, req.Username); err != nil {
-				s.logger.WarnContext(ctx, "Failed to disconnect user for reconnect",
+				s.logWarn(ctx, "Failed to disconnect user for reconnect",
 					slog.String("username", req.Username),
 					slog.String("error", err.Error()),
 				)
@@ -401,7 +422,7 @@ func (s *VPNService) UpdateUserRoutes(ctx context.Context, req *pb.UpdateUserRou
 				userReconnected = true
 				// Удаляем сессии из SessionStore
 				s.server.sessionStore.RemoveByUsername(req.Username)
-				s.logger.InfoContext(ctx, "User disconnected for config reload",
+				s.logInfo(ctx, "User disconnected for config reload",
 					slog.String("username", req.Username),
 					slog.Int("sessions_removed", len(userSessions)),
 				)
@@ -416,7 +437,7 @@ func (s *VPNService) UpdateUserRoutes(ctx context.Context, req *pb.UpdateUserRou
 		ErrorMessage:    "",
 	}
 
-	s.logger.InfoContext(ctx, "User routes updated successfully",
+	s.logInfo(ctx, "User routes updated successfully",
 		slog.String("username", req.Username),
 		slog.String("config_path", configPath),
 		slog.Bool("user_reconnected", userReconnected),

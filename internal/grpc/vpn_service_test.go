@@ -15,8 +15,9 @@ func TestVPNService_NotifyConnect(t *testing.T) {
 	// Создаём тестовый server (с минимальной конфигурацией)
 	// TODO: Добавить mock для ocservManager
 
-	// Пока просто проверяем что service может быть создан
+	server := &Server{}
 	vpnService := &VPNService{
+		server: server,
 		logger: slog.Default(),
 	}
 
@@ -38,7 +39,9 @@ func TestVPNService_NotifyConnect(t *testing.T) {
 }
 
 func TestVPNService_NotifyDisconnect(t *testing.T) {
+	server := &Server{}
 	vpnService := &VPNService{
+		server: server,
 		logger: slog.Default(),
 	}
 
@@ -107,9 +110,9 @@ func TestParseBytes(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "any string (not implemented yet)",
+			name:     "parse megabytes",
 			input:    "1.5M",
-			expected: 0,
+			expected: 1572864, // 1.5 * 1024 * 1024
 			wantErr:  false,
 		},
 	}
