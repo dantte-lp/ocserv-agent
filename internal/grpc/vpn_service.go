@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -144,12 +146,61 @@ func (s *VPNService) GetActiveSessions(ctx context.Context, req *pb.GetActiveSes
 	return response, nil
 }
 
-// parseBytes парсит строку с размером в байтах (например "1.5M", "200K")
+// parseBytes парсит строку с размером в байтах (например "1.5M", "200K", "3.2G")
 // Возвращает значение в байтах
 func parseBytes(s string) (uint64, error) {
-	// TODO: Реализовать парсинг human-readable bytes
-	// Пока возвращаем 0
-	return 0, nil
+	if s == "" || s == "0" || s == "-" {
+		return 0, nil
+	}
+
+	// Удаляем пробелы
+	s = strings.TrimSpace(s)
+
+	// Найти позицию первого не-цифрового символа (кроме точки)
+	var value float64
+	var unit string
+
+	// Разделить на число и единицу измерения
+	i := 0
+	for i < len(s) && (s[i] >= '0' && s[i] <= '9' || s[i] == '.') {
+		i++
+	}
+
+	if i == 0 {
+		return 0, errors.Newf("invalid byte string: %s", s)
+	}
+
+	// Парсинг числового значения
+	valueStr := s[:i]
+	var err error
+	value, err = strconv.ParseFloat(valueStr, 64)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to parse value: %s", valueStr)
+	}
+
+	// Парсинг единицы измерения
+	unit = strings.ToUpper(strings.TrimSpace(s[i:]))
+
+	// Конвертация в байты
+	var multiplier uint64
+	switch unit {
+	case "", "B":
+		multiplier = 1
+	case "K", "KB":
+		multiplier = 1024
+	case "M", "MB":
+		multiplier = 1024 * 1024
+	case "G", "GB":
+		multiplier = 1024 * 1024 * 1024
+	case "T", "TB":
+		multiplier = 1024 * 1024 * 1024 * 1024
+	default:
+		return 0, errors.Newf("unknown unit: %s", unit)
+	}
+
+	// #nosec G115 - value is parsed from occtl output, bounded by network limits
+	result := uint64(value * float64(multiplier))
+	return result, nil
 }
 
 // DisconnectUser принудительно отключает пользователя
