@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -486,10 +487,14 @@ func TestSessionStoreTTL(t *testing.T) {
 		// Wait for TTL to expire
 		time.Sleep(150 * time.Millisecond)
 
-		// Session should be expired
+		// Session should be expired or removed by cleanup
 		_, err := store.Get("s1")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "session expired")
+		// Can be either "session expired" or "session not found" depending on cleanup timing
+		assert.True(t,
+			strings.Contains(err.Error(), "session expired") ||
+			strings.Contains(err.Error(), "session not found"),
+			"Expected expired or not found error, got: %s", err.Error())
 	})
 
 	t.Run("excludes expired sessions from list", func(t *testing.T) {

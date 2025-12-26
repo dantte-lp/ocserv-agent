@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"time"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"github.com/dantte-lp/ocserv-agent/internal/ocserv"
+	"github.com/dantte-lp/ocserv-agent/internal/storage"
 	pb "github.com/dantte-lp/ocserv-agent/pkg/proto/agent/v1"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
@@ -28,6 +30,7 @@ type Server struct {
 	server          *grpc.Server
 	ocservManager   *ocserv.Manager
 	configGenerator *config.Generator
+	sessionStore    *storage.SessionStore // In-memory session storage
 }
 
 // New creates a new gRPC server instance
@@ -54,6 +57,9 @@ func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 			s.configGenerator = generator
 		}
 	}
+
+	// Create session store with 24h TTL
+	s.sessionStore = storage.NewSessionStore(24 * time.Hour)
 
 	// Create gRPC server with TLS
 	grpcServer, err := s.createGRPCServer()
