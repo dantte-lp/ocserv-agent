@@ -267,30 +267,61 @@ Portal реализует gRPC server для авторизации, Agent ре�
 
 ---
 
-### 🔄 Phase 6: E2E Integration Testing (PLANNED)
+### 🔄 Phase 6: E2E Integration Testing (IN PROGRESS)
 
-**Даты:** 2025-12-30 - 2026-01-02 (4 дня)
-**Статус:** 🔄 Planned
+**Даты:** 2025-12-26 (started)
+**Статус:** 🔄 IN PROGRESS
 **Приоритет:** HIGH (синхронизация с Portal Sprint 14)
 
 #### Цели
 
-End-to-end тестирование полного стека: Portal ↔ Agent ↔ ocserv.
+End-to-end тестирование с реальным ocserv на OracleLinux 10.
 
 #### Задачи
 
 ##### 6.1: Test Environment
 
-- [ ] **deploy/compose.e2e.yaml** — E2E test stack
-  - [ ] ocserv-portal (backend)
-  - [ ] PostgreSQL для portal
-  - [ ] ocserv-agent
-  - [ ] Mock ocserv server (или real ocserv)
-  - [ ] step-ca (для cert generation)
+- [x] **build/Containerfile.e2e-ocserv** — OracleLinux 10 + ocserv ✅
+  - [x] OracleLinux 10 базовый образ
+  - [x] EPEL репозиторий для ocserv 1.3.0
+  - [x] Self-signed TLS сертификаты
+  - [x] Unix socket configuration
+  - [x] Healthcheck на socket доступность
+
+- [x] **build/ocserv.conf.e2e** — Minimal ocserv config ✅
+  - [x] Plain password аутентификация
+  - [x] Unix socket: `/var/run/ocserv/ocserv.sock`
+  - [x] Network: 192.168.99.0/24
+  - [x] Config-per-user поддержка
+
+- [x] **build/docker-compose.e2e.yaml** — E2E stack ✅
+  - [x] ocserv-e2e service (OracleLinux 10)
+  - [x] agent-e2e service
+  - [x] Shared unix socket volume
+  - [x] Network isolation
+
+- [x] **build/e2e-test.sh** — Helper script ✅
+  - [x] `build` — Сборка контейнеров
+  - [x] `start` — Запуск окружения
+  - [x] `test` — Запуск E2E тестов
+  - [x] `logs` — Просмотр логов
+  - [x] `status` — Проверка статуса
+  - [x] `cleanup` — Полная очистка
 
 ##### 6.2: E2E Test Scenarios
 
-- [ ] **test/e2e/full_flow_test.go** — Полный lifecycle
+- [x] **test/e2e/ocserv_integration_test.go** — ocserv integration tests ✅
+  - [x] TestOcctlSocketAccess — проверка доступа к unix socket
+  - [x] TestOcctlShowStatus — выполнение `occtl show status`
+  - [x] TestOcctlShowUsersJSON — получение списка пользователей в JSON
+  - [x] TestOcctlShowSessionsJSON — получение активных сессий
+  - [x] TestConfigPerUserDirectory — проверка директории config-per-user
+  - [x] TestGenerateUserConfig — создание пользовательской конфигурации
+  - [x] TestOcctlReload — перезагрузка конфигурации ocserv
+  - [x] TestOcctlCommandValidation — валидация команд occtl
+  - [x] TestOcservProcessRunning — проверка запущенного процесса
+
+- [ ] **test/e2e/full_flow_test.go** — Полный lifecycle (Phase 6 Day 2)
   ```
   1. Portal выдаёт сертификат пользователю
   2. User подключается к ocserv
@@ -318,20 +349,41 @@ End-to-end тестирование полного стека: Portal ↔ Agent 
   - [ ] Сбор метрик (latency, throughput)
   - [ ] Генерация HTML отчёта
 
-##### 6.4: Documentation
+##### 6.3: Documentation
 
-- [ ] **docs/E2E_TESTING.md** — E2E testing guide
-  - [ ] Как запустить E2E тесты
-  - [ ] Архитектура test stack
-  - [ ] Troubleshooting guide
-  - [ ] Performance benchmarks
+- [x] **docs/tmp/E2E_TESTING_GUIDE.md** — E2E testing guide ✅
+  - [x] Как запустить E2E тесты
+  - [x] Архитектура test stack
+  - [x] Troubleshooting guide
+  - [x] Известные проблемы
+
+- [x] **build/README.md** — Build & E2E helper docs ✅
+  - [x] Описание файлов
+  - [x] Быстрый старт
+  - [x] Команды отладки
+
+##### 6.4: QA Automation (Planned)
+
+- [ ] **qa_runner/e2e_tests.py** — E2E test runner (Phase 6 Day 2)
+  - [ ] Запуск compose.e2e.yaml
+  - [ ] Выполнение test scenarios
+  - [ ] Сбор метрик (latency, throughput)
+  - [ ] Генерация HTML отчёта
 
 #### Acceptance Criteria
 
-- [ ] Full flow E2E test проходит
+**Day 1 (2025-12-26):**
+- [x] E2E окружение с OracleLinux 10 создано ✅
+- [x] ocserv 1.3.0 установлен и работает ✅
+- [x] Unix socket communication протестирован ✅
+- [x] E2E integration tests написаны (9 тестов) ✅
+- [x] Документация создана ✅
+- [x] Helper скрипты работают ✅
+
+**Day 2 (Planned):**
+- [ ] Full flow E2E test с portal интеграцией
 - [ ] Resilience scenarios работают
 - [ ] Load testing targets достигнуты
-- [ ] Документация полная
 - [ ] CI/CD pipeline интегрирован
 
 #### Связь с Portal

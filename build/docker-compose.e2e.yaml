@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  ocserv-e2e:
+    build:
+      context: ..
+      dockerfile: build/Containerfile.e2e-ocserv
+    container_name: ocserv-e2e-test
+    hostname: ocserv-e2e
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./ocserv.conf.e2e:/etc/ocserv/ocserv.conf:ro
+      - ocserv-run:/var/run/ocserv
+      - ocserv-lib:/var/lib/ocserv
+    networks:
+      - e2e-network
+    ports:
+      - "8443:443/tcp"
+      - "8443:443/udp"
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/ocserv/ocserv.sock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ocserv-agent container для E2E тестов
+  agent-e2e:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: agent-e2e-test
+    hostname: agent-e2e
+    depends_on:
+      ocserv-e2e:
+        condition: service_healthy
+    volumes:
+      # Монтируем unix socket из ocserv контейнера
+      - ocserv-run:/var/run/ocserv:ro
+    networks:
+      - e2e-network
+    ports:
+      - "9090:9090"
+    environment:
+      - OCSERV_SOCKET_PATH=/var/run/ocserv/ocserv.sock
+      - OCCTL_PATH=/usr/bin/occtl
+      - LOG_LEVEL=debug
+    restart: unless-stopped
+
+volumes:
+  ocserv-run:
+    driver: local
+  ocserv-lib:
+    driver: local
+
+networks:
+  e2e-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
