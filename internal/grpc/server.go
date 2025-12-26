@@ -63,8 +63,12 @@ func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 
 	s.server = grpcServer
 
-	// Register service
+	// Register AgentService
 	pb.RegisterAgentServiceServer(s.server, s)
+
+	// Register VPNAgentService
+	vpnService := NewVPNService(s, slog.Default())
+	pb.RegisterVPNAgentServiceServer(s.server, vpnService)
 
 	// Register reflection service (for grpcurl and other tools)
 	reflection.Register(s.server)

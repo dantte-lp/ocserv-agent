@@ -181,3 +181,113 @@ message HealthCheckResponse {
   map<string, string> checks = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
+
+// ============================================================================
+// VPN Agent Service - интеграция с Portal для управления VPN сессиями
+// ============================================================================
+
+// VPNAgentService предоставляет методы для управления VPN сессиями и политиками
+service VPNAgentService {
+  // NotifyConnect вызывается при попытке подключения пользователя
+  rpc NotifyConnect(NotifyConnectRequest) returns (NotifyConnectResponse);
+
+  // NotifyDisconnect вызывается при отключении пользователя
+  rpc NotifyDisconnect(NotifyDisconnectRequest) returns (NotifyDisconnectResponse);
+
+  // GetActiveSessions возвращает список активных VPN сессий
+  rpc GetActiveSessions(GetActiveSessionsRequest) returns (GetActiveSessionsResponse);
+
+  // DisconnectUser принудительно отключает пользователя
+  rpc DisconnectUser(DisconnectUserRequest) returns (DisconnectUserResponse);
+
+  // UpdateUserRoutes обновляет маршруты для пользователя
+  rpc UpdateUserRoutes(UpdateUserRoutesRequest) returns (UpdateUserRoutesResponse);
+}
+
+// NotifyConnect - запрос на авторизацию подключения
+message NotifyConnectRequest {
+  string username = 1;
+  string client_ip = 2;
+  string vpn_ip = 3;
+  string session_id = 4;
+  string device_id = 5;
+  google.protobuf.Timestamp connect_time = 6;
+  map<string, string> metadata = 7;  // TLS fingerprint, User-Agent, etc.
+}
+
+message NotifyConnectResponse {
+  bool allowed = 1;
+  bool should_disconnect = 2;
+  string deny_reason = 3;
+  repeated string routes = 4;  // Маршруты для пользователя (CIDR format)
+  repeated string dns_servers = 5;
+  map<string, string> config_params = 6;  // Дополнительные параметры конфига
+}
+
+// NotifyDisconnect - уведомление об отключении
+message NotifyDisconnectRequest {
+  string username = 1;
+  string session_id = 2;
+  google.protobuf.Timestamp disconnect_time = 3;
+  string disconnect_reason = 4;
+  uint64 bytes_in = 5;
+  uint64 bytes_out = 6;
+  uint64 duration_seconds = 7;
+}
+
+message NotifyDisconnectResponse {
+  bool acknowledged = 1;
+  string message = 2;
+}
+
+// GetActiveSessions - получение списка активных сессий
+message GetActiveSessionsRequest {
+  string username_filter = 1;  // опционально, фильтр по username
+  bool include_stats = 2;
+}
+
+message GetActiveSessionsResponse {
+  repeated VPNSession sessions = 1;
+  uint32 total_count = 2;
+}
+
+message VPNSession {
+  string session_id = 1;
+  string username = 2;
+  string client_ip = 3;
+  string vpn_ip = 4;
+  google.protobuf.Timestamp connected_at = 5;
+  uint64 bytes_in = 6;
+  uint64 bytes_out = 7;
+  string device_id = 8;
+  map<string, string> metadata = 9;
+}
+
+// DisconnectUser - принудительное отключение пользователя
+message DisconnectUserRequest {
+  string username = 1;
+  string reason = 2;  // Причина отключения
+  bool disconnect_all_sessions = 3;  // Отключить все сессии пользователя
+}
+
+message DisconnectUserResponse {
+  bool success = 1;
+  uint32 sessions_disconnected = 2;
+  string error_message = 3;
+}
+
+// UpdateUserRoutes - обновление маршрутов пользователя
+message UpdateUserRoutesRequest {
+  string username = 1;
+  repeated string routes = 2;  // Новые маршруты в CIDR format
+  repeated string dns_servers = 3;
+  map<string, string> config_params = 4;  // Дополнительные параметры
+  bool reload_if_connected = 5;  // Перезагрузить конфиг если пользователь подключен
+}
+
+message UpdateUserRoutesResponse {
+  bool success = 1;
+  string config_path = 2;  // Путь к созданному per-user конфигу
+  bool user_reconnected = 3;  // Пользователь был переподключен
+  string error_message = 4;
+}

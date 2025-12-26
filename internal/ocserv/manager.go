@@ -55,6 +55,11 @@ func NewManager(cfg *config.Config, logger zerolog.Logger) *Manager {
 	}
 }
 
+// Occtl returns the underlying OcctlManager for direct access to occtl methods
+func (m *Manager) Occtl() *OcctlManager {
+	return m.occtl
+}
+
 // CommandResult represents the result of a command execution
 type CommandResult struct {
 	Success  bool
