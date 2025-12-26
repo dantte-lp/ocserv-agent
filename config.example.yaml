@@ -70,6 +70,34 @@ ocserv:
   backup_dir: "/var/backups/ocserv"
 
 # ═══════════════════════════════════════════════════════════════
+# IPC Configuration (Unix Socket for vpn-auth)
+# ═══════════════════════════════════════════════════════════════
+ipc:
+  # Путь к Unix socket для приема запросов от vpn-auth
+  socket_path: "/var/run/ocserv-agent.sock"
+
+  # Таймаут обработки IPC запроса
+  timeout: 5s
+
+# ═══════════════════════════════════════════════════════════════
+# Portal Configuration (gRPC Client)
+# ═══════════════════════════════════════════════════════════════
+portal:
+  # gRPC адрес portal сервера для проверки политик
+  address: "localhost:9092"
+
+  # mTLS сертификаты для подключения к portal
+  tls_cert: "/etc/ocserv-agent/certs/agent.crt"
+  tls_key: "/etc/ocserv-agent/certs/agent.key"
+  tls_ca: "/etc/ocserv-agent/certs/ca.crt"
+
+  # Таймаут gRPC запросов к portal
+  timeout: 10s
+
+  # Использовать незащищенное соединение (только для dev!)
+  insecure: true
+
+# ═══════════════════════════════════════════════════════════════
 # Health Checks & Metrics
 # ═══════════════════════════════════════════════════════════════
 health:
@@ -169,5 +197,8 @@ security:
 #    - TLS_CERT_FILE, TLS_KEY_FILE, TLS_CA_FILE
 #    - LOG_LEVEL
 #    - TELEMETRY_ENDPOINT
+#    - IPC_SOCKET_PATH
+#    - PORTAL_ADDRESS, PORTAL_TLS_CERT, PORTAL_TLS_KEY, PORTAL_TLS_CA
+#    - PORTAL_INSECURE
 #
 # ═══════════════════════════════════════════════════════════════

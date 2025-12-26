@@ -18,6 +18,8 @@ type Config struct {
 	ControlServer ControlServerConfig `yaml:"control_server"`
 	TLS           TLSConfig           `yaml:"tls"`
 	Ocserv        OcservConfig        `yaml:"ocserv"`
+	IPC           IPCConfig           `yaml:"ipc"`
+	Portal        PortalConfig        `yaml:"portal"`
 	Health        HealthConfig        `yaml:"health"`
 	Telemetry     TelemetryConfig     `yaml:"telemetry"`
 	Logging       LoggingConfig       `yaml:"logging"`
@@ -66,6 +68,22 @@ type OcservConfig struct {
 	BackupDir         string `yaml:"backup_dir"`
 }
 
+// IPCConfig defines Unix socket IPC settings
+type IPCConfig struct {
+	SocketPath string        `yaml:"socket_path"`
+	Timeout    time.Duration `yaml:"timeout"`
+}
+
+// PortalConfig defines portal gRPC connection settings
+type PortalConfig struct {
+	Address  string        `yaml:"address"`
+	TLSCert  string        `yaml:"tls_cert"`
+	TLSKey   string        `yaml:"tls_key"`
+	TLSCA    string        `yaml:"tls_ca"`
+	Timeout  time.Duration `yaml:"timeout"`
+	Insecure bool          `yaml:"insecure"`
+}
+
 // HealthConfig defines health check intervals
 type HealthConfig struct {
 	HeartbeatInterval time.Duration `yaml:"heartbeat_interval"`
@@ -94,11 +112,12 @@ type PrometheusConfig struct {
 
 // OTLPConfig defines OTLP exporter settings
 type OTLPConfig struct {
-	Enabled  bool          `yaml:"enabled"`
-	Endpoint string        `yaml:"endpoint"`
-	Insecure bool          `yaml:"insecure"`
-	Protocol string        `yaml:"protocol"` // "grpc" или "http" (default: "grpc")
-	Timeout  time.Duration `yaml:"timeout"`
+	Enabled     bool          `yaml:"enabled"`
+	Endpoint    string        `yaml:"endpoint"`
+	Insecure    bool          `yaml:"insecure"`
+	Protocol    string        `yaml:"protocol"`     // "grpc" или "http" (default: "grpc")
+	Timeout     time.Duration `yaml:"timeout"`
+	LogsEnabled bool          `yaml:"logs_enabled"` // Отдельный флаг для экспорта логов через OTLP
 }
 
 // VictoriaMetricsConfig defines VictoriaMetrics exporter settings
@@ -208,6 +227,24 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("TELEMETRY_ENABLED"); v == "true" {
 		cfg.Telemetry.Enabled = true
 	}
+	if v := os.Getenv("IPC_SOCKET_PATH"); v != "" {
+		cfg.IPC.SocketPath = v
+	}
+	if v := os.Getenv("PORTAL_ADDRESS"); v != "" {
+		cfg.Portal.Address = v
+	}
+	if v := os.Getenv("PORTAL_TLS_CERT"); v != "" {
+		cfg.Portal.TLSCert = v
+	}
+	if v := os.Getenv("PORTAL_TLS_KEY"); v != "" {
+		cfg.Portal.TLSKey = v
+	}
+	if v := os.Getenv("PORTAL_TLS_CA"); v != "" {
+		cfg.Portal.TLSCA = v
+	}
+	if v := os.Getenv("PORTAL_INSECURE"); v == "true" {
+		cfg.Portal.Insecure = true
+	}
 }
 
 // setDefaults applies default values if not set
@@ -286,6 +323,17 @@ func setDefaults(cfg *Config) {
 
 	if cfg.Ocserv.SystemdService == "" {
 		cfg.Ocserv.SystemdService = "ocserv"
+	}
+
+	if cfg.IPC.SocketPath == "" {
+		cfg.IPC.SocketPath = "/var/run/ocserv-agent.sock"
+	}
+	if cfg.IPC.Timeout == 0 {
+		cfg.IPC.Timeout = 5 * time.Second
+	}
+
+	if cfg.Portal.Timeout == 0 {
+		cfg.Portal.Timeout = 10 * time.Second
 	}
 }
 
