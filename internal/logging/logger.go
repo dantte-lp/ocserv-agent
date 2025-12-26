@@ -9,6 +9,7 @@ import (
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"github.com/dantte-lp/ocserv-agent/internal/telemetry"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -16,7 +17,8 @@ import (
 //
 // Особенности:
 //   - JSON или Text формат
-//   - Автоматическая корреляция с trace ID через otelslog bridge
+//   - Автоматическая корреляция с trace ID через otelslog bridge (если OTLP logs включен)
+//   - Multi-handler: локальный + OTLP + VictoriaLogs (опционально)
 //   - Настраиваемый уровень логирования
 //   - Поддержка вывода в stdout/stderr/file
 //
@@ -28,9 +30,13 @@ import (
 //	    Output:    "stdout",
 //	    AddSource: true,
 //	}
-//	logger := NewLogger(cfg, nil)
+//	otlpCfg := config.OTLPConfig{
+//	    Enabled:     true,
+//	    LogsEnabled: true,
+//	}
+//	logger := NewLogger(cfg, nil, &otlpCfg)
 //	logger.Info("service started", "version", "0.7.0")
-func NewLogger(cfg config.LoggingConfig, victoriaLogsCfg *config.VictoriaLogsConfig) *slog.Logger {
+func NewLogger(cfg config.LoggingConfig, victoriaLogsCfg *config.VictoriaLogsConfig, otlpCfg *config.OTLPConfig) *slog.Logger {
 	// Определяем уровень логирования
 	level := parseLevel(cfg.Level)
 
@@ -66,23 +72,36 @@ func NewLogger(cfg config.LoggingConfig, victoriaLogsCfg *config.VictoriaLogsCon
 		},
 	}
 
-	// Создаем базовый handler
-	var baseHandler slog.Handler
+	// Создаем базовый handler для локального вывода
+	var localHandler slog.Handler
 	if cfg.Format == "json" {
-		baseHandler = slog.NewJSONHandler(writer, opts)
+		localHandler = slog.NewJSONHandler(writer, opts)
 	} else {
-		baseHandler = slog.NewTextHandler(writer, opts)
+		localHandler = slog.NewTextHandler(writer, opts)
 	}
 
 	// Оборачиваем в VictoriaLogs handler если включен
 	if victoriaLogsCfg != nil && victoriaLogsCfg.Enabled {
-		baseHandler = telemetry.NewVictoriaLogsHandler(*victoriaLogsCfg, baseHandler)
+		localHandler = telemetry.NewVictoriaLogsHandler(*victoriaLogsCfg, localHandler)
 	}
 
-	// Возвращаем logger с базовым handler
-	// Корреляция с traces будет происходить через WithTraceContext()
-	_ = otelslog.NewHandler // импорт для будущего использования
-	return slog.New(baseHandler)
+	// Проверяем, включен ли OTLP logs exporter
+	if otlpCfg != nil && otlpCfg.Enabled && otlpCfg.LogsEnabled {
+		// Получаем глобальный LoggerProvider
+		loggerProvider := global.GetLoggerProvider()
+
+		// Создаем otelslog handler для отправки логов через OTLP
+		otlpHandler := otelslog.NewHandler("ocserv-agent",
+			otelslog.WithLoggerProvider(loggerProvider),
+		)
+
+		// Создаем multi-handler: локальный + OTLP
+		multiHandler := NewMultiHandler(localHandler, otlpHandler)
+		return slog.New(multiHandler)
+	}
+
+	// Возвращаем logger с локальным handler
+	return slog.New(localHandler)
 }
 
 // NewTestLogger создает logger для тестов с буфером.
@@ -141,4 +160,58 @@ func parseLevel(level string) slog.Level {
 // LevelFromString возвращает slog.Level из строки (публичная функция).
 func LevelFromString(level string) slog.Level {
 	return parseLevel(level)
+}
+
+// MultiHandler реализует slog.Handler для отправки логов в несколько handler'ов одновременно.
+// Используется для параллельной записи в локальный лог и OTLP exporter.
+type MultiHandler struct {
+	handlers []slog.Handler
+}
+
+// NewMultiHandler создает новый MultiHandler с несколькими обработчиками.
+func NewMultiHandler(handlers ...slog.Handler) *MultiHandler {
+	return &MultiHandler{
+		handlers: handlers,
+	}
+}
+
+// Enabled проверяет, активен ли хотя бы один handler для данного уровня.
+func (m *MultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	for _, h := range m.handlers {
+		if h.Enabled(ctx, level) {
+			return true
+		}
+	}
+	return false
+}
+
+// Handle отправляет запись во все handler'ы.
+func (m *MultiHandler) Handle(ctx context.Context, record slog.Record) error {
+	for _, h := range m.handlers {
+		// Клонируем record для каждого handler, чтобы избежать race conditions
+		if err := h.Handle(ctx, record.Clone()); err != nil {
+			// Продолжаем обработку даже если один из handler'ов вернул ошибку
+			// Можно добавить логирование ошибок, но это может привести к циклу
+			continue
+		}
+	}
+	return nil
+}
+
+// WithAttrs добавляет атрибуты ко всем handler'ам.
+func (m *MultiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	newHandlers := make([]slog.Handler, len(m.handlers))
+	for i, h := range m.handlers {
+		newHandlers[i] = h.WithAttrs(attrs)
+	}
+	return &MultiHandler{handlers: newHandlers}
+}
+
+// WithGroup добавляет группу ко всем handler'ам.
+func (m *MultiHandler) WithGroup(name string) slog.Handler {
+	newHandlers := make([]slog.Handler, len(m.handlers))
+	for i, h := range m.handlers {
+		newHandlers[i] = h.WithGroup(name)
+	}
+	return &MultiHandler{handlers: newHandlers}
 }

@@ -9,11 +9,15 @@ import (
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -92,6 +96,25 @@ func InitProviders(ctx context.Context, cfg config.TelemetryConfig, logger *slog
 		shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 
 		logger.Info("OTLP meter provider initialized",
+			"endpoint", cfg.OTLP.Endpoint,
+			"protocol", cfg.OTLP.Protocol,
+		)
+	}
+
+	// Logs - OTLP logs exporter (опционально через LogsEnabled)
+	if cfg.OTLP.Enabled && cfg.OTLP.LogsEnabled {
+		loggerProvider, err := initLoggerProvider(ctx, cfg, res)
+		if err != nil {
+			// Cleanup при ошибке
+			for _, fn := range shutdownFuncs {
+				_ = fn(ctx)
+			}
+			return nil, fmt.Errorf("failed to init logger provider: %w", err)
+		}
+		global.SetLoggerProvider(loggerProvider)
+		shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
+
+		logger.Info("OTLP logger provider initialized",
 			"endpoint", cfg.OTLP.Endpoint,
 			"protocol", cfg.OTLP.Protocol,
 		)
@@ -273,4 +296,60 @@ func initMeterProvider(ctx context.Context, cfg config.TelemetryConfig, res *res
 	)
 
 	return mp, nil
+}
+
+// initLoggerProvider создает LoggerProvider с OTLP exporter (gRPC или HTTP).
+// Используется для экспорта логов через OpenTelemetry Logs API.
+func initLoggerProvider(ctx context.Context, cfg config.TelemetryConfig, res *resource.Resource) (*log.LoggerProvider, error) {
+	var exporter log.Exporter
+	var err error
+
+	// Выбираем транспорт на основе cfg.OTLP.Protocol
+	protocol := strings.ToLower(cfg.OTLP.Protocol)
+	switch protocol {
+	case "http", "http/protobuf":
+		// HTTP транспорт
+		opts := []otlploghttp.Option{
+			otlploghttp.WithEndpoint(cfg.OTLP.Endpoint),
+			otlploghttp.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlploghttp.WithInsecure())
+		}
+		exporter, err = otlploghttp.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create HTTP log exporter: %w", err)
+		}
+
+	case "grpc", "":
+		// gRPC транспорт (default)
+		opts := []otlploggrpc.Option{
+			otlploggrpc.WithEndpoint(cfg.OTLP.Endpoint),
+			otlploggrpc.WithTimeout(cfg.OTLP.Timeout),
+		}
+		if cfg.OTLP.Insecure {
+			opts = append(opts, otlploggrpc.WithInsecure())
+		}
+		exporter, err = otlploggrpc.New(ctx, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gRPC log exporter: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported OTLP protocol: %s (supported: grpc, http)", cfg.OTLP.Protocol)
+	}
+
+	// Создаем BatchProcessor для эффективной отправки логов
+	processor := log.NewBatchProcessor(exporter,
+		log.WithExportInterval(5*time.Second),
+		log.WithExportMaxBatchSize(512),
+		log.WithExportTimeout(30*time.Second),
+	)
+
+	lp := log.NewLoggerProvider(
+		log.WithProcessor(processor),
+		log.WithResource(res),
+	)
+
+	return lp, nil
 }
