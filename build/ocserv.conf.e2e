@@ -8,10 +8,13 @@ auth = "plain[passwd=/etc/ocserv/ocpasswd]"
 tcp-port = 443
 udp-port = 443
 
-# Socket for occtl (CRITICAL for agent communication)
-socket-file = /var/run/ocserv/ocserv.sock
-# Set socket permissions to allow external access
-socket-file-prefix = ocserv-e2e
+# Enable occtl control socket (CRITICAL for agent communication)
+use-occtl = true
+occtl-socket-file = /var/run/ocserv/ocserv.sock
+
+# Socket file prefix for IPC (internal communication between main and sec-mod)
+# Note: This creates sockets like ocserv-socket.PID, not the occtl socket
+socket-file = /var/run/ocserv/ocserv-socket
 
 # TLS Certificates
 server-cert = /etc/ocserv/server-cert.pem

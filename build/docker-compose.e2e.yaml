@@ -19,7 +19,7 @@ services:
       - "8443:443/tcp"
       - "8443:443/udp"
     healthcheck:
-      test: ["CMD", "test", "-S", "/var/run/ocserv/ocserv.sock"]
+      test: ["CMD", "sh", "-c", "occtl -s /var/run/ocserv/ocserv.sock show status || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
