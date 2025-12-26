@@ -1,0 +1,58 @@
+# Minimal ocserv configuration for E2E testing
+# This configuration is designed for testing ocserv-agent integration
+
+# Authentication
+auth = "plain[passwd=/etc/ocserv/ocpasswd]"
+
+# Network ports
+tcp-port = 443
+udp-port = 443
+
+# Enable occtl control socket (CRITICAL for agent communication)
+use-occtl = true
+occtl-socket-file = /var/run/ocserv/ocserv.sock
+
+# Socket file prefix for IPC (internal communication between main and sec-mod)
+# Note: This creates sockets like ocserv-socket.PID, not the occtl socket
+socket-file = /var/run/ocserv/ocserv-socket
+
+# TLS Certificates
+server-cert = /etc/ocserv/server-cert.pem
+server-key = /etc/ocserv/server-key.pem
+
+# Network configuration
+device = vpns
+ipv4-network = 192.168.99.0
+ipv4-netmask = 255.255.255.0
+dns = 8.8.8.8
+dns = 8.8.4.4
+
+# Client limits
+max-clients = 16
+max-same-clients = 2
+
+# Session settings
+cookie-timeout = 300
+persistent-cookies = false
+try-mtu-discovery = true
+
+# Security
+isolate-workers = true
+predictable-ips = false
+
+# Logging
+output-buffer = 10
+max-ban-score = 50
+ban-reset-time = 300
+
+# Per-user config directory
+config-per-user = /etc/ocserv/config-per-user/
+
+# Routes to push to clients
+route = 192.168.99.0/24
+
+# Compression (disabled for testing)
+compression = false
+
+# Stats reporting
+stats-report-time = 360

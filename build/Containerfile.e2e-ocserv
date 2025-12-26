@@ -1,0 +1,59 @@
+FROM oraclelinux:10
+
+LABEL maintainer="PayMart VPN Team"
+LABEL description="E2E Testing Container with OracleLinux 10 and ocserv"
+LABEL version="1.0"
+
+# Enable EPEL for OracleLinux 10 and install dependencies
+RUN dnf install -y \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm && \
+    dnf install -y \
+        ocserv \
+        gnutls-utils \
+        iproute \
+        net-tools \
+        procps-ng \
+        passwd \
+    && dnf clean all
+
+# Create required directories
+RUN mkdir -p \
+    /etc/ocserv \
+    /var/run/ocserv \
+    /var/lib/ocserv \
+    /etc/ocserv/config-per-user
+
+# Generate self-signed certificates for testing
+RUN certtool --generate-privkey --outfile /etc/ocserv/server-key.pem && \
+    cat > /tmp/server.tmpl <<'EOF'
+cn = "VPN Test Server"
+organization = "PayMart E2E Tests"
+expiration_days = 365
+signing_key
+encryption_key
+tls_www_server
+EOF
+
+RUN certtool --generate-self-signed \
+    --load-privkey /etc/ocserv/server-key.pem \
+    --template /tmp/server.tmpl \
+    --outfile /etc/ocserv/server-cert.pem && \
+    rm /tmp/server.tmpl
+
+# Create unix socket directory with proper permissions
+RUN mkdir -p /var/run/ocserv && \
+    chmod 755 /var/run/ocserv
+
+# Create test users file (plain password file)
+RUN touch /etc/ocserv/ocpasswd && \
+    chmod 600 /etc/ocserv/ocpasswd
+
+# Expose ports
+EXPOSE 443/tcp 443/udp
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD [ -S /var/run/ocserv/ocserv.sock ] || exit 1
+
+# Default command - run ocserv in foreground
+CMD ["ocserv", "-f", "-c", "/etc/ocserv/ocserv.conf"]
