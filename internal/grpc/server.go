@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 
@@ -21,21 +22,38 @@ import (
 type Server struct {
 	pb.UnimplementedAgentServiceServer
 
-	config        *config.Config
-	logger        zerolog.Logger
-	server        *grpc.Server
-	ocservManager *ocserv.Manager
+	config          *config.Config
+	logger          zerolog.Logger
+	slogger         *slog.Logger // modern structured logger
+	server          *grpc.Server
+	ocservManager   *ocserv.Manager
+	configGenerator *config.Generator
 }
 
 // New creates a new gRPC server instance
 func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 	s := &Server{
-		config: cfg,
-		logger: logger,
+		config:  cfg,
+		logger:  logger,
+		slogger: slog.Default(),
 	}
 
 	// Create ocserv manager
 	s.ocservManager = ocserv.NewManager(cfg, logger)
+
+	// Create config generator if directories are configured
+	if cfg.Ocserv.ConfigPerUserDir != "" {
+		generator, err := config.NewGenerator(
+			cfg.Ocserv.ConfigPerUserDir,
+			cfg.Ocserv.ConfigPerGroupDir,
+			cfg.Ocserv.BackupDir,
+		)
+		if err != nil {
+			logger.Warn().Err(err).Msg("Failed to create config generator")
+		} else {
+			s.configGenerator = generator
+		}
+	}
 
 	// Create gRPC server with TLS
 	grpcServer, err := s.createGRPCServer()

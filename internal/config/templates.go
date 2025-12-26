@@ -1,5 +1,17 @@
 package config
 
+import (
+	"text/template"
+	"time"
+)
+
+// templateFuncs returns template functions for config generation
+var templateFuncs = template.FuncMap{
+	"now": func() string {
+		return time.Now().Format(time.RFC3339)
+	},
+}
+
 // userConfigTemplate defines the template for per-user ocserv configuration
 const userConfigTemplate = `# Auto-generated per-user configuration for ocserv
 # User: {{.Username}}
@@ -82,12 +94,6 @@ restrict-user-to-routes = true
 {{end}}
 {{- end}}
 `
-
-// Template functions
-func init() {
-	// Register template functions if needed
-	// For now, we use simple templates without custom functions
-}
 
 // DefaultUserConfig returns a default per-user configuration
 func DefaultUserConfig(username string) *PerUserConfig {
