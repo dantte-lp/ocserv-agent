@@ -15,52 +15,45 @@ import (
 // TestHealthCheck tests the HealthCheck RPC handler
 func TestHealthCheck(t *testing.T) {
 	tests := []struct {
-		name          string
-		tier          int32
-		wantHealthy   bool
-		wantErr       bool
-		wantErrCode   codes.Code
-		expectedCheck string // Key check to verify
+		name           string
+		tier           int32
+		wantErr        bool
+		wantErrCode    codes.Code
+		expectedChecks []string // Keys to verify exist in response
 	}{
 		{
-			name:          "tier 1 basic heartbeat",
-			tier:          1,
-			wantHealthy:   true,
-			wantErr:       false,
-			expectedCheck: "agent",
+			name:           "tier 1 basic heartbeat",
+			tier:           1,
+			wantErr:        false,
+			expectedChecks: []string{"agent", "config", "uptime"},
 		},
 		{
-			name:          "tier 2 deep check",
-			tier:          2,
-			wantHealthy:   true,
-			wantErr:       false,
-			expectedCheck: "ocserv_process",
+			name:           "tier 2 deep check",
+			tier:           2,
+			wantErr:        false,
+			expectedChecks: []string{"agent", "memory", "cpu", "ocserv_process", "ocserv_socket"},
 		},
 		{
-			name:          "tier 3 application check",
-			tier:          3,
-			wantHealthy:   false, // Not implemented, so not healthy
-			wantErr:       false,
-			expectedCheck: "end_to_end",
+			name:           "tier 3 application check",
+			tier:           3,
+			wantErr:        false,
+			expectedChecks: []string{"agent", "memory", "cpu", "ocserv_process", "occtl", "config_dirs"},
 		},
 		{
 			name:        "invalid tier - too low",
 			tier:        0,
-			wantHealthy: false,
 			wantErr:     true,
 			wantErrCode: codes.InvalidArgument,
 		},
 		{
 			name:        "invalid tier - too high",
 			tier:        4,
-			wantHealthy: false,
 			wantErr:     true,
 			wantErrCode: codes.InvalidArgument,
 		},
 		{
 			name:        "invalid tier - negative",
 			tier:        -1,
-			wantHealthy: false,
 			wantErr:     true,
 			wantErrCode: codes.InvalidArgument,
 		},
@@ -121,9 +114,8 @@ func TestHealthCheck(t *testing.T) {
 				return
 			}
 
-			if resp.Healthy != tt.wantHealthy {
-				t.Errorf("HealthCheck() Healthy = %v, want %v", resp.Healthy, tt.wantHealthy)
-			}
+			// Healthy status depends on real system state (ocserv running, etc.)
+			// We don't assert on Healthy value, just verify response is valid
 
 			if resp.StatusMessage == "" {
 				t.Error("HealthCheck() StatusMessage is empty")
@@ -137,9 +129,10 @@ func TestHealthCheck(t *testing.T) {
 				t.Error("HealthCheck() Checks map is empty")
 			}
 
-			if tt.expectedCheck != "" {
-				if _, ok := resp.Checks[tt.expectedCheck]; !ok {
-					t.Errorf("HealthCheck() expected check %q not found in response", tt.expectedCheck)
+			// Verify all expected checks are present
+			for _, check := range tt.expectedChecks {
+				if _, ok := resp.Checks[check]; !ok {
+					t.Errorf("HealthCheck() expected check %q not found in response", check)
 				}
 			}
 		})
@@ -349,55 +342,191 @@ func TestExecuteCommand(t *testing.T) {
 
 // TestUpdateConfig tests the UpdateConfig RPC handler
 func TestUpdateConfig(t *testing.T) {
-	cfg := &config.Config{
-		AgentID: "test-agent",
-		TLS: config.TLSConfig{
-			Enabled: false,
-		},
-		Ocserv: config.OcservConfig{
-			ConfigPath:     "/etc/ocserv/ocserv.conf",
-			CtlSocket:      "/run/ocserv/occtl.socket",
-			SystemdService: "ocserv",
-		},
-	}
+	t.Run("without config generator", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:     "/etc/ocserv/ocserv.conf",
+				CtlSocket:      "/run/ocserv/occtl.socket",
+				SystemdService: "ocserv",
+				// No ConfigPerUserDir configured
+			},
+		}
 
-	logger := zerolog.New(zerolog.NewTestWriter(t))
+		logger := zerolog.New(zerolog.NewTestWriter(t))
 
-	server, err := New(cfg, logger)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
 
-	req := &pb.ConfigUpdateRequest{
-		RequestId:     "test-update-1",
-		ConfigType:    pb.ConfigType_CONFIG_TYPE_MAIN,
-		ConfigName:    "test-config",
-		ConfigContent: "# test content",
-	}
+		req := &pb.ConfigUpdateRequest{
+			RequestId:     "test-update-1",
+			ConfigType:    pb.ConfigType_CONFIG_TYPE_PER_USER,
+			ConfigName:    "testuser",
+			ConfigContent: `{"routes":["10.0.0.0/8"],"dns":["8.8.8.8"]}`,
+		}
 
-	resp, err := server.UpdateConfig(context.Background(), req)
+		resp, err := server.UpdateConfig(context.Background(), req)
 
-	if err != nil {
-		t.Errorf("UpdateConfig() unexpected error = %v", err)
-	}
+		if err != nil {
+			t.Errorf("UpdateConfig() unexpected error = %v", err)
+		}
 
-	if resp == nil {
-		t.Error("UpdateConfig() returned nil response")
-		return
-	}
+		if resp == nil {
+			t.Error("UpdateConfig() returned nil response")
+			return
+		}
 
-	if resp.RequestId != req.RequestId {
-		t.Errorf("UpdateConfig() RequestId = %v, want %v", resp.RequestId, req.RequestId)
-	}
+		if resp.RequestId != req.RequestId {
+			t.Errorf("UpdateConfig() RequestId = %v, want %v", resp.RequestId, req.RequestId)
+		}
 
-	// Should return not implemented
-	if resp.Success {
-		t.Error("UpdateConfig() Success = true, want false (not implemented)")
-	}
+		// Should fail without config generator
+		if resp.Success {
+			t.Error("UpdateConfig() Success = true, want false (no config generator)")
+		}
 
-	if resp.ErrorMessage != "not implemented yet" {
-		t.Errorf("UpdateConfig() ErrorMessage = %q, want %q", resp.ErrorMessage, "not implemented yet")
-	}
+		if !strings.Contains(resp.ErrorMessage, "config generator not initialized") {
+			t.Errorf("UpdateConfig() ErrorMessage = %q, want containing 'config generator not initialized'", resp.ErrorMessage)
+		}
+	})
+
+	t.Run("main config not supported", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:        "/etc/ocserv/ocserv.conf",
+				CtlSocket:         "/run/ocserv/occtl.socket",
+				SystemdService:    "ocserv",
+				ConfigPerUserDir:  t.TempDir(),
+				ConfigPerGroupDir: t.TempDir(),
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		req := &pb.ConfigUpdateRequest{
+			RequestId:     "test-update-2",
+			ConfigType:    pb.ConfigType_CONFIG_TYPE_MAIN,
+			ConfigName:    "test-config",
+			ConfigContent: "# test content",
+		}
+
+		resp, err := server.UpdateConfig(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("UpdateConfig() unexpected error = %v", err)
+		}
+
+		if resp.Success {
+			t.Error("UpdateConfig() Success = true, want false for main config")
+		}
+
+		if !strings.Contains(resp.ErrorMessage, "not supported for safety") {
+			t.Errorf("UpdateConfig() ErrorMessage = %q, want containing 'not supported for safety'", resp.ErrorMessage)
+		}
+	})
+
+	t.Run("validate only mode", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:        "/etc/ocserv/ocserv.conf",
+				CtlSocket:         "/run/ocserv/occtl.socket",
+				SystemdService:    "ocserv",
+				ConfigPerUserDir:  t.TempDir(),
+				ConfigPerGroupDir: t.TempDir(),
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		req := &pb.ConfigUpdateRequest{
+			RequestId:     "test-update-3",
+			ConfigType:    pb.ConfigType_CONFIG_TYPE_PER_USER,
+			ConfigName:    "testuser",
+			ConfigContent: `{"routes":["10.0.0.0/8"],"dns":["8.8.8.8"]}`,
+			ValidateOnly:  true,
+		}
+
+		resp, err := server.UpdateConfig(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("UpdateConfig() unexpected error = %v", err)
+		}
+
+		if !resp.Success {
+			t.Errorf("UpdateConfig() Success = false, want true for valid config")
+		}
+
+		if resp.ValidationResult != "validation passed" {
+			t.Errorf("UpdateConfig() ValidationResult = %q, want 'validation passed'", resp.ValidationResult)
+		}
+	})
+
+	t.Run("invalid routes", func(t *testing.T) {
+		cfg := &config.Config{
+			AgentID: "test-agent",
+			TLS: config.TLSConfig{
+				Enabled: false,
+			},
+			Ocserv: config.OcservConfig{
+				ConfigPath:        "/etc/ocserv/ocserv.conf",
+				CtlSocket:         "/run/ocserv/occtl.socket",
+				SystemdService:    "ocserv",
+				ConfigPerUserDir:  t.TempDir(),
+				ConfigPerGroupDir: t.TempDir(),
+			},
+		}
+
+		logger := zerolog.New(zerolog.NewTestWriter(t))
+
+		server, err := New(cfg, logger)
+		if err != nil {
+			t.Fatalf("New() failed: %v", err)
+		}
+
+		req := &pb.ConfigUpdateRequest{
+			RequestId:     "test-update-4",
+			ConfigType:    pb.ConfigType_CONFIG_TYPE_PER_USER,
+			ConfigName:    "testuser",
+			ConfigContent: `{"routes":["invalid-route"]}`,
+		}
+
+		resp, err := server.UpdateConfig(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("UpdateConfig() unexpected error = %v", err)
+		}
+
+		if resp.Success {
+			t.Error("UpdateConfig() Success = true, want false for invalid routes")
+		}
+
+		if !strings.Contains(resp.ValidationResult, "invalid routes") {
+			t.Errorf("UpdateConfig() ValidationResult = %q, want containing 'invalid routes'", resp.ValidationResult)
+		}
+	})
 }
 
 // TestStreamLogs tests the StreamLogs RPC handler
@@ -472,25 +601,11 @@ func TestAgentStream(t *testing.T) {
 	}
 
 	// AgentStream requires a bidirectional stream parameter
-	// For now, we'll test with nil stream and expect Unimplemented error
+	// With nil stream, it will fail when trying to receive
 	err = server.AgentStream(nil)
 
+	// Should error because nil stream can't be used
 	if err == nil {
-		t.Error("AgentStream() expected error, got nil")
-		return
-	}
-
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Errorf("AgentStream() error is not a gRPC status error: %v", err)
-		return
-	}
-
-	if st.Code() != codes.Unimplemented {
-		t.Errorf("AgentStream() error code = %v, want %v", st.Code(), codes.Unimplemented)
-	}
-
-	if st.Message() != "not implemented yet" {
-		t.Errorf("AgentStream() error message = %q, want %q", st.Message(), "not implemented yet")
+		t.Error("AgentStream() expected error with nil stream, got nil")
 	}
 }

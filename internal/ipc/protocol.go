@@ -71,6 +71,7 @@ func (p *Protocol) WriteMessage(conn net.Conn, v interface{}) error {
 	}
 
 	// Write length prefix
+	// #nosec G115 - len(data) validated against MaxMessageSize above
 	if err := binary.Write(conn, binary.BigEndian, uint32(len(data))); err != nil {
 		return fmt.Errorf("write message length: %w", err)
 	}

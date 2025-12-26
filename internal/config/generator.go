@@ -253,12 +253,12 @@ type Templates struct {
 
 // NewTemplates creates and parses config templates
 func NewTemplates() (*Templates, error) {
-	userTpl, err := template.New("user").Parse(userConfigTemplate)
+	userTpl, err := template.New("user").Funcs(templateFuncs).Parse(userConfigTemplate)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse user template")
 	}
 
-	groupTpl, err := template.New("group").Parse(groupConfigTemplate)
+	groupTpl, err := template.New("group").Funcs(templateFuncs).Parse(groupConfigTemplate)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse group template")
 	}

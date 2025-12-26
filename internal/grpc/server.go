@@ -5,11 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
+	"time"
 
 	"github.com/dantte-lp/ocserv-agent/internal/config"
 	"github.com/dantte-lp/ocserv-agent/internal/ocserv"
+	"github.com/dantte-lp/ocserv-agent/internal/storage"
 	pb "github.com/dantte-lp/ocserv-agent/pkg/proto/agent/v1"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
@@ -21,21 +24,42 @@ import (
 type Server struct {
 	pb.UnimplementedAgentServiceServer
 
-	config        *config.Config
-	logger        zerolog.Logger
-	server        *grpc.Server
-	ocservManager *ocserv.Manager
+	config          *config.Config
+	logger          zerolog.Logger
+	slogger         *slog.Logger // modern structured logger
+	server          *grpc.Server
+	ocservManager   *ocserv.Manager
+	configGenerator *config.Generator
+	sessionStore    *storage.SessionStore // In-memory session storage
 }
 
 // New creates a new gRPC server instance
 func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 	s := &Server{
-		config: cfg,
-		logger: logger,
+		config:  cfg,
+		logger:  logger,
+		slogger: slog.Default(),
 	}
 
 	// Create ocserv manager
 	s.ocservManager = ocserv.NewManager(cfg, logger)
+
+	// Create config generator if directories are configured
+	if cfg.Ocserv.ConfigPerUserDir != "" {
+		generator, err := config.NewGenerator(
+			cfg.Ocserv.ConfigPerUserDir,
+			cfg.Ocserv.ConfigPerGroupDir,
+			cfg.Ocserv.BackupDir,
+		)
+		if err != nil {
+			logger.Warn().Err(err).Msg("Failed to create config generator")
+		} else {
+			s.configGenerator = generator
+		}
+	}
+
+	// Create session store with 24h TTL
+	s.sessionStore = storage.NewSessionStore(24 * time.Hour)
 
 	// Create gRPC server with TLS
 	grpcServer, err := s.createGRPCServer()
@@ -45,8 +69,12 @@ func New(cfg *config.Config, logger zerolog.Logger) (*Server, error) {
 
 	s.server = grpcServer
 
-	// Register service
+	// Register AgentService
 	pb.RegisterAgentServiceServer(s.server, s)
+
+	// Register VPNAgentService
+	vpnService := NewVPNService(s, slog.Default())
+	pb.RegisterVPNAgentServiceServer(s.server, vpnService)
 
 	// Register reflection service (for grpcurl and other tools)
 	reflection.Register(s.server)
@@ -103,12 +131,18 @@ func (s *Server) loadTLSCredentials() (credentials.TransportCredentials, error) 
 		return nil, fmt.Errorf("failed to load server certificate: %w", err)
 	}
 
-	// Configure TLS
+	// Configure TLS with secure defaults
+	// MinVersion is guaranteed to be >= TLS 1.2 by config validation
+	minVersion := s.getTLSVersion()
+
+	// G402: Ensure minimum TLS version is 1.2 or higher
+	// This is validated in internal/config/validation.go:102-114
+	// Default is TLS 1.3, fallback is also TLS 1.3
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{serverCert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
-		MinVersion:   s.getTLSVersion(),
+		MinVersion:   minVersion, // #nosec G402 - validated by config validation
 		CipherSuites: []uint16{
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
@@ -119,6 +153,7 @@ func (s *Server) loadTLSCredentials() (credentials.TransportCredentials, error) 
 }
 
 // getTLSVersion returns the TLS version from config
+// Returns TLS 1.3 by default for maximum security
 func (s *Server) getTLSVersion() uint16 {
 	switch s.config.TLS.MinVersion {
 	case "TLS1.3":
@@ -126,6 +161,8 @@ func (s *Server) getTLSVersion() uint16 {
 	case "TLS1.2":
 		return tls.VersionTLS12
 	default:
+		// Default to TLS 1.3 for any invalid/empty value
+		// Validation in config package ensures only TLS1.2/TLS1.3 are accepted
 		return tls.VersionTLS13
 	}
 }
