@@ -38,6 +38,7 @@ func main() {
 	// Parse command line flags for server mode
 	configPath := flag.String("config", "config.yaml", "Path to configuration file")
 	showVersion := flag.Bool("version", false, "Show version and exit")
+	phase2 := flag.Bool("phase2", false, "Run with Phase 2 features (IPC + stats poller)")
 	flag.Parse()
 
 	if *showVersion {
@@ -52,7 +53,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup logging
+	// Check if Phase 2 mode is enabled
+	if *phase2 {
+		// Import необходимо добавить в начало файла
+		// Используем slog для Phase 2
+		fmt.Printf("🚀 Starting ocserv-agent in Phase 2 mode (IPC + stats poller)\n")
+
+		// Для Phase 2 используем отдельную функцию запуска
+		// которая будет импортирована из main_phase2.go
+		if err := runServerPhase2(cfg, nil); err != nil {
+			fmt.Fprintf(os.Stderr, "Phase 2 server error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Setup logging для Phase 1 (legacy)
 	logger := setupLogger(cfg.Logging)
 
 	// Log startup with version and config
