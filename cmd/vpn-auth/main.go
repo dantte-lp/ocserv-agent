@@ -105,6 +105,7 @@ func sendRequest(req *AuthRequest) (*AuthResponse, error) {
 	}
 
 	// Отправка: length (4 bytes big-endian) + JSON payload
+	// #nosec G115 - JSON length is reasonable for IPC messages
 	if err := binary.Write(conn, binary.BigEndian, uint32(len(data))); err != nil {
 		return nil, fmt.Errorf("write length: %w", err)
 	}

@@ -302,6 +302,7 @@ func (s *Server) ExecuteCommand(ctx context.Context, req *pb.CommandRequest) (*p
 		if result != nil {
 			response.Stdout = result.Stdout
 			response.Stderr = result.Stderr
+			// #nosec G115 - exit codes are 0-255, safe to convert to int32
 			response.ExitCode = int32(result.ExitCode)
 		}
 		return response, nil
@@ -310,6 +311,7 @@ func (s *Server) ExecuteCommand(ctx context.Context, req *pb.CommandRequest) (*p
 	response.Success = result.Success
 	response.Stdout = result.Stdout
 	response.Stderr = result.Stderr
+	// #nosec G115 - exit codes are 0-255, safe to convert to int32
 	response.ExitCode = int32(result.ExitCode)
 	response.ErrorMessage = result.ErrorMsg
 

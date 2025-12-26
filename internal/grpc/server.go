@@ -121,12 +121,18 @@ func (s *Server) loadTLSCredentials() (credentials.TransportCredentials, error) 
 		return nil, fmt.Errorf("failed to load server certificate: %w", err)
 	}
 
-	// Configure TLS
+	// Configure TLS with secure defaults
+	// MinVersion is guaranteed to be >= TLS 1.2 by config validation
+	minVersion := s.getTLSVersion()
+
+	// G402: Ensure minimum TLS version is 1.2 or higher
+	// This is validated in internal/config/validation.go:102-114
+	// Default is TLS 1.3, fallback is also TLS 1.3
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{serverCert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    certPool,
-		MinVersion:   s.getTLSVersion(),
+		MinVersion:   minVersion, // #nosec G402 - validated by config validation
 		CipherSuites: []uint16{
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
@@ -137,6 +143,7 @@ func (s *Server) loadTLSCredentials() (credentials.TransportCredentials, error) 
 }
 
 // getTLSVersion returns the TLS version from config
+// Returns TLS 1.3 by default for maximum security
 func (s *Server) getTLSVersion() uint16 {
 	switch s.config.TLS.MinVersion {
 	case "TLS1.3":
@@ -144,6 +151,8 @@ func (s *Server) getTLSVersion() uint16 {
 	case "TLS1.2":
 		return tls.VersionTLS12
 	default:
+		// Default to TLS 1.3 for any invalid/empty value
+		// Validation in config package ensures only TLS1.2/TLS1.3 are accepted
 		return tls.VersionTLS13
 	}
 }

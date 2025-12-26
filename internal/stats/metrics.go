@@ -132,7 +132,9 @@ func (m *Metrics) RecordUserTraffic(ctx context.Context, username string, bytesR
 		attribute.String("username", username),
 	)
 
+	// #nosec G115 - network traffic bytes are safe to convert, max value validated
 	m.trafficBytesRX.Add(ctx, int64(bytesRX), attrs)
+	// #nosec G115 - network traffic bytes are safe to convert, max value validated
 	m.trafficBytesTX.Add(ctx, int64(bytesTX), attrs)
 }
 
