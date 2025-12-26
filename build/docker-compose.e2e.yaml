@@ -42,7 +42,7 @@ services:
     networks:
       - e2e-network
     ports:
-      - "9090:9090"
+      - "9091:9090"
     environment:
       - OCSERV_SOCKET_PATH=/var/run/ocserv/ocserv.sock
       - OCCTL_PATH=/usr/bin/occtl
