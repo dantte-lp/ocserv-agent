@@ -1,0 +1,161 @@
+syntax = "proto3";
+
+package vpn.v1;
+
+option go_package = "github.com/dantte-lp/ocserv-agent/pkg/proto/vpn/v1;vpnv1";
+
+import "google/protobuf/timestamp.proto";
+
+// EventService - сервис для отправки событий VPN сессий
+// Agent отправляет события connect/disconnect на portal для аудита и мониторинга
+service EventService {
+  // ReportConnect - уведомление о подключении пользователя
+  // Вызывается agent после успешного connect-script
+  rpc ReportConnect(ReportConnectRequest) returns (ReportConnectResponse);
+
+  // ReportDisconnect - уведомление об отключении пользователя
+  // Вызывается agent при обнаружении завершения сессии
+  rpc ReportDisconnect(ReportDisconnectRequest) returns (ReportDisconnectResponse);
+
+  // ReportSessionUpdate - обновление статуса сессии
+  // Периодическая отправка метрик активной сессии
+  rpc ReportSessionUpdate(ReportSessionUpdateRequest) returns (ReportSessionUpdateResponse);
+}
+
+// ReportConnectRequest - запрос о подключении
+message ReportConnectRequest {
+  // Имя пользователя
+  string username = 1;
+
+  // ID сессии ocserv
+  string session_id = 2;
+
+  // IP адрес клиента
+  string client_ip = 3;
+
+  // VPN IP адрес
+  string vpn_ip = 4;
+
+  // Устройство
+  string device = 5;
+
+  // Время подключения
+  google.protobuf.Timestamp connected_at = 6;
+
+  // Имя группы
+  string groupname = 7;
+
+  // Дополнительная информация
+  map<string, string> metadata = 8;
+}
+
+// ReportConnectResponse - ответ на уведомление о подключении
+message ReportConnectResponse {
+  // Успешно ли обработано
+  bool success = 1;
+
+  // Сообщение (опционально)
+  string message = 2;
+
+  // Актуальные маршруты (могут быть обновлены)
+  repeated string updated_routes = 3;
+}
+
+// ReportDisconnectRequest - запрос об отключении
+message ReportDisconnectRequest {
+  // Имя пользователя
+  string username = 1;
+
+  // ID сессии
+  string session_id = 2;
+
+  // Время отключения
+  google.protobuf.Timestamp disconnected_at = 3;
+
+  // Причина отключения
+  DisconnectReason reason = 4;
+
+  // Статистика сессии
+  SessionStats stats = 5;
+
+  // Дополнительная информация
+  map<string, string> metadata = 6;
+}
+
+// DisconnectReason - причина отключения
+enum DisconnectReason {
+  DISCONNECT_REASON_UNSPECIFIED = 0;
+  DISCONNECT_REASON_USER_INITIATED = 1;     // Пользователь сам отключился
+  DISCONNECT_REASON_ADMIN_FORCED = 2;       // Принудительное отключение администратором
+  DISCONNECT_REASON_IDLE_TIMEOUT = 3;       // Таймаут неактивности
+  DISCONNECT_REASON_SESSION_LIMIT = 4;      // Превышен лимит времени сессии
+  DISCONNECT_REASON_CERTIFICATE_REVOKED = 5; // Сертификат отозван
+  DISCONNECT_REASON_POLICY_VIOLATION = 6;   // Нарушение политики
+  DISCONNECT_REASON_SERVER_SHUTDOWN = 7;    // Остановка сервера
+  DISCONNECT_REASON_CONNECTION_ERROR = 8;   // Ошибка соединения
+}
+
+// SessionStats - статистика сессии
+message SessionStats {
+  // Длительность сессии в секундах
+  int64 duration_seconds = 1;
+
+  // Принято байт
+  uint64 bytes_received = 2;
+
+  // Отправлено байт
+  uint64 bytes_sent = 3;
+
+  // Количество пакетов принято
+  uint64 packets_received = 4;
+
+  // Количество пакетов отправлено
+  uint64 packets_sent = 5;
+}
+
+// ReportDisconnectResponse - ответ на уведомление об отключении
+message ReportDisconnectResponse {
+  // Успешно ли обработано
+  bool success = 1;
+
+  // Сообщение
+  string message = 2;
+}
+
+// ReportSessionUpdateRequest - запрос обновления статуса сессии
+message ReportSessionUpdateRequest {
+  // Имя пользователя
+  string username = 1;
+
+  // ID сессии
+  string session_id = 2;
+
+  // Время обновления
+  google.protobuf.Timestamp update_time = 3;
+
+  // Текущая статистика
+  SessionStats current_stats = 4;
+
+  // Статус сессии
+  SessionStatus status = 5;
+}
+
+// SessionStatus - статус сессии
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_ACTIVE = 1;      // Активная сессия
+  SESSION_STATUS_IDLE = 2;        // Неактивная (но не отключенная)
+  SESSION_STATUS_DEGRADED = 3;    // Проблемы с соединением
+}
+
+// ReportSessionUpdateResponse - ответ на обновление статуса
+message ReportSessionUpdateResponse {
+  // Успешно ли обработано
+  bool success = 1;
+
+  // Требуется ли отключить сессию
+  bool should_disconnect = 2;
+
+  // Причина необходимости отключения
+  string disconnect_reason = 3;
+}

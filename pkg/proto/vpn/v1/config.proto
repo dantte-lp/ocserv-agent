@@ -1,0 +1,261 @@
+syntax = "proto3";
+
+package vpn.v1;
+
+option go_package = "github.com/dantte-lp/ocserv-agent/pkg/proto/vpn/v1;vpnv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ConfigService - сервис управления конфигурацией VPN
+// Portal управляет per-user и per-group конфигурациями через agent
+service ConfigService {
+  // GetUserConfig - получение конфигурации пользователя
+  rpc GetUserConfig(GetUserConfigRequest) returns (GetUserConfigResponse);
+
+  // UpdateUserConfig - обновление конфигурации пользователя
+  rpc UpdateUserConfig(UpdateUserConfigRequest) returns (UpdateUserConfigResponse);
+
+  // GetGroupConfig - получение конфигурации группы
+  rpc GetGroupConfig(GetGroupConfigRequest) returns (GetGroupConfigResponse);
+
+  // UpdateGroupConfig - обновление конфигурации группы
+  rpc UpdateGroupConfig(UpdateGroupConfigRequest) returns (UpdateGroupConfigResponse);
+
+  // SyncRoutes - синхронизация маршрутов для пользователя/группы
+  rpc SyncRoutes(SyncRoutesRequest) returns (SyncRoutesResponse);
+
+  // GetActiveRoutes - получение активных маршрутов для пользователя
+  rpc GetActiveRoutes(GetActiveRoutesRequest) returns (GetActiveRoutesResponse);
+}
+
+// GetUserConfigRequest - запрос конфигурации пользователя
+message GetUserConfigRequest {
+  // Имя пользователя
+  string username = 1;
+}
+
+// UserConfig - конфигурация пользователя
+message UserConfig {
+  // Имя пользователя
+  string username = 1;
+
+  // Маршруты
+  repeated string routes = 2;
+
+  // DNS серверы
+  repeated string dns_servers = 3;
+
+  // Split DNS домены
+  repeated string split_dns_domains = 4;
+
+  // Максимальное количество одновременных подключений
+  int32 max_same_clients = 5;
+
+  // Ограничить пользователя только маршрутами
+  bool restrict_user_to_routes = 6;
+
+  // Дополнительные параметры конфигурации
+  map<string, string> custom_settings = 7;
+
+  // Время последнего обновления
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// GetUserConfigResponse - ответ с конфигурацией пользователя
+message GetUserConfigResponse {
+  // Конфигурация найдена
+  bool found = 1;
+
+  // Конфигурация пользователя
+  UserConfig config = 2;
+
+  // Сообщение об ошибке
+  string error_message = 3;
+}
+
+// UpdateUserConfigRequest - запрос обновления конфигурации пользователя
+message UpdateUserConfigRequest {
+  // Конфигурация для обновления
+  UserConfig config = 1;
+
+  // Создать резервную копию перед обновлением
+  bool create_backup = 2;
+
+  // Только валидация (не применять)
+  bool validate_only = 3;
+}
+
+// UpdateUserConfigResponse - ответ на обновление конфигурации
+message UpdateUserConfigResponse {
+  // Успешно ли обновлено
+  bool success = 1;
+
+  // Результат валидации
+  string validation_result = 2;
+
+  // Путь к резервной копии
+  string backup_path = 3;
+
+  // Сообщение об ошибке
+  string error_message = 4;
+}
+
+// GetGroupConfigRequest - запрос конфигурации группы
+message GetGroupConfigRequest {
+  // Имя группы
+  string groupname = 1;
+}
+
+// GroupConfig - конфигурация группы
+message GroupConfig {
+  // Имя группы
+  string groupname = 1;
+
+  // Маршруты
+  repeated string routes = 2;
+
+  // DNS серверы
+  repeated string dns_servers = 3;
+
+  // Split DNS домены
+  repeated string split_dns_domains = 4;
+
+  // Максимальное количество одновременных подключений
+  int32 max_same_clients = 5;
+
+  // Ограничить пользователей группы только маршрутами
+  bool restrict_user_to_routes = 6;
+
+  // Дополнительные параметры
+  map<string, string> custom_settings = 7;
+
+  // Время последнего обновления
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// GetGroupConfigResponse - ответ с конфигурацией группы
+message GetGroupConfigResponse {
+  // Конфигурация найдена
+  bool found = 1;
+
+  // Конфигурация группы
+  GroupConfig config = 2;
+
+  // Сообщение об ошибке
+  string error_message = 3;
+}
+
+// UpdateGroupConfigRequest - запрос обновления конфигурации группы
+message UpdateGroupConfigRequest {
+  // Конфигурация для обновления
+  GroupConfig config = 1;
+
+  // Создать резервную копию
+  bool create_backup = 2;
+
+  // Только валидация
+  bool validate_only = 3;
+}
+
+// UpdateGroupConfigResponse - ответ на обновление конфигурации группы
+message UpdateGroupConfigResponse {
+  // Успешно ли обновлено
+  bool success = 1;
+
+  // Результат валидации
+  string validation_result = 2;
+
+  // Путь к резервной копии
+  string backup_path = 3;
+
+  // Сообщение об ошибке
+  string error_message = 4;
+}
+
+// SyncRoutesRequest - запрос синхронизации маршрутов
+message SyncRoutesRequest {
+  // Тип конфигурации
+  ConfigType config_type = 1;
+
+  // Имя (username или groupname)
+  string name = 2;
+
+  // Новые маршруты
+  repeated string routes = 3;
+
+  // DNS серверы (опционально)
+  repeated string dns_servers = 4;
+
+  // Принудительная перезапись
+  bool force_overwrite = 5;
+}
+
+// ConfigType - тип конфигурации
+enum ConfigType {
+  CONFIG_TYPE_UNSPECIFIED = 0;
+  CONFIG_TYPE_USER = 1;   // Per-user конфигурация
+  CONFIG_TYPE_GROUP = 2;  // Per-group конфигурация
+}
+
+// SyncRoutesResponse - ответ на синхронизацию маршрутов
+message SyncRoutesResponse {
+  // Успешно ли синхронизировано
+  bool success = 1;
+
+  // Количество обновленных маршрутов
+  int32 routes_updated = 2;
+
+  // Путь к конфигурационному файлу
+  string config_path = 3;
+
+  // Сообщение об ошибке
+  string error_message = 4;
+}
+
+// GetActiveRoutesRequest - запрос активных маршрутов
+message GetActiveRoutesRequest {
+  // Имя пользователя
+  string username = 1;
+
+  // ID сессии (опционально)
+  string session_id = 2;
+}
+
+// RouteInfo - информация о маршруте
+message RouteInfo {
+  // CIDR маршрута
+  string cidr = 1;
+
+  // Источник маршрута
+  RouteSource source = 2;
+
+  // Активен ли маршрут
+  bool active = 3;
+
+  // Дополнительная информация
+  map<string, string> metadata = 4;
+}
+
+// RouteSource - источник маршрута
+enum RouteSource {
+  ROUTE_SOURCE_UNSPECIFIED = 0;
+  ROUTE_SOURCE_USER_CONFIG = 1;   // Из per-user конфигурации
+  ROUTE_SOURCE_GROUP_CONFIG = 2;  // Из per-group конфигурации
+  ROUTE_SOURCE_DEFAULT = 3;       // Из default конфигурации
+  ROUTE_SOURCE_DYNAMIC = 4;       // Динамически назначенный
+}
+
+// GetActiveRoutesResponse - ответ с активными маршрутами
+message GetActiveRoutesResponse {
+  // Маршруты найдены
+  bool found = 1;
+
+  // Список маршрутов
+  repeated RouteInfo routes = 2;
+
+  // DNS серверы
+  repeated string dns_servers = 3;
+
+  // Сообщение об ошибке
+  string error_message = 4;
+}
