@@ -28,13 +28,13 @@
 | Метрика | Значение |
 |---------|----------|
 | **Версия** | 0.7.0-dev (Phase 7 IN PROGRESS) |
-| **Завершено фаз** | 6 / 7 ✅ (Phase 7 Day 1 ✅) |
+| **Завершено фаз** | 6 / 7 ✅ (Phase 7 Day 2 ✅) |
 | **Coverage** | 56.6% (unit tests) |
 | **golangci-lint** | 0 errors ✅ |
 | **Tests** | 273 unit + 14 E2E = 287 total |
 | **Proto sync** | ✅ Синхронизировано с portal |
 | **Pull Request** | #38 (Phase 6) - merged ✅ |
-| **Последнее обновление** | 2025-12-27 (Phase 7 Day 1) |
+| **Последнее обновление** | 2025-12-27 (Phase 7 Day 2) |
 
 ### Ключевые компоненты
 
@@ -426,7 +426,7 @@ End-to-end тестирование с реальным ocserv на OracleLinux 
 
 **Даты:** 2025-12-27 - 2025-12-30 (4 дня)
 **Дата начала:** 2025-12-27
-**Статус:** 🔄 IN PROGRESS (Day 1)
+**Статус:** 🔄 IN PROGRESS (Day 2)
 **Приоритет:** CRITICAL (синхронизация с Portal Sprint 15)
 **Pull Request:** TBD
 
@@ -515,11 +515,13 @@ End-to-end тестирование с реальным ocserv на OracleLinux 
   - [x] Monitoring setup
   - [x] Troubleshooting guide
 
-- [ ] **systemd Service** (Phase 7 Day 2)
-  - [ ] ocserv-agent.service template
-  - [ ] Auto-restart on failure
-  - [ ] Resource limits (CPU, memory)
-  - [ ] Dependencies (ocserv.service, network.target)
+- [x] **systemd Service** ✅ (2025-12-27)
+  - [x] ocserv-agent.service template с hardening
+  - [x] Auto-restart on failure (Restart=on-failure)
+  - [x] Resource limits (512M memory, 100% CPU, 200 tasks)
+  - [x] Dependencies (Requires=ocserv.service)
+  - [x] Security directives (ProtectSystem, ProtectKernel, NetworkRestrictions)
+  - [x] Watchdog support (60s)
 
 - [ ] **Ansible Playbook** (Phase 7 Day 3)
   - [ ] Automated deployment
@@ -563,11 +565,16 @@ End-to-end тестирование с реальным ocserv на OracleLinux 
   - [x] Security best practices
   - [x] Full configuration reference
 
-- [ ] **OPERATIONS.md** — Operations runbook (Phase 7 Day 3)
-  - [ ] Incident response procedures
-  - [ ] Disaster recovery
-  - [ ] Backup/restore procedures
-  - [ ] Certificate rotation procedures
+- [x] **OPERATIONS.md** — Operations runbook ✅ (2025-12-27)
+  - [x] Monitoring & Metrics (Prometheus PromQL examples, alerts)
+  - [x] Logging (journalctl commands, log analysis)
+  - [x] Troubleshooting (agent startup, circuit breaker, errors, cache, memory)
+  - [x] Maintenance procedures (restart, config updates, certificate rotation)
+  - [x] Backup/restore procedures (automated script, cron setup)
+  - [x] Disaster recovery (full server recovery procedures)
+  - [x] Security (regular checks, hardening checklist)
+  - [x] Version updates (upgrade/rollback procedures)
+  - [x] 1239 строк comprehensive operations guide ✅
 
 - [ ] **SECURITY.md** — Security best practices (Phase 7 Day 3)
   - [ ] mTLS configuration details
@@ -584,15 +591,16 @@ End-to-end тестирование с реальным ocserv на OracleLinux 
 - [x] Metrics endpoint работает (уже реализовано) ✅
 - [x] Unit tests проходят ✅
 
-**Day 2 (2025-12-28):**
-- [ ] systemd service template создан
-- [ ] Grafana dashboards экспортированы
-- [ ] Alertmanager rules настроены
-- [ ] Production build тестирован
+**Day 2 (2025-12-27) ✅ COMPLETED:**
+- [x] systemd service template создан с security hardening ✅
+- [x] OPERATIONS.md operations runbook создан (1239 строк) ✅
+- [ ] Grafana dashboards экспортированы (отложено)
+- [ ] Alertmanager rules настроены (отложено)
+- [x] Changes committed и pushed ✅
 
 **Day 3 (2025-12-29):**
 - [ ] Ansible playbook готов
-- [ ] OPERATIONS.md и SECURITY.md созданы
+- [ ] SECURITY.md создан
 - [ ] E2E deployment test пройден
 - [ ] PR создан и смержен
 
