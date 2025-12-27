@@ -1,52 +1,103 @@
 [Unit]
-Description=ocserv-agent - OpenConnect VPN Server Agent
+Description=ocserv-agent - OpenConnect VPN Server Management Agent
 Documentation=https://github.com/dantte-lp/ocserv-agent
-After=network-online.target
+Documentation=https://github.com/dantte-lp/ocserv-agent/blob/main/docs/DEPLOYMENT.md
+Documentation=https://github.com/dantte-lp/ocserv-agent/blob/main/docs/OPERATIONS.md
+After=network-online.target ocserv.service
 Wants=network-online.target
+Requires=ocserv.service
 
 [Service]
 Type=simple
 User=ocserv-agent
 Group=ocserv-agent
 
+# Working directory
+WorkingDirectory=/var/lib/ocserv-agent
+
 # Binary
-ExecStart=/usr/sbin/ocserv-agent --config /etc/ocserv-agent/config.yaml
+ExecStart=/usr/local/bin/ocserv-agent --config /etc/ocserv-agent/config.yaml
+
+# Pre-start checks
+ExecStartPre=/usr/local/bin/ocserv-agent --config /etc/ocserv-agent/config.yaml --validate
+ExecStartPre=/usr/bin/mkdir -p /var/log/ocserv-agent /var/lib/ocserv-agent /var/backups/ocserv-agent
 
 # Restart policy
-Restart=always
+Restart=on-failure
 RestartSec=5s
 StartLimitInterval=300s
 StartLimitBurst=5
 
 # Resource limits
-MemoryLimit=256M
-CPUQuota=50%
-TasksMax=100
+MemoryLimit=512M
+MemoryHigh=384M
+CPUQuota=100%
+TasksMax=200
 
-# Security
+# Security - File system
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/log/ocserv-agent /var/backups/ocserv-agent
-ProtectKernelTunables=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictNamespaces=true
+ReadWritePaths=/var/log/ocserv-agent /var/lib/ocserv-agent /var/backups/ocserv-agent /etc/ocserv/config-per-user /var/run/ocserv
+ReadOnlyPaths=/etc/ocserv
 
-# Capabilities (needed for occtl and systemctl)
+# Security - Kernel
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+
+# Security - Network
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+IPAddressAllow=10.0.0.0/8
+IPAddressAllow=172.16.0.0/12
+IPAddressAllow=192.168.0.0/16
+
+# Security - Capabilities
 AmbientCapabilities=CAP_NET_ADMIN
 CapabilityBoundingSet=CAP_NET_ADMIN
+
+# Security - System calls
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+
+# Security - Misc
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+PrivateDevices=true
+PrivateUsers=false
+RemoveIPC=true
+UMask=0027
+
+# Environment
+Environment="GODEBUG=madvdontneed=1"
+Environment="GOMEMLIMIT=384MiB"
 
 # Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=ocserv-agent
+SyslogLevel=info
 
 # Graceful shutdown
 TimeoutStopSec=30s
+TimeoutStartSec=60s
 KillMode=mixed
 KillSignal=SIGTERM
+FinalKillSignal=SIGKILL
+
+# Watchdog
+WatchdogSec=60s
 
 [Install]
 WantedBy=multi-user.target
+Alias=vpn-agent.service
